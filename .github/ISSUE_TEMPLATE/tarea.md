@@ -1,27 +1,29 @@
 ---
-name: Tarea del portal
-about: Trabajo concreto con criterio de aceptación
-title: ""
+name: Frontend
+about: Pantallas, componentes y navegación del portal
+title: "[FRONT] "
 ---
 
-## Resultado esperado
-
-Describir qué podrá hacer la usuaria al terminar.
-
-## Responsable
-
-Integrante y revisión prevista.
+Completar el título con una acción concreta, por ejemplo Crear pantalla de mis trámites.
 
 ## Pantalla y perfil
 
 Ruta del portal, perfil y enlace al Figma cuando corresponda.
 
+## Resultado esperado
+
+Describir qué quedará funcionando al terminar.
+
+## Responsable
+
+Integrante y revisora prevista.
+
 ## Criterios de aceptación
 
-- [ ] Se completa el recorrido descrito.
-- [ ] Se verifican carga, error, resultado vacío y resultado correcto.
+- [ ] Se completa el resultado descrito.
 - [ ] Se adjunta evidencia para revisar en QA.
 
 ## Dependencias
 
-API, datos de ejemplo o componente que requiere esta tarea.
+API, datos, documentos o componente que requiere esta tarea.
+
