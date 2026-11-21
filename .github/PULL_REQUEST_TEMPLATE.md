@@ -2,7 +2,7 @@
 
 Issue relacionada #
 
-Destino de este PR — QA o master
+Destino de este PR: QA o master
 
 PR de QA y evidencia de validación, cuando el destino sea master
 
@@ -17,7 +17,8 @@ Indicar ruta, perfil, caso y pasos. Adjuntar captura de escritorio o móvil cuan
 ## Revisión
 
 - [ ] La rama se creó desde master.
-- [ ] Se revisó el cambio con otra integrante.
+- [ ] Se solicitó la aprobación de Lexim1 en Reviewers.
+- [ ] Se resolvieron las observaciones del equipo.
 - [ ] La pantalla contempla carga, error, ausencia de datos y resultado correcto.
 - [ ] Los datos simulados están identificados.
 - [ ] Se comprobaron teclado, foco y lectura en celular cuando aplica.
@@ -27,4 +28,6 @@ Indicar ruta, perfil, caso y pasos. Adjuntar captura de escritorio o móvil cuan
 
 ## Resultado de la validación
 
-Persona que revisó, evidencia y observaciones pendientes.
+Persona que probó, evidencia y observaciones pendientes.
+
+La aprobación requerida corresponde a Lexim1 en ambos pases. La autora adjunta la evidencia y deja pendiente esa revisión. No marcar una aprobación en nombre de otra persona.
