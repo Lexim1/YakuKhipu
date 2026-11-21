@@ -28,7 +28,7 @@ Paola y Camila construyen el frontend. Lexim1 y Aracelly desarrollan el backend.
 
 `master` conserva la versión aprobada. `qa` reúne cambios para revisión. Cada tarea usa `feature/<numero>-<descripcion>`, creada desde `master`.
 
-Primero se abre un PR de la rama feature a qa. Después de la validación en QA se abre otro PR de la misma feature a master. Ambos requieren revisión de otra integrante. Se conserva la feature hasta completar ambos pases.
+Primero se abre un PR de la rama feature a qa. Después de la validación en QA se abre otro PR de la misma feature a master. Ambos requieren la aprobación de Lexim1. Las compañeras pueden revisar y comentar. La exigencia técnica de esa aprobación queda operativa cuando .github/CODEOWNERS está en ambas ramas destino y sus reglas exigen revisión de Code Owners. Véase [configuración de aprobaciones](docs/configuracion_aprobaciones.md). Se conserva la feature hasta completar ambos pases.
 
 ## Entornos
 

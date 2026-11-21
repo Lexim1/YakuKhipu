@@ -24,9 +24,10 @@ Elegir un título que indique qué se hará, como Crear, Conectar, Calcular o Co
 | `qa` | Integración y validación compartida |
 | `feature/12-mis-tramites` | Una tarea concreta, creada desde master |
 | Autora del PR | Explica el cambio, lo comprueba y resuelve observaciones |
-| Revisora | Otra integrante con acceso de escritura que valida el resultado |
+| Aprobador obligatorio | Lexim1 valida y aprueba los pases a qa y master |
+| Compañeras | Prueban el cambio y aportan comentarios |
 
-La aprobación corresponde a una integrante distinta de la autora. La administración verifica que las dos revisiones y la validación en QA estén completas.
+Lexim1 es la única persona cuya aprobación habilita la integración. Las revisiones de las compañeras aportan comentarios, pero no sustituyen esa aprobación. Los PR del frontend se abren desde las cuentas de Paola o Camila. GitHub impide aprobar un PR propio, por lo que una solicitud creada por Lexim1 no puede cumplir por sí misma este flujo.
 
 ## Preparar una tarea
 
@@ -56,8 +57,8 @@ El archivo es un ejemplo. Añadir las rutas concretas que correspondan a la tare
 1. Abrir Pull requests y New pull request.
 2. Elegir `base: qa` y `compare: feature/12-mis-tramites`.
 3. Completar la plantilla e indicar ruta, perfil y pasos para probar.
-4. Pedir revisión a otra integrante. Resolver los comentarios en la misma feature y volver a subir los cambios.
-5. Tras la aprobación, integrar mediante Create a merge commit. Conservar la feature.
+4. Seleccionar a Lexim1 en Reviewers y pedir su aprobación. Resolver los comentarios en la misma feature y volver a subir los cambios.
+5. Tras la aprobación de Lexim1, integrar mediante Create a merge commit. Conservar la feature.
 6. Comprobar el resultado en QA y registrar la evidencia en el PR.
 
 Si todavía se está configurando el despliegue de QA, registrar la revisión local y mantener pendiente la validación del entorno compartido.
@@ -65,8 +66,8 @@ Si todavía se está configurando el despliegue de QA, registrar la revisión lo
 ## Segundo pase a master
 
 1. Con la versión final validada en QA, abrir otro PR con `base: master` y la misma feature en `compare`.
-2. Enlazar el PR de QA y su evidencia. Pedir aprobación a otra integrante.
-3. Integrar con Create a merge commit después de la aprobación.
+2. Enlazar el PR de QA y su evidencia. Pedir una nueva aprobación a Lexim1.
+3. Integrar con Create a merge commit después de la aprobación de Lexim1.
 4. Verificar la publicación cuando exista el despliegue y cerrar la issue al cumplir sus criterios.
 5. Actualizar el equipo local.
 
@@ -83,9 +84,9 @@ Si master avanzó durante la tarea, actualizar la feature con master y resolver 
 
 ## Protección y revisión
 
-Las reglas de master y qa deben exigir PR, al menos una aprobación de otra integrante, nueva revisión cuando cambie el código y resolución de conversaciones. También deben aplicarse a la administración. Los commits de integración conservan la historia necesaria para los dos pases del manual.
+Las reglas de master y qa deben exigir PR, una aprobación, revisión de Code Owners, nueva revisión cuando cambie el código y resolución de conversaciones. También deben aplicarse a la administración. El archivo .github/CODEOWNERS de cada rama destino asigna todos los archivos a @Lexim1. Con ambas condiciones aplicadas, ninguna otra aprobación sustituye la suya. Los commits de integración conservan la historia necesaria para los dos pases del manual.
 
-La configuración inicial de documentos se realiza durante la creación del repositorio. Las tareas de desarrollo posteriores siguen este flujo. Los checks automáticos de compilación se incorporarán con la primera aplicación funcional.
+El requisito específico de Lexim1 queda operativo cuando .github/CODEOWNERS está incorporado en ambas ramas destino. La configuración inicial pendiente y los pasos para activarla se explican en docs/configuracion_aprobaciones.md. Las tareas de desarrollo posteriores siguen este flujo. Los checks automáticos de compilación se incorporarán con la primera aplicación funcional.
 
 ## Fuentes
 
@@ -93,4 +94,3 @@ Manual de flujo de trabajo aportado por el equipo, versión 2 de noviembre de 20
 
 - [Protección de ramas en GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 - [Métodos de integración en GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)
-
