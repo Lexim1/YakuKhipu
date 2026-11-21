@@ -2,6 +2,20 @@
 
 El equipo adapta el manual de flujo de trabajo a YakuKhipu. Cada tarea tiene una issue, una rama propia y dos pases revisados. Los enlaces de despliegue se registran en el README cuando estén disponibles.
 
+## Nombres de las issues
+
+Escribir el área entre corchetes y después una acción concreta. Al crear una issue se puede elegir la plantilla Frontend, Backend o General, que completa el prefijo del título.
+
+| Plantilla | Ejemplo de título |
+| --- | --- |
+| Frontend | `[FRONT] Crear pantalla de mis trámites` |
+| Backend | `[BACK] Calcular días hábiles del trámite` |
+| General | `[GENERAL] Preparar los datos de la demo` |
+
+GitHub asigna el número de la issue. Ese número relaciona la tarea con su rama y su commit. Por ejemplo, la issue `#12 [FRONT] Crear pantalla de mis trámites` usa la rama `feature/12-mis-tramites` y un commit como `feat #12 mostrar mis tramites de EPS`.
+
+Elegir un título que indique qué se hará, como Crear, Conectar, Calcular o Corregir. El responsable, la prioridad y el estado se registran en los campos de la issue.
+
 ## Responsables y ramas
 
 | Elemento | Uso |
@@ -79,3 +93,4 @@ Manual de flujo de trabajo aportado por el equipo, versión 2 de noviembre de 20
 
 - [Protección de ramas en GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 - [Métodos de integración en GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)
+
