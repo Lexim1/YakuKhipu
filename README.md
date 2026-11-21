@@ -5,6 +5,7 @@ Portal para seguir tres procedimientos de SUNASS y coordinar las respuestas de l
 ## Empezar
 
 - [Guía del frontend](docs/guia_frontend.md)
+- [Guía del backend y del agente](docs/guia_backend_agente.md)
 - [Trabajo con ramas y aprobaciones](CONTRIBUTING.md)
 - [Acuerdo inicial de la API](docs/contrato_api.md)
 - [Tareas del equipo](https://github.com/Lexim1/YakuKhipu/issues)
