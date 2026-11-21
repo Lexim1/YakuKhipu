@@ -1,6 +1,6 @@
 # Guía del frontend del portal YakuKhipu
 
-Esta guía está dirigida a Paola y Camila. Les permite construir las vistas SUNASS y EPS del mismo portal, coordinarse con Lexim1 y Aracelly en el backend y entregar cambios mediante ramas y aprobación. El primer objetivo es abrir un trámite, entender su estado y completar una acción con información que persista en la API. Lexim1 es la única persona cuya aprobación autoriza los pases a qa y master.
+Esta guía está dirigida a Paola y Camila. Les permite construir las vistas SUNASS, EPS y Ciudadanía del mismo portal, coordinarse con Lexim1 y Aracelly en el backend y entregar cambios mediante ramas y aprobación. El primer objetivo es abrir un trámite, entender su estado y completar una acción con información que persista en la API. Lexim1 es la única persona cuya aprobación autoriza los pases a qa y master.
 
 ## Quién desarrolla y quién aprueba
 
@@ -8,9 +8,9 @@ Paola usa la cuenta parisa539 y Camila usa CamiMori. Ambas desarrollan en sus pr
 
 Las compañeras pueden comentar y revisar el código. Sus revisiones complementan la entrega y la aprobación obligatoria corresponde a Lexim1. En GitHub, seleccionar Lexim1 en Reviewers. Cada persona utiliza su propia cuenta.
 
-## Un portal con dos vistas
+## Un portal con tres vistas
 
-Las páginas SUNASS y EPS comparten tipografía, colores, botones, mensajes y servicios. Cada perfil tiene su navegación. El servidor comprueba los permisos al consultar o modificar información.
+Las páginas SUNASS, EPS y Ciudadanía comparten tipografía, colores, botones, mensajes y componentes. SUNASS y EPS utilizan sesión y navegación según sus permisos. Ciudadanía tiene acceso público de consulta, con datos preparados por el backend para su publicación.
 
 | Ruta propuesta | Lo que permite hacer |
 | --- | --- |
@@ -21,6 +21,8 @@ Las páginas SUNASS y EPS comparten tipografía, colores, botones, mensajes y se
 | `/eps/tramites` | Consultar los trámites de la EPS |
 | `/eps/tramites/:id` | Entender el estado y el siguiente paso |
 | `/eps/tramites/:id/respuesta` | Preparar la respuesta e informar su presentación |
+| `/ciudadania/decisiones` | Buscar casos públicos por EPS o localidad |
+| `/ciudadania/decisiones/:id` | Entender la decisión, su avance y sus fuentes |
 
 Las rutas representan pantallas de una aplicación. Paola y Camila trabajan sobre la misma carpeta frontend y comparten los componentes.
 
@@ -43,11 +45,11 @@ Un componente es una parte reutilizable de pantalla. Sus props son los datos que
 
 | Persona | Primera responsabilidad | Entrega verificable |
 | --- | --- | --- |
-| Paola | Inicialización, navegación compartida y expediente SUNASS | Abrir un expediente y consultar su estado desde la API |
-| Camila | Vista EPS, adaptación a celular y datos de ejemplo | Informar una respuesta y comprobar el cambio de estado |
-| Ambas | Componentes, integración y revisión cruzada | Mismo diseño y mismo significado de los datos |
+| Paola | Base, navegación, SUNASS y buscador ciudadano | Abrir un expediente y encontrar una ficha pública |
+| Camila | Vista EPS, ficha ciudadana y adaptación a celular | Informar una respuesta y consultar una decisión pública |
+| Ambas | Componentes, fuentes, asistente por contexto e integración | Tres vistas coherentes y accesibles |
 
-Paola prepara la aplicación base una sola vez. Camila empieza su rama cuando esa base esté aprobada en master. Mientras tanto puede acordar el contrato, ordenar los textos y definir los datos de los tres procedimientos. Lexim1 y Aracelly entregan reglas, permisos, fuentes y endpoints.
+Paola prepara la aplicación base una sola vez. Camila empieza su rama cuando esa base esté aprobada en master. Mientras tanto puede acordar el contrato, ordenar los textos y definir los datos de los tres procedimientos. Lexim1 y Aracelly entregan reglas, permisos, fuentes y endpoints, incluida una respuesta específica para la consulta pública.
 
 ## Preparar la computadora
 
@@ -91,6 +93,7 @@ Crear esta estructura al implementar las primeras pantallas. Los archivos se añ
 | `src/app/` | Rutas, sesión y navegación compartida |
 | `src/pages/sunass/` | Expedientes, recepción y alertas |
 | `src/pages/eps/` | Mis trámites, detalle y respuesta |
+| `src/pages/ciudadania/` | Buscador, listado y ficha pública de la decisión |
 | `src/components/` | Botones, estados, historial y resumen del flujo |
 | `src/services/` | Acceso a la API y carga de ejemplos |
 | `src/types/` | Tipos compartidos de los datos |
@@ -119,6 +122,25 @@ En EPS, la pantalla responde dónde está el trámite, si la EPS debe hacer algo
 La lista y el detalle se actualizan después de guardar. La EPS accede a información relevante de su expediente mediante endpoints autorizados. El historial interno completo corresponde al perfil SUNASS.
 
 El comparador de cifras conserva fuente y página. El impacto social se muestra como información complementaria con el estado del dato. Las pantallas diferencian los ejemplos simulados de los documentos verificados.
+
+## Implementar la vista de ciudadanía
+
+La consulta ciudadana forma parte del MVP. En el Figma está en la sección Ciudadanía consulta pública, con las pantallas Decisiones, Ficha de la decisión, Asistente y sus versiones móviles. Utilizar el mismo proyecto React y componentes compartidos.
+
+El recorrido mínimo permite entrar sin iniciar sesión, buscar una EPS o localidad, abrir un caso público y entender qué se solicitó, qué se autorizó y qué se ejecutó. La ficha muestra estado, fecha de actualización y fuentes públicas. Una autorización no prueba que la inversión se haya ejecutado. Si falta el reporte de avance, mostrar Sin dato de ejecución y conservar el último dato con su fecha.
+
+La información de impacto explica a quién podría beneficiar la inversión cuando exista un sustento. Mostrar su fuente y distinguir datos verificados, estimaciones y ejemplos simulados. Un dato ausente aparece como No disponible. Los avisos de consulta o audiencia incluyen fecha y enlace al canal oficial cuando estén publicados.
+
+El asistente se abre desde el listado o la ficha y explica el contexto en lenguaje sencillo. Sus citas abren únicamente fuentes públicas. Si todavía no existe una decisión, debe indicar el estado público disponible. La ciudadanía consulta la información y utiliza los canales oficiales enlazados para participar.
+
+## Tareas para completar la consulta pública
+
+- Paola crea la issue [FRONT] Crear buscador ciudadano. Entrega búsqueda por EPS o localidad, listado de resultados, estado público y navegación al detalle. Incluye carga, error y búsqueda sin resultados.
+- Camila crea la issue [FRONT] Crear ficha pública de la decisión. Entrega resumen, solicitado, autorizado, ejecutado, fecha, impacto con sustento y enlaces a fuentes. Comprueba la versión móvil.
+- Lexim1 y Aracelly preparan [BACK] Entregar datos públicos de decisiones. La API devuelve solo campos, documentos y casos habilitados para consulta pública.
+- Ambas coordinan [FRONT] Conectar asistente ciudadano cuando esté disponible el endpoint público. Reutilizan el panel visual y comprueban el contexto y las citas.
+
+El listado puede incluir los estados En evaluación, En consulta o Decisión publicada cuando el caso esté habilitado para publicación. Si aún no existe autorización, su valor permanece vacío y el texto lo explica. La vista ciudadana no recibe documentos privados, observaciones internas, responsables internos ni acciones de modificación. El backend aplica esta separación antes de enviar la respuesta.
 
 ## Conectar frontend y backend
 
@@ -203,7 +225,7 @@ GitHub impide aprobar un PR propio. Paola y Camila deben abrir sus entregas desd
 
 Ejecutar npm run lint y npm run build cuando exista la aplicación. Comprobar las rutas afectadas, la recarga del navegador y la navegación hacia atrás. Verificar una pantalla de 390 píxeles de ancho y otra de escritorio. Los contenidos largos deben poder desplazarse y los controles deben conservar su foco visible.
 
-Probar los estados de carga, error y ausencia de tareas. En una respuesta EPS, comprobar que guardar dos veces por accidente tiene una respuesta coherente del servidor y que el detalle refleja el estado resultante. Abrir las fuentes del asistente y verificar documento y página.
+Probar los estados de carga, error y ausencia de tareas. En una respuesta EPS, comprobar que guardar dos veces por accidente tiene una respuesta coherente del servidor y que el detalle refleja el estado resultante. Abrir las fuentes del asistente y verificar documento y página. En Ciudadanía, probar una sesión sin autenticar, la búsqueda por EPS o localidad, una ficha sin ejecución informada y los enlaces a fuentes públicas. Comprobar que la API pública no devuelve campos ni documentos internos.
 
 Cada PR adjunta el caso utilizado, la ruta, el perfil y una captura cuando hay cambios visibles. Lexim1 comprueba esos pasos antes de conceder la aprobación requerida.
 
@@ -214,13 +236,15 @@ Cada PR adjunta el caso utilizado, la ruta, el perfil y una captura cuando hay c
 | Base | Portal ejecutable, navegación y componentes compartidos |
 | Primer recorrido | Lista de expedientes y detalle conectado de un caso CPI |
 | Vista EPS | Tarea pendiente, respuesta informada y estado actualizado |
+| Vista Ciudadanía | Búsqueda, ficha pública y fuente de una decisión en celular y escritorio |
 | Tres procesos | Casos CPI, UFI y RP con etapas y retornos correctos |
-| Integración | Documentos con fuentes y panel del asistente conectado |
+| Integración | Fuentes y asistente con acceso acorde a cada una de las tres vistas |
 
-Revisar diariamente un recorrido real entre ambos equipos. Dashboard, gráficos y mejoras visuales se incorporan después de comprobar la navegación y las acciones principales. El enlace QA debe existir antes de la validación final del pase a master.
+Revisar diariamente un recorrido de las tres vistas entre ambos equipos. Dashboard, gráficos y mejoras visuales se incorporan después de comprobar la navegación y las acciones principales. El enlace QA debe existir antes de la validación final del pase a master.
 
 ## Referencias para consultar
 
+- [Vista de ciudadanía en Figma](https://www.figma.com/design/t4Lro34dvKshsTg5KWIJho/YakuKhipu?node-id=213-361)
 - [React y sus componentes](https://react.dev/learn)
 - [Inicio de Vite](https://vite.dev/guide/)
 - [React Router declarativo](https://reactrouter.com/start/declarative/installation)
