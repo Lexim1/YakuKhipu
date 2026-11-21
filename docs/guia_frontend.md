@@ -1,6 +1,12 @@
 # Guía del frontend del portal YakuKhipu
 
-Esta guía está dirigida a Paola y Camila. Les permite construir las vistas SUNASS y EPS del mismo portal, coordinarse con Lexim1 y Aracelly en el backend y entregar cambios mediante ramas y aprobación. El primer objetivo es abrir un trámite, entender su estado y completar una acción con información que persista en la API.
+Esta guía está dirigida a Paola y Camila. Les permite construir las vistas SUNASS y EPS del mismo portal, coordinarse con Lexim1 y Aracelly en el backend y entregar cambios mediante ramas y aprobación. El primer objetivo es abrir un trámite, entender su estado y completar una acción con información que persista en la API. Lexim1 es la única persona cuya aprobación autoriza los pases a qa y master.
+
+## Quién desarrolla y quién aprueba
+
+Paola usa la cuenta parisa539 y Camila usa CamiMori. Ambas desarrollan en sus propias ramas, prueban sus pantallas y se apoyan con comentarios. Lexim1 revisa la entrega, solicita correcciones y concede la aprobación requerida para integrar en qa y master. Aracelly usa vAlp092 y coordina el backend con Lexim1.
+
+Las compañeras pueden comentar y revisar el código. Sus revisiones complementan la entrega y la aprobación obligatoria corresponde a Lexim1. En GitHub, seleccionar Lexim1 en Reviewers. Cada persona utiliza su propia cuenta.
 
 ## Un portal con dos vistas
 
@@ -91,7 +97,7 @@ Crear esta estructura al implementar las primeras pantallas. Los archivos se añ
 | `src/mocks/` | Ejemplos explícitamente simulados |
 | `src/styles/` | Variables y estilos comunes |
 
-Acuerden los nombres y las props de los componentes antes de reutilizarlos. Una sola integrante edita las rutas y los estilos globales en cada tarea. Un PR explica los cambios en archivos compartidos para que la revisora pueda comprobar sus otras pantallas.
+Acuerden los nombres y las props de los componentes antes de reutilizarlos. Una sola integrante edita las rutas y los estilos globales en cada tarea. Un PR explica los cambios en archivos compartidos para que Lexim1 pueda comprobar el efecto sobre las otras pantallas.
 
 ## Construir una pantalla
 
@@ -154,6 +160,18 @@ El tipo de respuesta se define según el contrato confirmado y se valida en la A
 
 Preparar datos de ejemplo con la misma forma que el contrato. Seleccionar el modo de ejemplo explícitamente en desarrollo y señalarlo en la interfaz. Ante un fallo de la API real, mostrar el error y permitir reintentar. Después de una escritura confirmada, consultar de nuevo la lista y el detalle afectados.
 
+## Nombres fáciles para las issues
+
+Usar el área entre corchetes y una acción concreta. GitHub asigna el número automáticamente.
+
+| Área | Ejemplo de título |
+| --- | --- |
+| Frontend | `[FRONT] Crear pantalla de mis trámites` |
+| Backend | `[BACK] Calcular días hábiles del trámite` |
+| General | `[GENERAL] Preparar los datos de la demo` |
+
+Una issue incluye responsable, resultado esperado y criterios para comprobar que terminó. Si la issue recibe el número 12, la rama puede llamarse feature/12-mis-tramites. Mantener el número en el commit y enlazar la issue en el PR.
+
 ## Trabajo diario con ramas
 
 El flujo conserva las ramas master y qa del manual. Cada nueva feature parte de master actualizado. Sustituir el número 12 por el de la issue real.
@@ -173,9 +191,13 @@ git commit -m "feat #12 mostrar mis tramites de EPS"
 git push -u origin feature/12-mis-tramites
 ```
 
-El primer PR usa base qa y compare feature/12-mis-tramites. La otra integrante del frontend revisa el código y prueba la pantalla. Cuando afecta datos, permisos o plazos, la pareja backend revisa también el contrato.
+El primer PR usa base qa y compare feature/12-mis-tramites. En GitHub, abrir Pull requests, elegir New pull request y seleccionar esas ramas. Completar la plantilla y seleccionar Lexim1 en Reviewers. La compañera puede probar la pantalla y comentar. Cuando el cambio afecta datos, permisos o plazos, coordinar también el contrato con el backend.
 
-Después de integrar, registrar la validación en el entorno QA. La misma feature se propone a master mediante un segundo PR enlazado al de QA. Conservar la rama hasta completar ambos pases. Los detalles sobre correcciones y conflictos están en CONTRIBUTING.md.
+Esperar la aprobación de Lexim1 antes de integrar en qa mediante Create a merge commit. Si solicita cambios, corregir en la misma feature, hacer commit y push, y pedirle una nueva revisión. Un cambio posterior invalida la aprobación anterior.
+
+Después de integrar, registrar la validación en el entorno QA. La misma feature se propone a master mediante un segundo PR enlazado al de QA. Ese segundo PR requiere otra aprobación de Lexim1. Conservar la rama hasta completar ambos pases. Los detalles sobre correcciones y conflictos están en CONTRIBUTING.md.
+
+GitHub impide aprobar un PR propio. Paola y Camila deben abrir sus entregas desde sus respectivas cuentas para que Lexim1 las revise. Los PR creados por Lexim1 necesitan resolver esta limitación antes de integrarse. No compartir cuentas ni desactivar las protecciones para avanzar.
 
 ## Comprobar antes de pedir aprobación
 
@@ -183,7 +205,7 @@ Ejecutar npm run lint y npm run build cuando exista la aplicación. Comprobar la
 
 Probar los estados de carga, error y ausencia de tareas. En una respuesta EPS, comprobar que guardar dos veces por accidente tiene una respuesta coherente del servidor y que el detalle refleja el estado resultante. Abrir las fuentes del asistente y verificar documento y página.
 
-Cada PR adjunta el caso utilizado, la ruta, el perfil y una captura cuando hay cambios visibles. Otra integrante comprueba esos pasos antes de aprobar.
+Cada PR adjunta el caso utilizado, la ruta, el perfil y una captura cuando hay cambios visibles. Lexim1 comprueba esos pasos antes de conceder la aprobación requerida.
 
 ## Orden de entrega antes del presencial
 
