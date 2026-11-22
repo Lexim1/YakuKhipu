@@ -1,0 +1,305 @@
+{
+ "_nota": "Fichas de los tres casos reales del expediente del Desafío 3. Cada dato lleva su fuente (fragmento_id). Las fechas 'por_validar' no se confirmaron en el documento y no se usan para cómputos. Los identificadores están anonimizados: no contienen nombres de personas. El texto de los documentos NO está en el repositorio: se carga en la base local con scripts/ingesta_fuentes.py.",
+ "tramites": {
+  "CPI-2026-0007": {
+   "procedimiento": "CPI",
+   "procedimiento_nombre": "Cambio al programa de inversiones",
+   "norma": "Art. 93 del Reglamento General de Tarifas (RGT)",
+   "eps_id": "eps-tacna",
+   "eps": "EPS TACNA S.A.",
+   "region": "Tacna",
+   "titulo": "Uso de recursos liberados para la adquisición de medidores ultrasónicos",
+   "estado": "resuelto",
+   "paso_actual": "8 de 8 · Resolución del Consejo Directivo (RCD 032-2026)",
+   "responsable_actual": "Ninguno: procedimiento resuelto. Seguimiento de la ejecución pendiente de reporte.",
+   "publicable": true,
+   "resumen_ciudadano": "Sunass autorizó a EPS Tacna usar S/ 3 817 752 para comprar e instalar 19 935 medidores ultrasónicos. No hay un documento que informe que ya se instalaron.",
+   "eventos": [
+    {
+     "fecha": "2026-07-17",
+     "fecha_estado": "por_validar",
+     "hito": "Solicitud de cambio del programa de inversiones (25 000 medidores)",
+     "actor": "EPS",
+     "fuente": "cpi-2026-0007-oficio-1447-2025-300-600-eps-tacna-s-a-p1"
+    },
+    {
+     "fecha": "2026-08-07",
+     "fecha_estado": "documento",
+     "hito": "Requerimiento de información adicional, plazo de 3 días hábiles",
+     "actor": "SRT",
+     "fuente": "cpi-2026-0007-oficio-n-156-2026-sunass-dre-srt-tacna-p1"
+    },
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "La EPS pide ampliación de plazo",
+     "actor": "EPS",
+     "fuente": "cpi-2026-0007-oficio-n1590-2026-solicita-ampliacion-p1"
+    },
+    {
+     "fecha": "2026-08-13",
+     "fecha_estado": "documento",
+     "hito": "Sunass concede la ampliación de plazo",
+     "actor": "SRT",
+     "fuente": "cpi-2026-0007-oficio-162-2026-sunass-dre-srt-p1"
+    },
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "La EPS remite información adicional (14 902 medidores)",
+     "actor": "EPS",
+     "fuente": "cpi-2026-0007-oficio-n-1628-2026-300600-eps-tacna-sa-0001-p1"
+    },
+    {
+     "fecha": "2026-08-20",
+     "fecha_estado": "documento",
+     "hito": "Correo de la EPS con la cifra definitiva de 19 935 medidores (citado en la RCD; el correo no consta en el expediente)",
+     "actor": "EPS",
+     "fuente": "cpi-2026-0007-rcd-032-2026-p3"
+    },
+    {
+     "fecha": "2026-08-24",
+     "fecha_estado": "documento",
+     "hito": "Informe técnico 031 y memorando 327 a Gerencia General",
+     "actor": "SRT y DRE",
+     "fuente": "cpi-2026-0007-1-memorando-n-00327-2026-sunass-dre-p1"
+    },
+    {
+     "fecha": "2026-08-28",
+     "fecha_estado": "documento",
+     "hito": "RCD 032-2026: autoriza S/ 3 817 752 para 19 935 medidores",
+     "actor": "Consejo Directivo",
+     "fuente": "cpi-2026-0007-rcd-032-2026-p13"
+    }
+   ],
+   "cifras": [
+    {
+     "concepto": "Cantidad solicitada inicialmente",
+     "tipo": "solicitado",
+     "valor": "25 000 medidores",
+     "fuente": "cpi-2026-0007-informe-031-2026-sunass-dre-srt-tacna-p3"
+    },
+    {
+     "concepto": "Cantidad actualizada con el Oficio 1628",
+     "tipo": "solicitado",
+     "valor": "14 902 medidores",
+     "fuente": "cpi-2026-0007-rcd-032-2026-p3"
+    },
+    {
+     "concepto": "Cantidad definitiva enviada por correo del 20 de agosto de 2026",
+     "tipo": "solicitado",
+     "valor": "19 935 medidores",
+     "fuente": "cpi-2026-0007-rcd-032-2026-p3"
+    },
+    {
+     "concepto": "Autorizado por la RCD 032-2026, art. 1",
+     "tipo": "autorizado",
+     "valor": "19 935 medidores y S/ 3 817 752",
+     "fuente": "cpi-2026-0007-rcd-032-2026-p13"
+    },
+    {
+     "concepto": "Ejecutado",
+     "tipo": "ejecutado",
+     "valor": null,
+     "fuente": null
+    }
+   ],
+   "plazos": [
+    {
+     "capa": "normativo",
+     "regla": "Plazo máximo del procedimiento: 30 días hábiles (Art. 93 RGT; flujograma del anexo)",
+     "inicio": "2026-07-17",
+     "fin": "2026-08-28",
+     "fuente": "Expediente General del Desafío 3, Anexo E"
+    },
+    {
+     "capa": "oficio",
+     "regla": "Respuesta al requerimiento: 3 días hábiles desde la notificación del Oficio 156",
+     "inicio": null,
+     "fin": null,
+     "fuente": "cpi-2026-0007-oficio-n-156-2026-sunass-dre-srt-tacna-p1"
+    }
+   ],
+   "documentos_publicos": [
+    "cpi-2026-0007-rcd-032-2026"
+   ]
+  },
+  "UFI-2025-0001": {
+   "procedimiento": "UFI",
+   "procedimiento_nombre": "Uso excepcional del fondo de inversiones y reservas",
+   "norma": "Art. 89 del Reglamento General de Tarifas (RGT)",
+   "eps_id": "epssmu",
+   "eps": "EPSSMU S.A. (Bagua Grande)",
+   "region": "Amazonas",
+   "titulo": "Uso del fondo de inversiones y reservas ante el déficit hídrico",
+   "estado": "resuelto",
+   "paso_actual": "9 de 9 · Resolución del Consejo Directivo (RCD 126-2025)",
+   "responsable_actual": "Ninguno: procedimiento resuelto y notificado.",
+   "publicable": true,
+   "resumen_ciudadano": "Sunass autorizó a EPSSMU usar hasta S/ 217 313,20 de su fondo de inversiones y reservas para atender el déficit hídrico en Bagua Grande.",
+   "eventos": [
+    {
+     "fecha": "2025-09-12",
+     "fecha_estado": "documento",
+     "hito": "Solicitud de uso del fondo de inversiones y reservas",
+     "actor": "EPS",
+     "fuente": "ufi-2025-0001-oficio-421-2025-epssmu-sa-p1"
+    },
+    {
+     "fecha": "2025-10-02",
+     "fecha_estado": "documento",
+     "hito": "Sunass pide información de sustento",
+     "actor": "DRT",
+     "fuente": "ufi-2025-0001-oficio-n-00556-2025-sunass-drt-m-p1"
+    },
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "La EPS remite información de sustento",
+     "actor": "EPS",
+     "fuente": "ufi-2025-0001-oficio-no482-2025-epssmu-sa-gg-r-p1"
+    },
+    {
+     "fecha": "2025-10-17",
+     "fecha_estado": "documento",
+     "hito": "Informe 284 y memorando 819 de evaluación",
+     "actor": "DRT",
+     "fuente": "ufi-2025-0001-informe-n-00284-2025-sunass-drt-p1"
+    },
+    {
+     "fecha": "2025-10-27",
+     "fecha_estado": "documento",
+     "hito": "RCD 126-2025: autoriza hasta S/ 217 313,20",
+     "actor": "Consejo Directivo",
+     "fuente": "ufi-2025-0001-rcd-126-epssmu-fi-p1"
+    },
+    {
+     "fecha": "2025-10-28",
+     "fecha_estado": "documento",
+     "hito": "Notificación de la RCD 126-2025 a la EPS",
+     "actor": "DRT",
+     "fuente": "ufi-2025-0001-oficio-00629-2025-sunass-drt-notificacion-epssmu-p1"
+    }
+   ],
+   "cifras": [
+    {
+     "concepto": "Monto autorizado (RCD 126-2025)",
+     "tipo": "autorizado",
+     "valor": "hasta S/ 217 313,20",
+     "fuente": "ufi-2025-0001-informe-n-00284-2025-sunass-drt-p1"
+    },
+    {
+     "concepto": "Ejecutado",
+     "tipo": "ejecutado",
+     "valor": null,
+     "fuente": null
+    }
+   ],
+   "plazos": [
+    {
+     "capa": "normativo",
+     "regla": "Plazo máximo del procedimiento: 30 días hábiles (Art. 89 RGT; flujograma del anexo)",
+     "inicio": "2025-09-12",
+     "fin": "2025-10-27",
+     "fuente": "Expediente General del Desafío 3, Anexo 2"
+    }
+   ],
+   "documentos_publicos": [
+    "ufi-2025-0001-rcd-126-epssmu-fi"
+   ]
+  },
+  "RP-2024-0001": {
+   "procedimiento": "RP",
+   "procedimiento_nombre": "Revisión periódica (estudio tarifario)",
+   "norma": "Arts. 45 a 49 del Reglamento General de Tarifas (RGT)",
+   "eps_id": "emapa-pasco",
+   "eps": "EMAPA PASCO S.A.",
+   "region": "Pasco",
+   "titulo": "Revisión periódica y nuevo estudio tarifario",
+   "estado": "resuelto",
+   "paso_actual": "Etapa 4 de 4 · Aprobación (RCD 076-2024)",
+   "responsable_actual": "Ninguno: procedimiento resuelto.",
+   "publicable": true,
+   "resumen_ciudadano": "Sunass aprobó el estudio tarifario de EMAPA PASCO con la RCD 076-2024, después de una audiencia pública.",
+   "eventos": [
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "Solicitud de inicio de la revisión periódica (oficio escaneado, requiere OCR)",
+     "actor": "EPS",
+     "fuente": "rp-2024-0001-oficio-n355-2024-gg-p1"
+    },
+    {
+     "fecha": "2024-08-29",
+     "fecha_estado": "documento",
+     "hito": "Observaciones a la solicitud de inicio",
+     "actor": "DRT",
+     "fuente": "rp-2024-0001-7-oficio-396-2024-sunass-drt-emapa-pasco-pmo-con-las-observa-p1"
+    },
+    {
+     "fecha": "2024-09-05",
+     "fecha_estado": "por_validar",
+     "hito": "La EPS subsana (oficio escaneado; fecha tomada del nombre del archivo)",
+     "actor": "EPS",
+     "fuente": "rp-2024-0001-oficioon366-2024-gg-emapaopasco-20240905145126201-p1"
+    },
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "Resolución 015-2024-SUNASS-DRT: inicio del procedimiento",
+     "actor": "DRT",
+     "fuente": "rp-2024-0001-5995608-resolucion-n-00015-2024-sunass-drt-inicio-periodico--p1"
+    },
+    {
+     "fecha": "2024-09-23",
+     "fecha_estado": "documento",
+     "hito": "Memorando 554: proyecto de estudio tarifario",
+     "actor": "DRT",
+     "fuente": "rp-2024-0001-memorando-no-00554-2024-sunass-drt-p1"
+    },
+    {
+     "fecha": "2024-12-03",
+     "fecha_estado": "documento",
+     "hito": "Informe 150 de la ODS: socialización y audiencia pública",
+     "actor": "ODS Pasco",
+     "fuente": "rp-2024-0001-3-info-de-especialista-150-2024-sunass-ods-pas-p1"
+    },
+    {
+     "fecha": "2024-12-05",
+     "fecha_estado": "documento",
+     "hito": "Memorando 743: estudio tarifario final",
+     "actor": "DRT",
+     "fuente": "rp-2024-0001-memorando-743-2024-sunass-drt-et-emapa-pasco-vf-p1"
+    },
+    {
+     "fecha": null,
+     "fecha_estado": "por_validar",
+     "hito": "RCD 076-2024 aprueba el estudio tarifario",
+     "actor": "Consejo Directivo",
+     "fuente": "rp-2024-0001-rcd-076-2024-emapa-pasco-p1"
+    },
+    {
+     "fecha": "2024-12-18",
+     "fecha_estado": "documento",
+     "hito": "Oficio 515 notifica la RCD 076-2024",
+     "actor": "DRT",
+     "fuente": "rp-2024-0001-oficio-515-notifica-rcd-76-p1"
+    }
+   ],
+   "cifras": [],
+   "plazos": [
+    {
+     "capa": "normativo",
+     "regla": "Plazos máximos por etapa: inicio 30, evaluación 60, difusión 45 (desde la publicación en El Peruano) y aprobación 60 días hábiles (Arts. 45-49 RGT; flujograma del anexo)",
+     "inicio": null,
+     "fin": null,
+     "fuente": "Expediente General del Desafío 3, Anexo D"
+    }
+   ],
+   "documentos_publicos": [
+    "rp-2024-0001-rcd-076-2024-emapa-pasco",
+    "rp-2024-0001-et-emapa-pasco-vf"
+   ]
+  }
+ }
+}
