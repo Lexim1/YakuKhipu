@@ -15,6 +15,7 @@
 
 /* Tabla de expedientes */
 .tabla-expedientes {
+  position: relative;
   overflow-x: auto;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
