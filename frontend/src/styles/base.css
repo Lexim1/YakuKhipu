@@ -1,0 +1,233 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-size: calc(100% * var(--escala-texto));
+}
+
+body {
+  margin: 0;
+  font-family: var(--fuente);
+  font-size: var(--texto-base);
+  line-height: var(--interlineado);
+  letter-spacing: var(--espaciado-letras);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--texto-xxl);
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: var(--texto-md);
+  line-height: 1.3;
+}
+
+a {
+  color: var(--color-primario-texto);
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.saltar-contenido {
+  position: absolute;
+  left: var(--espacio-4);
+  top: -100px;
+  z-index: 50;
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--color-superficie);
+  border-radius: var(--radio);
+}
+
+.saltar-contenido:focus {
+  top: var(--espacio-4);
+}
+
+/* Página */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  padding: 28px 32px 96px;
+  width: 100%;
+  max-width: 1240px;
+}
+
+.pagina__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.antetitulo {
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primario-texto);
+  margin-bottom: 6px;
+}
+
+.subtitulo {
+  margin-top: 6px;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.tarjeta {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-tarjeta);
+  padding: 20px 22px;
+}
+
+.texto-suave {
+  color: var(--color-texto-suave);
+}
+
+.texto-pequeno {
+  font-size: var(--texto-sm);
+}
+
+.nota {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Botones */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  font-weight: 600;
+  font-size: var(--texto-base);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.boton--primario {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.boton--primario:hover {
+  background: var(--color-primario-oscuro);
+}
+
+.boton--secundario {
+  background: var(--color-superficie);
+  color: var(--color-primario-texto);
+  border-color: var(--color-borde);
+}
+
+.boton--secundario:hover {
+  border-color: var(--color-primario);
+}
+
+.boton--naranja {
+  background: var(--color-aviso-intenso);
+  color: #fff;
+}
+
+.boton--bloque {
+  width: 100%;
+}
+
+.boton:disabled,
+.boton[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Formularios */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.campo select,
+.campo input[type='text'],
+.campo input[type='search'] {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: 400;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+}
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  font-size: var(--texto-base);
+}
+
+.casilla input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primario);
+}
+
+@media (max-width: 900px) {
+  .pagina {
+    padding: var(--espacio-4) var(--espacio-4) 96px;
+  }
+
+  h1 {
+    font-size: var(--texto-xl);
+  }
+}
