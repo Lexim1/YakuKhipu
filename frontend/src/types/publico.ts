@@ -27,6 +27,8 @@ export interface CantidadPublica {
   origen: string
   simulado: boolean
   estimado: boolean
+  /** Por acordar: monto asociado a la cantidad, por ejemplo «S/ 3 817 752». */
+  monto_texto?: string | null
 }
 
 export interface FuentePublica {
@@ -75,9 +77,21 @@ export interface DecisionPublica extends DecisionResumen {
   solicitado: CantidadPublica | null
   ejecutado: CantidadPublica | null
   impacto: {
-    texto: string
+    /** Por acordar: pregunta que responde el dato, por ejemplo «¿Dónde?». */
+    pregunta: string
+    /** null cuando el dato todavía no existe: se muestra «No disponible». */
+    texto: string | null
     condicion: 'verificado' | 'estimado' | 'simulado'
     fuente_id: string | null
+    /** Por acordar: fuente que sustentará un dato simulado, por ejemplo «INEI, por distrito». */
+    fuente_prevista: string | null
   }[]
   fuentes: FuentePublica[]
+  /** Consulta o audiencia pública, si está publicada (contrato: fecha límite y enlace oficial). */
+  consulta: {
+    audiencia_texto: string | null
+    fecha_limite: string
+    fecha_limite_texto: string
+    enlace: string | null
+  } | null
 }

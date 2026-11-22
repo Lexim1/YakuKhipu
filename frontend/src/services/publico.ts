@@ -1,8 +1,8 @@
 // Servicios de la consulta ciudadana. No usan sesión: llaman solo a /api/publico.
 
-import { ejemplo, pedirJson, usarEjemplos } from './api'
-import { CIFRAS_SECTOR, DECISIONES } from '../mocks/publico'
-import type { CifraSector, DecisionResumen, ListaPublica } from '../types/publico'
+import { ejemplo, noEncontrado, pedirJson, usarEjemplos } from './api'
+import { CIFRAS_SECTOR, DECISIONES, FICHAS_PUBLICAS } from '../mocks/publico'
+import type { CifraSector, DecisionPublica, DecisionResumen, ListaPublica } from '../types/publico'
 
 export interface FiltrosPublicos {
   q: string
@@ -38,4 +38,10 @@ export function buscarDecisiones(
 export function obtenerCifrasSector(signal?: AbortSignal): Promise<CifraSector[]> {
   if (usarEjemplos) return ejemplo(CIFRAS_SECTOR, signal)
   return pedirJson('/api/publico/cifras', { signal, credentials: 'omit' })
+}
+
+/** Ficha pública de una decisión. Solo existe si el caso está habilitado para publicación. */
+export async function obtenerDecision(id: string, signal?: AbortSignal): Promise<DecisionPublica> {
+  if (usarEjemplos) return ejemplo(FICHAS_PUBLICAS.find((f) => f.id === id) ?? noEncontrado(), signal)
+  return pedirJson(`/api/publico/decisiones/${encodeURIComponent(id)}`, { signal, credentials: 'omit' })
 }
