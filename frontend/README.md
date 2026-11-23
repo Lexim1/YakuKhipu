@@ -33,6 +33,19 @@ redirige a su propia vista. Ciudadanía (`/ciudadania`) es pública. El backend 
 - Con la API real: `POST /api/sesion` con `{ usuario, clave }` (por acordar con backend), `GET /api/sesion` y
   `DELETE /api/sesion`. Una respuesta 401 en cualquier pantalla devuelve al ingreso.
 
+## Asistente y fuentes
+
+Cada pantalla registra su contexto con `useContextoAgente({ espacio, preguntas, caso, publico })`.
+
+- Con `caso: { tipo: 'tramite', id }` (SUNASS y EPS) el panel pregunta a `POST /api/agente/chat`; con
+  `caso: { tipo: 'publico', id }` (ciudadanía) a `POST /api/publico/asistente/chat`. La conversación sigue con
+  `conversacion_id` mientras no cambie el caso.
+- Cada cita trae un `enlace` que arma el backend según el acceso: el panel abre ahí el texto de la página citada y
+  resalta el fragmento; si hay PDF, ofrece abrirlo. En ciudadanía solo llegan fuentes públicas.
+- Sin caso (listados) o con `VITE_USAR_EJEMPLOS=true`, responde las preguntas preparadas de la pantalla.
+- Si el servicio de IA responde 503, una pregunta sugerida se responde con los datos de la pantalla (con aviso); una
+  pregunta escrita muestra el error y «Volver a preguntar». El 429 del asistente ciudadano se muestra tal cual.
+
 ## Comprobar antes de un PR
 
 ```bash
@@ -47,7 +60,7 @@ npm run build
 | `src/app/` | Rutas, cabeceras y menús |
 | `src/pages/sunass/`, `src/pages/eps/`, `src/pages/ciudadania/` | Pantallas de cada vista |
 | `src/components/` | Componentes compartidos: `Chip` (estado con color y texto), `Fuente` (documento y página), `Barra` (plazo), `Dialogo` (ventanas), `PanelAccesibilidad`, `Iconos`, `AvisoSimulado` y mensajes de carga, error y vacío (`Mensajes`) |
-| `src/agente/` | Botón y panel «Preguntar al agente». Cada pantalla le indica su contexto con `useContextoAgente` |
+| `src/agente/` | Botón y panel «Preguntar al agente» y visor de la fuente citada. Cada pantalla le indica su contexto con `useContextoAgente` |
 | `src/services/` | `api.ts` (fetch compartido), `useConsulta.ts` y un servicio por vista |
 | `src/types/` | Tipos según `docs/contrato_api.md` |
 | `src/mocks/` | Ejemplos simulados con la forma del contrato |

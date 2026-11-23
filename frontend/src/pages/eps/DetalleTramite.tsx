@@ -85,6 +85,7 @@ export function DetalleTramite() {
   useContextoAgente(
     tramite && {
       espacio: `Espacio EPS · ${tramite.id}`,
+      caso: { tipo: 'tramite', id: tramite.id },
       preguntas: [
         {
           pregunta: '¿En qué va mi trámite?',

@@ -11,7 +11,9 @@ export function useAgente() {
 /** Cada pantalla indica al agente sobre qué puede responder mientras está abierta. */
 export function useContextoAgente(contexto: ContextoAgente | null) {
   const { registrar } = useAgente()
-  const clave = contexto ? `${contexto.espacio}|${contexto.preguntas.length}` : ''
+  const clave = contexto
+    ? `${contexto.espacio}|${contexto.preguntas.length}|${contexto.caso?.tipo ?? ''}:${contexto.caso?.id ?? ''}`
+    : ''
   useEffect(() => {
     registrar(contexto)
     return () => registrar(null)
