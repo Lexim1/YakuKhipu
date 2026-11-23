@@ -17,7 +17,7 @@ class Tramite(Base):
     """
     __tablename__ = "tramite"
 
-    id: Mapped[str] = mapped_column(String(20), primary_key=True)          # CPI-2026-0007
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)          # identificador canónico
     procedimiento: Mapped[str] = mapped_column(String(3))                  # CPI · UFI · RP
     eps_id: Mapped[str] = mapped_column(ForeignKey("eps.id"), index=True)
     titulo: Mapped[str] = mapped_column(String(200))
@@ -29,7 +29,7 @@ class Tramite(Base):
     fecha_inicio_etapa: Mapped[date | None] = mapped_column(Date)          # RP mide la etapa activa
     fecha_fin: Mapped[date | None] = mapped_column(Date)                   # resolución, si concluyó
     publicable: Mapped[bool] = mapped_column(default=False)
-    simulado: Mapped[bool] = mapped_column(default=True)
+    simulado: Mapped[bool] = mapped_column(default=False)
     version: Mapped[int] = mapped_column(Integer, default=1)               # control de cambios simultáneos
     huella_fuentes: Mapped[str] = mapped_column(String(32), default="")    # cambia al cargar documentos
     presentacion: Mapped[dict | None] = mapped_column(JSON)                # bloques de la vista SUNASS
@@ -63,6 +63,7 @@ class Actuacion(Base):
     paso_destino: Mapped[int] = mapped_column(Integer)
     verificada: Mapped[bool] = mapped_column(default=True)                 # presentación EPS: SUNASS la verifica
     clave_idempotencia: Mapped[str | None] = mapped_column(String(80))
+    peticion_hash: Mapped[str | None] = mapped_column(String(64))
     registrado: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

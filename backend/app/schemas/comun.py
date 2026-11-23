@@ -12,6 +12,7 @@ class Actor(BaseModel):
     perfil: Literal["sunass", "eps", "publico"]
     eps_id: str | None = None
     usuario_id: str | None = None
+    visitante_id: str | None = None
 
 
 class ListaPaginada(BaseModel, Generic[T]):
@@ -30,3 +31,5 @@ class ErrorApi(BaseModel):
     """Formato estable de error: el frontend muestra su propio texto según el código HTTP."""
     detail: str
     codigo: str
+    estado: str | None = None
+    conversacion_id: str | None = None

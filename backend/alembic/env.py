@@ -1,3 +1,4 @@
+raise RuntimeError('Alembic retirado del flujo de instalación. Ejecuta los scripts de backend/sql en una base nueva.')
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
