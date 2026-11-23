@@ -11,6 +11,12 @@ import { TEXTO_ESTADO_PUBLICO, type DecisionResumen, type EstadoPublico } from '
 
 const POR_PAGINA = 9
 
+/** Página pedida en la URL: un entero desde 1. Cualquier otro valor se trata como la página 1. */
+function leerPagina(valor: string | null) {
+  const n = Number(valor)
+  return Number.isInteger(n) && n >= 1 ? n : 1
+}
+
 const TONO_ESTADO: Record<EstadoPublico, 'ok' | 'info' | 'aviso'> = {
   decision_publicada: 'ok',
   en_evaluacion: 'info',
@@ -46,17 +52,42 @@ function TarjetaDecision({ decision }: { decision: DecisionResumen }) {
 /** Buscador ciudadano: decisiones públicas por EPS o localidad. Acceso sin sesión. */
 export function Decisiones() {
   const [parametros, setParametros] = useSearchParams()
-  const q = parametros.get('q') ?? ''
-  const pagina = Math.max(1, Number(parametros.get('pagina')) || 1)
+  const q = (parametros.get('q') ?? '').trim()
+  const pagina = leerPagina(parametros.get('pagina'))
   const [texto, setTexto] = useState(q)
+  const [qAnterior, setQAnterior] = useState(q)
+  const [escribiendo, setEscribiendo] = useState(false)
+
+  // La URL manda: si cambia desde fuera (menú «Decisiones», volver atrás, un enlace),
+  // el cuadro de búsqueda muestra esa consulta y se descarta lo que estaba pendiente.
+  if (q !== qAnterior) {
+    setQAnterior(q)
+    if (texto.trim() !== q) setTexto(q)
+    setEscribiendo(false)
+  }
 
   // Busca mientras la persona escribe, con una pausa breve para no consultar en cada tecla.
+  // Solo actúa después de que la persona escribió: nunca reescribe una URL nueva con texto viejo.
   useEffect(() => {
+    if (!escribiendo) return
     const espera = setTimeout(() => {
-      if (texto.trim() !== q) setParametros(texto.trim() ? { q: texto.trim() } : {}, { replace: true })
+      setEscribiendo(false)
+      const nueva = texto.trim()
+      if (nueva !== q) setParametros(nueva ? { q: nueva } : {}, { replace: true })
     }, 300)
     return () => clearTimeout(espera)
-  }, [texto, q, setParametros])
+  }, [texto, escribiendo, q, setParametros])
+
+  function escribir(valor: string) {
+    setTexto(valor)
+    setEscribiendo(true)
+  }
+
+  function limpiar() {
+    setTexto('')
+    setEscribiendo(false)
+    setParametros({}, { replace: true })
+  }
 
   const [resultado, reintentar] = useConsulta(
     (signal) => buscarDecisiones({ q, page: pagina, pageSize: POR_PAGINA }, signal),
@@ -86,9 +117,23 @@ export function Decisiones() {
 
   function irAPagina(nueva: number) {
     const siguientes = new URLSearchParams(parametros)
-    siguientes.set('pagina', String(nueva))
+    if (nueva <= 1) siguientes.delete('pagina')
+    else siguientes.set('pagina', String(nueva))
     setParametros(siguientes)
   }
+
+  // Una página fuera de rango vuelve sola a la última página válida.
+  const totalPaginas =
+    resultado.estado === 'listo' && resultado.datos.total > 0
+      ? Math.ceil(resultado.datos.total / resultado.datos.page_size)
+      : null
+  useEffect(() => {
+    if (totalPaginas == null || pagina <= totalPaginas) return
+    const siguientes = new URLSearchParams(parametros)
+    if (totalPaginas <= 1) siguientes.delete('pagina')
+    else siguientes.set('pagina', String(totalPaginas))
+    setParametros(siguientes, { replace: true })
+  }, [totalPaginas, pagina, parametros, setParametros])
 
   return (
     <div className="pagina publico__pagina">
@@ -106,7 +151,7 @@ export function Decisiones() {
             id="busqueda-publica"
             type="search"
             value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            onChange={(e) => escribir(e.target.value)}
             placeholder="Ej. Tacna, Río Claro, Altiplano"
             autoComplete="off"
           />
@@ -123,7 +168,7 @@ export function Decisiones() {
                 {q && (
                   <>
                     <p className="texto-suave">Revisa cómo está escrito o busca por el nombre de tu provincia.</p>
-                    <button type="button" className="boton boton--secundario" onClick={() => setTexto('')}>
+                    <button type="button" className="boton boton--secundario" onClick={limpiar}>
                       Ver todas las decisiones
                     </button>
                   </>
@@ -132,6 +177,19 @@ export function Decisiones() {
             )
           }
           const paginas = Math.max(1, Math.ceil(lista.total / lista.page_size))
+          if (pagina > paginas || lista.items.length === 0) {
+            return (
+              <SinResultados titulo={`La página ${pagina} no existe`}>
+                <p className="texto-suave">
+                  {q ? `La búsqueda «${q}» tiene` : 'Hay'} {paginas} {paginas === 1 ? 'página' : 'páginas'} de
+                  resultados.
+                </p>
+                <button type="button" className="boton boton--secundario" onClick={() => irAPagina(paginas)}>
+                  Ir a la página {paginas}
+                </button>
+              </SinResultados>
+            )
+          }
           return (
             <>
               <p className="solo-lectores" aria-live="polite">

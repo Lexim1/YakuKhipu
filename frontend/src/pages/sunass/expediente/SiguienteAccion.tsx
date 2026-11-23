@@ -22,7 +22,7 @@ export function SiguienteAccion({ accion, alValidar }: { accion: Tipo; alValidar
       ) : (
         <Link
           className={`boton boton--bloque ${accion.urgente ? 'boton--naranja' : 'boton--primario'}`}
-          to="/sunass/alertas"
+          to={accion.accion === 'recepcion' ? '/sunass/recepcion' : '/sunass/alertas'}
         >
           {accion.boton}
         </Link>

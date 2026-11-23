@@ -5,11 +5,14 @@
 
 import type {
   Alerta,
+  Asignable,
+  AvisoAgente,
   DocumentoRecibido,
   EstadoPaso,
   Expediente,
   Flujograma,
   Procedimiento,
+  Tarea,
   TramiteResumen,
 } from '../types/tramite'
 
@@ -614,7 +617,7 @@ export const DOCUMENTOS_RECIBIDOS: DocumentoRecibido[] = [
   },
 ]
 
-export const ASIGNABLES = [
+export const ASIGNABLES: Asignable[] = [
   { id: 'srt-1', texto: 'Especialista SRT · Equipo 1', menor_carga: true },
   { id: 'srt-2', texto: 'Especialista SRT · Equipo 2', menor_carga: false },
   { id: 'subdireccion', texto: 'Subdirección SRT', menor_carga: false },
@@ -677,6 +680,7 @@ export const ALERTAS: Alerta[] = [
     fuente: 'Oficio 1628 · pág. 1',
     destino: { tipo: 'recepcion' },
     accion: 'Ir a recepción',
+    documento_id: 'oficio-1628',
   },
   {
     id: 'a6',
@@ -687,5 +691,71 @@ export const ALERTAS: Alerta[] = [
     fuente: 'SIGED',
     destino: { tipo: 'expediente', id: 'CPI-2026-0007', pestana: 'linea' },
     accion: 'Ver línea de tiempo',
+  },
+]
+
+/** Cargo y equipo de la bandeja «Te toca actuar» en la demostración. */
+export const PERFIL_BANDEJA = {
+  cargo: 'Analista SRT',
+  asignable_id: 'srt-1',
+  /** Expedientes que ya tiene asignados: uno en plazo y uno nuevo. */
+  expedientes: ['CPI-2026-0007', 'CPI-2026-0003'],
+}
+
+/** Acciones pendientes de la analista en CPI-2026-0007, según el Figma «SUNASS 02 · Te toca actuar». */
+export const TAREAS_BASE: Tarea[] = [
+  {
+    id: 't-validar',
+    tramite_id: 'CPI-2026-0007',
+    eps: 'EPS Tacna',
+    etapa: 'Revisión',
+    titulo: 'Validar vínculo propuesto',
+    detalle: 'El agente propone que el Oficio 1628 responde al Oficio 156.',
+    urgencia: 'hoy',
+    tipo: 'validar',
+    boton: 'Revisar',
+    destino: '/sunass/expedientes/CPI-2026-0007?accion=validar',
+  },
+  {
+    id: 't-comparar',
+    tramite_id: 'CPI-2026-0007',
+    eps: 'EPS Tacna',
+    etapa: 'Revisión',
+    titulo: 'Revisar cambio de cifras',
+    detalle: '25 000 → 14 902 → 19 935 medidores.',
+    urgencia: 'en_plazo',
+    tipo: 'comparar',
+    boton: 'Comparar',
+    destino: '/sunass/expedientes/CPI-2026-0007?pestana=comparador',
+  },
+  {
+    id: 't-informe',
+    tramite_id: 'CPI-2026-0007',
+    eps: 'EPS Tacna',
+    etapa: 'Revisión',
+    titulo: 'Preparar informe técnico',
+    detalle: 'Quedan 12 de 30 días hábiles.',
+    urgencia: 'en_plazo',
+    tipo: 'informe',
+    boton: 'Abrir ficha',
+    destino: '/sunass/expedientes/CPI-2026-0007',
+  },
+]
+
+export const AVISOS_AGENTE: AvisoAgente[] = [
+  {
+    id: 'av-cifra',
+    tipo: 'cifra_sin_documento',
+    texto: 'La EPS Tacna envió 19 935 medidores por correo. El correo no consta en el expediente.',
+  },
+  {
+    id: 'av-vinculo',
+    tipo: 'vinculo_propuesto',
+    texto: 'Oficio 1628 → Oficio 156 · confianza alta · cita pág. 1.',
+  },
+  {
+    id: 'av-plazo',
+    tipo: 'por_vencer',
+    texto: 'RP-2026-0002 · EPS Costa Sur ya alcanzó el umbral de alerta de aprobación.',
   },
 ]

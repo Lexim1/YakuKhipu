@@ -6,7 +6,7 @@ import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip } from '../../components/Chip'
 import { IconoAtras, IconoChispa } from '../../components/Iconos'
 import { Contenido } from '../../components/Mensajes'
-import { confirmarVinculo, obtenerExpediente } from '../../services/tramites'
+import { confirmarVinculo, obtenerExpediente, rechazarVinculo } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
 import { NOMBRE_COMPLETO, type Expediente as TipoExpediente } from '../../types/tramite'
 import { Comparador } from './expediente/Comparador'
@@ -71,10 +71,12 @@ export function Expediente() {
   const [resultado, reintentar] = useConsulta((signal) => obtenerExpediente(id, signal), [id])
   const [actualizado, setActualizado] = useState<TipoExpediente | null>(null)
   const [rutasAbiertas, setRutasAbiertas] = useState(false)
-  const [validarAbierto, setValidarAbierto] = useState(false)
+  // «Te toca actuar» abre el expediente con ?accion=validar para mostrar el diálogo directamente.
+  const [validarAbierto, setValidarAbierto] = useState(parametros.get('accion') === 'validar')
   const [mensaje, setMensaje] = useState<string | null>(null)
   const { abrir } = useAgente()
 
+  // Después de decidir sobre el vínculo se muestra el expediente que devolvió el servicio.
   const expediente = actualizado?.id === id ? actualizado : resultado.estado === 'listo' ? resultado.datos : null
   const pestana: IdPestana = (PESTANAS.find((p) => p.id === parametros.get('pestana'))?.id ?? 'linea') as IdPestana
 
@@ -86,11 +88,29 @@ export function Expediente() {
     setParametros(nueva === 'linea' ? {} : { pestana: nueva }, { replace: true })
   }
 
+  function cerrarValidar() {
+    setValidarAbierto(false)
+    if (parametros.has('accion')) {
+      const siguientes = new URLSearchParams(parametros)
+      siguientes.delete('accion')
+      setParametros(siguientes, { replace: true })
+    }
+  }
+
   async function confirmar() {
     if (!expediente?.vinculo) return
     const nuevo = await confirmarVinculo(expediente.id, expediente.vinculo.documento)
     setActualizado(nuevo)
     setMensaje(`Vínculo confirmado: ${expediente.vinculo.documento} responde al ${expediente.vinculo.responde_a}.`)
+  }
+
+  async function rechazar() {
+    if (!expediente?.vinculo) return
+    const nuevo = await rechazarVinculo(expediente.id, expediente.vinculo.documento)
+    setActualizado(nuevo)
+    setMensaje(
+      `Vínculo rechazado: el ${expediente.vinculo.documento} queda por asociar en Recepción de documentos.`,
+    )
   }
 
   return (
@@ -221,12 +241,9 @@ export function Expediente() {
                 <ValidarVinculo
                   vinculo={expediente.vinculo}
                   abierto={validarAbierto}
-                  alCerrar={() => setValidarAbierto(false)}
+                  alCerrar={cerrarValidar}
                   alConfirmar={confirmar}
-                  alRechazar={() => {
-                    setValidarAbierto(false)
-                    setMensaje('Vínculo rechazado: el documento queda por asociar en Recepción de documentos.')
-                  }}
+                  alRechazar={rechazar}
                 />
               )}
             </>

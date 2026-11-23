@@ -10,6 +10,7 @@ import { Expedientes } from '../pages/sunass/Expedientes'
 import { Expediente } from '../pages/sunass/Expediente'
 import { Recepcion } from '../pages/sunass/Recepcion'
 import { Alertas } from '../pages/sunass/Alertas'
+import { TeToca } from '../pages/sunass/TeToca'
 import { MisTramites } from '../pages/eps/MisTramites'
 import { DetalleTramite } from '../pages/eps/DetalleTramite'
 import { Respuesta } from '../pages/eps/Respuesta'
@@ -19,7 +20,6 @@ import { Decision } from '../pages/ciudadania/Decision'
 /** Pantallas SUNASS del Figma que la guía todavía no asigna a una tarea. */
 const SUNASS_SIN_ASIGNAR = [
   { ruta: 'dashboard', titulo: 'Dashboard' },
-  { ruta: 'te-toca', titulo: 'Te toca actuar' },
   { ruta: 'por-resolver', titulo: 'Por resolver' },
   { ruta: 'ficha-eps', titulo: 'Ficha 360 de EPS' },
   { ruta: 'encargos', titulo: 'Encargos posteriores' },
@@ -51,6 +51,7 @@ export function App() {
             <Route path="expedientes/:id" element={<Expediente />} />
             <Route path="recepcion" element={<Recepcion />} />
             <Route path="alertas" element={<Alertas />} />
+            <Route path="te-toca" element={<TeToca />} />
             {SUNASS_SIN_ASIGNAR.map((p) => (
               <Route
                 key={p.ruta}
