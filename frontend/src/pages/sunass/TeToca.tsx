@@ -5,6 +5,7 @@ import { IconoChispa, IconoEnlace, IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { obtenerBandeja, useVersionTramites } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
+import { useSesion } from '../../sesion/useSesion'
 import type { AvisoAgente, BandejaTareas, Tarea, UrgenciaTarea } from '../../types/tramite'
 
 const URGENCIA: Record<UrgenciaTarea, { tono: Tono; texto: string; orden: number }> = {
@@ -92,6 +93,7 @@ export function TeToca() {
   const versionDatos = useVersionTramites()
   const [resultado, reintentar] = useConsulta((signal) => obtenerBandeja(signal), [versionDatos])
   const { abrir } = useAgente()
+  const { sesion } = useSesion()
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Te toca actuar',
@@ -122,7 +124,7 @@ export function TeToca() {
           return (
             <>
               <div>
-                <p className="antetitulo">{bandeja.cargo}</p>
+                <p className="antetitulo">{sesion?.nombre ?? bandeja.cargo}</p>
                 <h1>Te toca actuar</h1>
                 <p className="subtitulo">
                   {tareas.length > 0

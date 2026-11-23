@@ -22,6 +22,17 @@ Abrir la dirección que muestra la terminal (normalmente http://localhost:5173).
 
 Reiniciar `npm run dev` después de cambiar `.env.local`. Las variables `VITE_` son visibles en el navegador: no guardar claves aquí.
 
+## Sesión
+
+La entrada del portal (`/`) es el ingreso. Cada cuenta abre la vista de su perfil: SUNASS va a `/sunass/te-toca`
+y una EPS a `/eps/tramites`. Las rutas `/sunass` y `/eps` piden sesión; si la cuenta es de otro perfil, se
+redirige a su propia vista. Ciudadanía (`/ciudadania`) es pública. El backend vuelve a comprobar cada permiso.
+
+- Con `VITE_USAR_EJEMPLOS=true` se usan las cuentas de `src/mocks/sesion.ts` (mismos identificadores que la semilla del
+  backend) con la contraseña de demostración que muestra la pantalla de ingreso.
+- Con la API real: `POST /api/sesion` con `{ usuario, clave }` (por acordar con backend), `GET /api/sesion` y
+  `DELETE /api/sesion`. Una respuesta 401 en cualquier pantalla devuelve al ingreso.
+
 ## Comprobar antes de un PR
 
 ```bash

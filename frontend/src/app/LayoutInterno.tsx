@@ -4,6 +4,7 @@ import { PanelAgente } from '../agente/PanelAgente'
 import { IconoAbajo, IconoBuscar, IconoCampana, IconoPersonas } from '../components/Iconos'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
 import { obtenerContadores, useVersionTramites } from '../services/tramites'
+import { useSesion } from '../sesion/useSesion'
 import type { Contadores } from '../types/tramite'
 import { Marca } from './Marca'
 import type { EnlaceMenu, GrupoMenu } from './menus'
@@ -27,7 +28,6 @@ function useContadores(necesarios: boolean): Contadores | null {
 
 interface Props {
   vista: string
-  perfil: string
   menu: GrupoMenu[]
   /** Ruta de la lista donde busca la cabecera, por ejemplo /sunass/expedientes. */
   rutaBusqueda?: string
@@ -36,10 +36,21 @@ interface Props {
 
 /**
  * Estructura de las vistas con sesión (SUNASS y EPS): cabecera, menú lateral y contenido.
- * El perfil es simulado hasta que el backend entregue la sesión real.
+ * El cargo que se muestra sale de la sesión.
  */
-export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }: Props) {
+export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas }: Props) {
   const navegar = useNavigate()
+  const { sesion, salir } = useSesion()
+  const [saliendo, setSaliendo] = useState(false)
+
+  async function cerrar() {
+    setSaliendo(true)
+    try {
+      await salir()
+    } finally {
+      navegar('/', { replace: true })
+    }
+  }
   const [busqueda, setBusqueda] = useState('')
   const contadores = useContadores(menu.some((g) => g.enlaces.some((e) => e.contadorVivo)))
 
@@ -83,14 +94,28 @@ export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }
             <IconoCampana tamano={16} />
           </Link>
         )}
-        <Link to="/" className="pildora-perfil" title="Perfil simulado: volver al ingreso para cambiarlo">
-          <IconoPersonas tamano={16} />
-          <span className="pildora-perfil__texto">Perfil: {perfil}</span>
-          <span className="solo-lectores"> (cambiar de vista)</span>
-          <span className="pildora-perfil__texto" aria-hidden="true">
-            <IconoAbajo tamano={14} />
-          </span>
-        </Link>
+        <details className="menu-sesion">
+          <summary className="pildora-perfil">
+            <IconoPersonas tamano={16} />
+            <span className="pildora-perfil__texto">{sesion?.nombre ?? 'Mi cuenta'}</span>
+            <span className="solo-lectores"> (opciones de la sesión)</span>
+            <span className="pildora-perfil__texto" aria-hidden="true">
+              <IconoAbajo tamano={14} />
+            </span>
+          </summary>
+          <div className="menu-sesion__panel">
+            <div>
+              <p style={{ fontWeight: 700 }}>{sesion?.nombre}</p>
+              <p className="texto-pequeno texto-suave">
+                {sesion?.perfil === 'eps' ? `Vista EPS · ${sesion.eps ?? ''}` : 'Vista SUNASS'}
+                {sesion?.simulado && ' · Cuenta de demostración'}
+              </p>
+            </div>
+            <button type="button" className="boton boton--secundario boton--bloque" onClick={cerrar} disabled={saliendo}>
+              {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
+            </button>
+          </div>
+        </details>
         <Accesibilidad />
       </header>
       <div className="estructura">
