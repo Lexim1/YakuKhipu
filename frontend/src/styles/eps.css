@@ -1,0 +1,490 @@
+/* Vista EPS: mis trámites, seguimiento y respuesta */
+
+/* Enlace para volver (EPS y ficha ciudadana) */
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.volver:hover {
+  text-decoration: underline;
+}
+
+/* Franja destacada: tarea pendiente o respuesta presentada */
+.eps-franja {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: 18px 22px;
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso);
+}
+
+.eps-franja--peligro {
+  background: var(--color-peligro-fondo);
+  color: var(--color-peligro);
+}
+
+.eps-franja--ok {
+  background: var(--color-primario-suave);
+  color: var(--color-primario-texto);
+}
+
+.eps-franja--presentada {
+  background: var(--color-ok-fondo);
+  color: var(--color-ok);
+}
+
+.eps-franja__icono {
+  display: grid;
+  flex-shrink: 0;
+}
+
+.eps-franja__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.eps-franja h2 {
+  color: var(--color-texto);
+}
+
+/* Lista de trámites */
+.eps-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.eps-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: 16px 22px;
+  color: var(--color-texto);
+  text-decoration: none;
+}
+
+.eps-fila:hover {
+  border-color: var(--color-primario);
+}
+
+.eps-fila__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eps-fila__titulo {
+  font-size: var(--texto-md);
+  font-weight: 700;
+}
+
+.eps-fila__detalle {
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+/* Cabecera y columnas */
+.eps-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.eps-dos-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: var(--espacio-4);
+}
+
+.eps-tarjeta__titulo {
+  margin-bottom: var(--espacio-3);
+  font-size: var(--texto-sm);
+  font-weight: 700;
+  color: var(--color-texto-suave);
+}
+
+/* Seguimiento */
+.seguimiento {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.seguimiento__paso {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 22px;
+}
+
+.seguimiento__paso:last-child {
+  padding-bottom: 0;
+}
+
+/* Línea que une los pasos */
+.seguimiento__paso:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 26px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--color-borde);
+}
+
+.seguimiento__paso--hecho:not(:last-child)::before {
+  background: var(--color-primario);
+}
+
+.seguimiento__marca {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-neutro-fondo);
+  color: var(--color-primario);
+}
+
+.seguimiento__paso--hecho .seguimiento__marca {
+  background: var(--color-primario-suave);
+}
+
+.seguimiento__paso--actual .seguimiento__marca {
+  background: var(--color-primario);
+  box-shadow: 0 0 0 4px var(--color-primario-suave);
+}
+
+.seguimiento__paso--actual .seguimiento__marca::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.seguimiento__titulo {
+  font-weight: 700;
+}
+
+.seguimiento__paso--pendiente .seguimiento__titulo {
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.seguimiento__fecha {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Tarjetas de la columna derecha */
+.eps-tarea {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+}
+
+.eps-tarea .antetitulo {
+  margin-bottom: 0;
+}
+
+.eps-progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.eps-documentos ul {
+  list-style: none;
+  margin: var(--espacio-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.eps-documentos li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* Puntos que pide Sunass */
+.eps-requisitos {
+  padding-bottom: 14px;
+}
+
+.eps-requisitos__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.eps-requisitos__cabecera h2 {
+  font-size: var(--texto-md);
+}
+
+.eps-requisitos__barra {
+  width: min(216px, 40%);
+}
+
+.eps-requisitos__lista {
+  list-style: none;
+  margin: 0 0 var(--espacio-3);
+  padding: 0;
+}
+
+.eps-requisitos__lista li {
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.eps-requisito {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: 52px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.eps-requisito input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--color-primario);
+}
+
+.eps-requisito__texto {
+  flex: 1;
+  font-size: var(--texto-md);
+}
+
+.eps-requisito--listo .eps-requisito__texto {
+  color: var(--color-texto-suave);
+}
+
+.eps-requisito__estado {
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  color: var(--color-primario-texto);
+}
+
+/* Plazo y cómo presentar */
+.eps-plazo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.eps-plazo h2 {
+  font-size: var(--texto-md);
+}
+
+.eps-plazo__valor {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.eps-plazo__valor--aviso {
+  color: var(--color-aviso-intenso);
+}
+
+.eps-plazo__valor--peligro {
+  color: var(--color-peligro);
+}
+
+.eps-plazo__valor--ok {
+  color: var(--color-ok);
+}
+
+.eps-presentar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: 20px 22px;
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-primario-suave);
+}
+
+.eps-presentar h2 {
+  font-size: var(--texto-md);
+}
+
+.eps-presentar p {
+  color: var(--color-primario-texto);
+}
+
+/* Diálogos de la respuesta */
+.eps-alerta-suave {
+  padding: var(--espacio-3);
+  border-radius: var(--radio);
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso);
+  font-size: var(--texto-sm);
+}
+
+.campo input[type='date'] {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: 400;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+}
+
+.eps-resumen-doc {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.eps-resumen-lista {
+  margin: var(--espacio-2) 0 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eps-registrada {
+  align-items: center;
+  text-align: center;
+}
+
+.eps-registrada__icono {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-ok-fondo);
+  color: var(--color-ok);
+}
+
+/* Barra inferior EPS (celular). Usa .navegacion-movil de layout.css, con tres pestañas. */
+.navegacion-movil.eps-navegacion {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.eps-navegacion span[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+/* Las reglas de .navegacion-movil span (layout.css) no deben aplicarse a las piezas internas. */
+.navegacion-movil .eps-navegacion__icono,
+.navegacion-movil .eps-navegacion__contador,
+.navegacion-movil .eps-navegacion__contador .solo-lectores {
+  padding: 0;
+  gap: 0;
+}
+
+.navegacion-movil .eps-navegacion__icono {
+  position: relative;
+  display: inline-grid;
+}
+
+.navegacion-movil .eps-navegacion__contador {
+  display: block;
+  position: absolute;
+  top: -6px;
+  right: -12px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* Celular */
+.eps-solo-movil {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  /* En celular la barra inferior reemplaza al menú horizontal de la vista EPS. */
+  .estructura:has(.eps-navegacion) .lateral {
+    display: none;
+  }
+
+  .eps-solo-movil {
+    display: block;
+    margin-top: var(--espacio-3);
+  }
+
+  .eps-dos-columnas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .eps-franja {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+
+  .eps-franja .boton {
+    width: 100%;
+  }
+
+  .eps-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--espacio-2) var(--espacio-3);
+    padding: 14px 16px;
+  }
+
+  .eps-fila .chip {
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .eps-fila > svg {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .eps-requisito__estado {
+    display: none;
+  }
+
+  .eps-requisitos__cabecera h2 {
+    white-space: nowrap;
+  }
+
+  .tarjeta.eps-requisitos,
+  .tarjeta.eps-tarea {
+    padding: 16px;
+  }
+}
