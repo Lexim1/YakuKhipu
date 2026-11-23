@@ -15,7 +15,7 @@ from ..models import Actuacion, Documento, Eps, Tramite
 from ..repositories import tramites as repo
 from ..schemas.comun import Actor
 from . import plazos
-from .tramites import FINALES, TEXTO_ESTADO, _guardar, _nueva
+from .tramites import FINALES, TEXTO_ESTADO, _guardar, _nueva, huella_peticion
 
 ESTADO_CORTO = {"requiere_respuesta": "Requiere respuesta", "requiere_subsanacion": "Requiere subsanación",
                 "en_evaluacion": "En evaluación"}
@@ -31,6 +31,7 @@ def _ficha_generica(db: Session, t: Tramite) -> dict:
                                               Documento.visibilidad.in_(repo.VISIBLES["eps"]))
                       .order_by(Documento.id)).all()
     acts = db.scalars(select(Actuacion).where(Actuacion.tramite_id == t.id).order_by(Actuacion.id)).all()
+    acts = [a for a in acts if a.documento_id in {d.id for d in docs}]
     seguimiento = [{"titulo": a.titulo, "fecha_texto": plazos.fecha_corta(a.fecha_acreditada) if a.fecha_acreditada
                     else "Fecha por validar", "estado": "hecho"} for a in acts]
     if t.estado not in FINALES:
@@ -48,6 +49,8 @@ def _ficha_generica(db: Session, t: Tramite) -> dict:
 
 def ficha(db: Session, t: Tramite, hoy: date) -> dict:
     f = copy.deepcopy(t.ficha_eps) if t.ficha_eps else _ficha_generica(db, t)
+    f["eps"] = db.get(Eps, t.eps_id).nombre
+    f['documentos']=[{'id':d.id,'titulo':d.titulo,'pagina':1} for d in repo.documentos_visibles(db,Actor(perfil='eps',eps_id=t.eps_id),t.id)]
     f.pop("detalle_lista", None)
     accion = f.get("siguiente_accion")
     if accion and accion.get("fecha_limite"):  # los días restantes se calculan hoy, no se guardan
@@ -81,13 +84,22 @@ def listar(db: Session, actor: Actor, hoy: date) -> list[dict]:
 def informar_respuesta(db: Session, actor: Actor, tramite_id: str, datos: dict, clave: str | None, hoy: date) -> dict:
     """La EPS informa que presentó su respuesta. Repetir el mismo envío (misma clave) devuelve el mismo resultado."""
     t = repo.obtener_tramite(db, actor, tramite_id, bloquear=True)
-    if clave and db.scalars(select(Actuacion).where(Actuacion.tramite_id == t.id,
-                                                    Actuacion.clave_idempotencia == clave)).first():
+    previa=db.scalars(select(Actuacion).where(Actuacion.tramite_id==t.id,Actuacion.clave_idempotencia==clave)).first() if clave else None
+    if previa:
+        if previa.peticion_hash!=huella_peticion(datos):
+            raise Conflicto('La clave de idempotencia ya corresponde a otra petición.')
         return ficha(db, t, hoy)
+    if datos.get('version')!=t.version:
+        raise Conflicto('El trámite cambió. Actualiza antes de informar la respuesta.')
+    if t.estado in FINALES:
+        raise Conflicto('El trámite ya concluyó.')
     f = copy.deepcopy(t.ficha_eps) if t.ficha_eps else None
     if not f or not f.get("siguiente_accion"):
         raise Conflicto("Esta respuesta ya fue informada. Revisa el seguimiento del trámite.")
     presentado = datos["fecha_presentacion"]
+    doc = repo.obtener_documento(db, actor, datos["documento"])
+    if doc.tramite_id != t.id:
+        raise DatosInvalidos("El documento pertenece a otro expediente.")
     if presentado > hoy:
         raise DatosInvalidos("La fecha de presentación no puede ser futura.")
     accion = f["siguiente_accion"]
@@ -113,6 +125,7 @@ def informar_respuesta(db: Session, actor: Actor, tramite_id: str, datos: dict, 
                   "fecha_acreditada": presentado, "documento_id": datos["documento"]},
                  destino="en_evaluacion", verificada=False, clave=clave)
     t.estado, t.ficha_eps = "en_evaluacion", f
+    act.peticion_hash=huella_peticion(datos)
     if t.presentacion:
         p = copy.deepcopy(t.presentacion)
         p["siguiente"] = {"titulo": "Verificar la respuesta de la EPS",

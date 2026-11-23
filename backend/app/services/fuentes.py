@@ -5,13 +5,13 @@ import hashlib
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from ..agent.fuentes import SinAcceso
 from ..core.config import settings
 from ..core.errores import NoEncontrado
-from ..models import Actuacion, Documento, Eps, RespuestaCache, Tramite
+from ..models import Actuacion, Documento, Eps, RespuestaCache, Tramite,Publicacion
 from ..repositories import tramites as repo
 from ..schemas.comun import Actor
 from . import plazos
@@ -35,9 +35,13 @@ class FuentesBD:
 
     def consultar_tramite(self, actor: Actor, tramite_id: str) -> dict:
         t = self._tramite(actor, tramite_id)
+        if actor.perfil=='publico':
+            from .publico import proyectar
+            pub=self.db.scalars(select(Publicacion).where(Publicacion.tramite_id==t.id)).first()
+            return {'id':t.id,**proyectar(pub)}
         eps = self.db.get(Eps, t.eps_id)
         extra = t.ficha_agente or {}
-        pasos = PASOS[t.procedimiento]
+        pasos = PASOS.get(t.procedimiento, [(t.etapa, t.responsable)])
         ficha = {
             "id": t.id, "procedimiento": t.procedimiento,
             "procedimiento_nombre": extra.get("procedimiento_nombre"), "norma": extra.get("norma"),
@@ -46,11 +50,16 @@ class FuentesBD:
             "paso_actual": f"{min(t.paso_actual, len(pasos))} de {len(pasos)} · {t.etapa}",
             "responsable_actual": t.responsable or "Ninguno",
             # Los casos con ficha documentada usan datos reales aunque su pantalla sea de demostración.
-            "simulado": t.simulado and not t.ficha_agente,
+            "simulado": t.simulado,
             "resumen_ciudadano": extra.get("resumen_ciudadano"),
             "cifras": extra.get("cifras") or self._cifras_presentacion(t),
             "eventos": self._eventos(t, actor),
         }
+        row=self.db.execute(text('SELECT canonical_id,base_normativa,monto_solicitado,monto_aprobado FROM procedimiento_fuente WHERE tramite_id=:id'),{'id':t.id}).mappings().first()
+        if row:
+            ficha['norma']=row['base_normativa']
+            ficha['cifras']=[{'concepto':label,'tipo':kind,'valor':str(row[column]) if row[column] is not None else None,'fuente':row['canonical_id']}
+                for label,kind,column in [('Monto solicitado','solicitado','monto_solicitado'),('Monto aprobado','autorizado','monto_aprobado')]]
         if actor.perfil == "sunass" and t.presentacion and t.presentacion.get("siguiente"):
             s = t.presentacion["siguiente"]
             ficha["siguiente_actuacion"] = {"titulo": s.get("titulo"), "detalle": s.get("detalle")}
@@ -82,9 +91,13 @@ class FuentesBD:
         for a in acts:
             if actor.perfil == "publico":
                 continue
+            if actor.perfil == 'eps':
+                doc = self.db.get(Documento,a.documento_id) if a.documento_id else None
+                if not doc or doc.visibilidad not in repo.VISIBLES['eps']:
+                    continue
             eventos.append({"fecha": a.fecha_acreditada.isoformat() if a.fecha_acreditada else None,
                             "fecha_estado": "por_validar" if a.fecha_por_validar or not a.fecha_acreditada else "documento",
-                            "hito": a.titulo + (f" — {a.detalle}" if a.detalle else ""), "actor": a.actor,
+                            "hito": a.titulo + (f" — {a.detalle}" if a.detalle and actor.perfil=='sunass' else ""), "actor": a.actor,
                             "fuente": a.fuente or a.documento_id,
                             **({"verificada_por_sunass": False} if not a.verificada else {})})
         return eventos
@@ -134,7 +147,10 @@ class FuentesBD:
     # -- caché ----------------------------------------------------------------
     def version(self, tramite_id: str) -> str:
         t = self.db.get(Tramite, tramite_id)
-        base = json.dumps([t.version, t.huella_fuentes, t.estado, t.paso_actual, self.hoy.isoformat()]) if t else "-"
+        docs=list(self.db.execute(select(Documento.id,Documento.visibilidad,Documento.estado_validacion).where(Documento.tramite_id==tramite_id).order_by(Documento.id)).all())
+        pub=self.db.scalars(select(Publicacion).where(Publicacion.tramite_id==tramite_id)).first()
+        base = json.dumps([t.version, t.huella_fuentes, t.estado, t.paso_actual, self.hoy.isoformat(),
+                          [tuple(d) for d in docs],[pub.publicada,pub.resumen,pub.ficha] if pub else None],default=str,sort_keys=True) if t else "-"
         return hashlib.sha256(base.encode()).hexdigest()[:16]
 
     def cache_obtener(self, clave: str) -> dict | None:

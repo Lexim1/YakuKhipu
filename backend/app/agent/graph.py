@@ -65,8 +65,9 @@ def buscar_cache(estado: Estado, config: RunnableConfig) -> dict:
     """Se consulta DESPUÉS de autorizar: la caché nunca salta el control de acceso."""
     f = _fuentes(config)
     historial = estado.get("historial") or []
-    ultimo = historial[-1]["pregunta"] if historial else ""
-    k = cache.clave(estado["actor"], estado["tramite_id"], f.version(estado["tramite_id"]), estado["pregunta"], ultimo)
+    ultimo = json.dumps(historial,ensure_ascii=False,sort_keys=True)
+    snapshot=json.dumps([estado.get('ficha'),estado.get('plazos')],sort_keys=True,default=str,ensure_ascii=False)
+    k = cache.clave(estado["actor"], estado["tramite_id"], f.version(estado["tramite_id"])+snapshot, estado["pregunta"], ultimo)
     guardada = f.cache_obtener(k) if settings.cache_activa else None
     if guardada:
         return {"cache_clave": k, "salida": {**guardada, "desde_cache": True}}
@@ -130,12 +131,18 @@ def _parsear(texto: str) -> dict | None:
         d = json.loads(m.group(0), strict=False)
     except json.JSONDecodeError:
         return None
-    return d if isinstance(d, dict) and isinstance(d.get("respuesta"), str) and d["respuesta"].strip() else None
+    if not isinstance(d,dict) or not isinstance(d.get('respuesta'),str) or not d['respuesta'].strip() or len(d['respuesta'])>8000:
+        return None
+    for field in ('citas','advertencias'):
+        if not isinstance(d.get(field,[]),list) or any(not isinstance(x,str) for x in d.get(field,[])):
+            return None
+    return d
 
 
 def _numeros(texto: str) -> set[str]:
+    texto=re.sub(r'\[[^\]]+\]','',texto)
     t = re.sub(r"(\d)[ .,](?=\d{3}\b)", r"\1", texto.translate(retrieval.ESPACIOS))
-    return set(re.findall(r"\d{3,}", t))
+    return set(re.findall(r"\d+", t))
 
 
 def _citas_en_texto(texto: str) -> set[str]:
@@ -153,8 +160,16 @@ def _problemas(estado: Estado, salida: dict) -> list[str]:
     validas = {f"F{i}" for i in range(1, n + 1)} | {"FICHA", "PLAZOS"}
     citadas = _citas_en_texto(salida["respuesta"]) | {str(c) for c in (salida.get("citas") or []) if ETIQUETA.match(str(c))}
     problemas = [f"citaste {c}, que no existe" for c in sorted(citadas - validas)]
-    contexto = json.dumps(estado["ficha"], ensure_ascii=False) + json.dumps(estado.get("plazos") or [])
-    contexto += " ".join(f["texto"] for f in estado.get("fragmentos") or [])
+    if not citadas:
+        problemas.append('la respuesta no incluye citas verificables')
+    if 'PLAZOS' in citadas and not estado.get('plazos'):
+        problemas.append('no hay plazos disponibles para este perfil')
+    evidencia=[]
+    if 'FICHA' in citadas: evidencia.append(json.dumps(estado['ficha'],ensure_ascii=False,default=str))
+    if 'PLAZOS' in citadas: evidencia.append(json.dumps(estado.get('plazos') or [],default=str))
+    for i,fragmento in enumerate(estado.get('fragmentos') or [],1):
+        if f'F{i}' in citadas: evidencia.append(fragmento['texto'])
+    contexto=' '.join(evidencia)
     sin_sustento = _numeros(salida["respuesta"]) - _numeros(contexto)
     if sin_sustento:
         problemas.append("estas cifras no aparecen en las fuentes: " + ", ".join(sorted(sin_sustento)))
@@ -188,8 +203,9 @@ def comprobar(estado: Estado) -> dict:
     borrador, frags = s["_borrador"], estado.get("fragmentos") or []
     advertencias = [a for a in (borrador.get("advertencias") or []) if isinstance(a, str)]
     problemas = _problemas(estado, borrador)
-    if problemas:  # no se publica como verificada: se entrega con la advertencia visible
-        advertencias.append("Revisar: " + "; ".join(problemas) + ".")
+    if problemas:
+        return {'salida':Respuesta(estado='sin_fuentes',respuesta='No pude verificar esa respuesta con las fuentes disponibles.',
+                advertencias=['La respuesta del modelo fue descartada: '+ '; '.join(problemas)]).model_dump()}
     citadas = {c for c in _citas_en_texto(borrador["respuesta"]) | {str(c) for c in (borrador.get("citas") or [])}
                if re.match(r"^F\d+$", c)}
     fuentes = []

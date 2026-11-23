@@ -21,12 +21,13 @@ def _conversacion(db: Session, actor: Actor, tramite_id: str, conversacion_id: s
     if conversacion_id:
         c = db.get(Conversacion, conversacion_id)
         mismo_dueno = c is not None and c.ambito == actor.perfil and c.tramite_id == tramite_id and (
-            c.usuario_id == actor.usuario_id and c.eps_id == actor.eps_id)
+            c.usuario_id == actor.usuario_id and c.eps_id == actor.eps_id and
+            (actor.perfil!='publico' or bool(actor.visitante_id) and c.visitante_id==actor.visitante_id))
         if not mismo_dueno:
             raise NoEncontrado("No encontramos esa conversación.")
         return c
     c = Conversacion(id=str(uuid.uuid4()), usuario_id=actor.usuario_id, ambito=actor.perfil, eps_id=actor.eps_id,
-                     tramite_id=tramite_id)
+                     tramite_id=tramite_id,visitante_id=actor.visitante_id)
     db.add(c)
     db.commit()
     return c
@@ -59,5 +60,6 @@ async def responder(db: Session, actor: Actor, tramite_id: str, pregunta: str, c
     salida = RespuestaChat(estado=r.estado, respuesta=r.respuesta, fuentes=r.fuentes, advertencias=r.advertencias,
                            conversacion_id=c.id, modelo=r.modelo, duracion_ms=r.duracion_ms, desde_cache=r.desde_cache)
     if r.estado == "no_disponible":
-        raise ServicioNoDisponible("El asistente no está disponible ahora. Puedes seguir consultando el trámite.")
+        raise ServicioNoDisponible("El asistente no está disponible ahora. Puedes seguir consultando el trámite.",
+                                  estado='no_disponible',conversacion_id=c.id)
     return salida

@@ -10,7 +10,7 @@ class Eps(Base):
     """Empresa prestadora."""
     __tablename__ = "eps"
 
-    id: Mapped[str] = mapped_column(String(40), primary_key=True)   # eps-tacna
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
     nombre: Mapped[str] = mapped_column(String(120))
     region: Mapped[str | None] = mapped_column(String(60))
     tamano: Mapped[str | None] = mapped_column(String(20))           # Pequeña · Mediana · Grande
@@ -21,8 +21,9 @@ class Usuario(Base):
     """Persona que usa el portal. En la demo se identifica por su cargo, nunca por su nombre."""
     __tablename__ = "usuario"
 
-    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
     nombre_visible: Mapped[str] = mapped_column(String(120))        # «Especialista SRT»
     perfil: Mapped[str] = mapped_column(String(10))                  # sunass · eps
     eps_id: Mapped[str | None] = mapped_column(ForeignKey("eps.id"))
     activo: Mapped[bool] = mapped_column(default=True)
+    password_hash: Mapped[str | None] = mapped_column(String(256))

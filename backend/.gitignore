@@ -4,3 +4,4 @@ scripts/salidas/
 *.pdf
 fragmentos*.json
 cache_respuestas*.json
+sql/local/

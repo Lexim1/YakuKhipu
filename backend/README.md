@@ -1,56 +1,84 @@
-# Backend de YakuKhipu
+# Backend YakuKhipu sobre archivos fuente
 
-API FastAPI + PostgreSQL con el asistente LangGraph. Sigue `docs/guia_backend_agente.md` y `docs/contrato_api.md`.
-Los datos marcados `simulado` son de demostración; la sesión también es una **simulación** hasta conectar la institucional.
+Contrato actual para el frontend: `../docs/contrato_frontend.md` y `../docs/openapi.json`. La validación HTTP utiliza persistencia sustituida; la conexión PostgreSQL se verifica en la fase siguiente. Para una base ya creada con el esquema anterior, ejecutar manualmente `sql/10_validacion_api.sql` antes de usar conversaciones ciudadanas e idempotencia.
 
-## Arranque local (Windows, desde `backend/`)
+La API consulta PostgreSQL. Los CSV, XLSX y ZIP se leen únicamente durante la generación de SQL. Python no crea bases ni tablas, y la aplicación no ejecuta DDL al arrancar. SQLAlchemy conserva el mapeo de las entidades centrales; los scripts SQL son la definición oficial.
+
+## Preparación
+
+Desde `backend`, crea el entorno, instala dependencias y genera los SQL:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-copy .env.example .env        # completar DATABASE_URL, SECRET_KEY y, si se usa IA, LLM_*
-powershell -ExecutionPolicy Bypass -File scripts\iniciar_postgres.ps1   # PostgreSQL portátil local
-python -m alembic upgrade head
-python -m scripts.semilla --reiniciar       # datos de demostración y fichas de los casos reales
-python -m scripts.ingesta_fuentes           # opcional: texto de los PDF locales (DOCUMENTOS_DIR)
+python -m scripts.generar_sql --datasets 'C:\Users\USER\Downloads\DATASETS' --casos 'C:\Users\USER\Downloads\Casos reales'
+```
+
+Los resultados están en `sql/local/`: DDL de tablas fuente, INSERT de los datasets, INSERT de los casos, incidencias y manifiesto con mapeo de columnas, hashes y conteos. Contienen texto documental y se excluyen de Git. Los originales no se modifican. `ds01_catalogo_eps.xlsx` se reconoce por su contenido CSV.
+
+## Ejecución manual de PostgreSQL
+
+Requiere PostgreSQL 15 o posterior (`UNIQUE NULLS NOT DISTINCT`). Usa una base nueva para conservar la instalación anterior. Con tu cuenta administradora, ejecuta primero `00_create_database.sql` conectado a `postgres`, sin abrir una transacción. En pgAdmin, cambia luego la conexión a `yakukhipu_fuentes`. Cada archivo posterior es SQL estándar y puede ejecutarse en Query Tool, en este orden:
+
+1. `sql/01_schema.sql`
+2. `sql/local/01_dataset_schema.sql`
+3. `sql/02_constraints_indexes.sql`
+4. `sql/03_reference_data.sql`
+5. `sql/local/04_dataset_inserts.sql`
+6. `sql/local/05_real_cases_inserts.sql`
+7. `sql/local/08_calidad.sql`
+8. `sql/09_integridad_dataset.sql`
+9. `sql/06_views.sql`
+10. `sql/07_validation_queries.sql`
+
+Alternativa con psql, desde `backend` (usuario y servidor según tu instalación):
+
+```powershell
+psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f sql/00_create_database.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/01_schema.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/local/01_dataset_schema.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/02_constraints_indexes.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/03_reference_data.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/local/04_dataset_inserts.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/local/05_real_cases_inserts.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/local/08_calidad.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/09_integridad_dataset.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/06_views.sql
+psql -U postgres -d yakukhipu_fuentes -v ON_ERROR_STOP=1 -f sql/07_validation_queries.sql
+```
+
+El esquema se ejecuta una sola vez. Para actualizar datos, vuelve a generar y ejecuta solamente 04, 05 y 08. `ON CONFLICT` evita duplicados. Los hashes conservan revisiones; las filas ausentes quedan `presente=false` y se conserva su historial. No se eliminan actuaciones. Los expedientes modificados por una persona (`version>1`) conservan su estado operativo; sus nuevas fuentes quedan disponibles para conciliación. No hay sincronización automática en segundo plano.
+
+## Conexión y acceso
+
+Copia `.env.example` a `.env`. Configura `DATABASE_URL`, una `SECRET_KEY` aleatoria de al menos 32 caracteres y `DOCUMENTOS_DIR` con la carpeta que contiene los ZIP. Usa una cuenta de aplicación con permisos DML, sin permiso de crear tablas. Mantén `SESION_DEMO=false` y `FECHA_DEMO` vacío.
+
+No se insertan usuarios ficticios. Para provisionar una persona real, genera su INSERT; la contraseña se pide de forma oculta y se almacena con scrypt:
+
+```powershell
+python -m scripts.usuario_sql --id IDENTIFICADOR_REAL --nombre 'Nombre real' --perfil sunass
+```
+
+Para EPS añade `--perfil eps --eps-id ID_CANONICO_DE_EPS`. Ejecuta el INSERT mostrado en PostgreSQL. Inicia sesión con `POST /api/sesion` y cuerpo `{"usuario_id":"...","password":"..."}`. El perfil y la EPS salen de la base. La cookie firmada vence en ocho horas. Es una autenticación local; no constituye conexión al SSO institucional.
+
+```powershell
 python -m uvicorn app.main:app --reload
 ```
 
-Abrir http://127.0.0.1:8000/docs. Para probar como un perfil: `POST /api/sesion/demo` con
-`{"usuario_id": "sunass-srt"}`, `"eps-tacna"`, `"eps-rio-claro"`, `"eps-epssmu"` o `"eps-emapa-pasco"`
-(`GET /api/sesion/demo/usuarios` los lista). El frontend usa la misma cookie con `credentials: 'include'`.
+## Procedencia y documentos
 
-## Estructura
+Se separan `dataset`, `caso_real`, `sistema` y `sintetico`. Los identificadores canónicos incluyen dominio y hash determinista. El ID original queda en `registro_fuente`. El dataset entregado es de muestra: cargarlo no lo convierte en información oficial. `simulado=true` identifica sus registros en la API, aunque ya no se usan las semillas antiguas.
 
-| Ruta | Contenido |
-| --- | --- |
-| `app/main.py`, `app/core/` | Aplicación, configuración (`pydantic-settings`), base de datos, sesión firmada y errores estables |
-| `app/models/`, `alembic/` | Entidades y migraciones: EPS, usuario, trámite, actuación, regla de plazo, documento, fragmento, conversación, mensaje, caché, publicación, recepción y alerta |
-| `app/repositories/tramites.py` | **Único punto de lectura** de trámites y documentos, con el filtro de acceso aplicado |
-| `app/services/` | Transiciones (`tramites.py`), vista EPS (`eps.py`), plazos (`plazos.py`), ciudadanía, documentos y fuentes del agente |
-| `app/api/` | Routers del sistema (SUNASS, EPS, Ciudadanía, documentos, sesión) y del asistente |
-| `app/agent/` | `graph.py` (flujo), `prompts.py`, `retrieval.py` (BM25), `llm.py` (httpx asíncrono), `cache.py`, `fuentes.py` (interfaz) |
-| `app/schemas/` | Formatos Pydantic de entrada y del asistente |
-| `scripts/` | Semilla, ingesta de PDF, chat por terminal, evaluación y primera llamada al modelo |
-| `tests/` | pytest con una base aparte y el modelo simulado (sin llamadas reales a IA) |
+Los 31 PDF se guardan por página con hash, referencia de ZIP y marca de OCR. Su visibilidad inicial es interna. Las fechas y números extraídos son candidatos, pendientes de validación. La clasificación de actores y las relaciones entre documentos requieren revisión; no se inventan cuando falta evidencia. El texto solo se envía a un proveedor de IA si se habilita expresamente el asistente y se realiza una consulta.
 
-## Reglas que el código garantiza
+Para validar el estado de un caso documental, SUNASS registra `validar_expediente` en `/api/tramites/{id}/eventos` con `documento_id`, `fecha_acreditada`, `estado_validado`, `paso_validado` y la `version` observada. El documento debe pertenecer al caso. Este paso permite acreditar la resolución histórica sin convertir una inferencia del nombre de archivo en decisión oficial.
 
-- **Accesos:** SUNASS ve todo; una EPS solo sus trámites y los documentos `partes` o `publica` (un trámite ajeno responde 404, igual que uno inexistente); Ciudadanía solo casos publicados y documentos `publica`. El perfil sale de la sesión, nunca del cuerpo.
-- **Transiciones:** cada actuación y el nuevo estado se guardan en una transacción. Se rechaza la acción no permitida en el estado (409), la versión desactualizada (409) y el reenvío con otra clave cuando ya no hay tarea (409). El mismo `Idempotency-Key` devuelve el mismo resultado sin duplicar.
-- **Presentación de la EPS:** queda «por verificar» hasta que SUNASS registra `verificar_respuesta`.
-- **Plazos:** días hábiles con feriados (calendario por validar). RP mide la etapa activa. Toda regla sin validar por la DRE devuelve `pendiente_de_validacion` y su motivo. El modelo recibe el resultado; no calcula.
-- **Asistente:** autoriza → caché → recupera solo fragmentos visibles → `sin_fuentes` sin llamar al modelo si no hay evidencia → genera → comprueba citas y cifras contra las fuentes → entrega con enlaces autorizados. Si el proveedor falla: 503 con mensaje estable y el resto del portal sigue funcionando.
-- **Caché:** por perfil, EPS, trámite, versión de sus fuentes y fecha. Solo guarda respuestas verificadas; vence en `CACHE_HORAS`.
-- **Memoria:** los últimos 4 turnos de la conversación, guardados en PostgreSQL y ligados a su dueño, perfil y trámite.
-- **Control de uso:** el asistente ciudadano admite `LIMITE_PUBLICO_POR_HORA` preguntas por IP (429).
+## Plazos y publicación
 
-## Endpoints
+`plazo` separa normativo, gestión y oficio. `suspension`, `prorroga` y `calendario_dia` conservan evidencia. Los días del calendario deben estar cargados y validados, incluidos fines de semana y feriados. El reloj suma las prórrogas y excluye la unión de suspensiones. Si falta evidencia, no declara un vencimiento. Los agregados DS02 se muestran como datos fuente, sin interpretarlos como calendario legal. El semáforo operativo utiliza el plazo normativo de la etapa; las otras capas quedan disponibles para revisión en la base. El umbral de aviso es 75 % del tiempo utilizado, una política de gestión, no una regla legal.
 
-Los de `docs/contrato_api.md` más los que el frontend ya consume: `POST /api/tramites/{id}/vinculos`, `GET /api/recepcion`,
-`POST /api/recepcion/incorporaciones`, `GET /api/alertas`, `GET /api/publico/cifras` y la sesión de demostración.
-Errores: `{"detail": "...", "codigo": "sin_sesion|acceso_denegado|no_encontrado|conflicto|datos_invalidos|no_disponible"}`.
+No hay publicaciones automáticas. Para habilitar una decisión deben revisarse `tramite.publicable`, `publicacion.publicada`, su resumen público y la visibilidad de cada documento. La ciudadanía solo accede al contenido expresamente publicado.
 
 ## Pruebas
 
@@ -58,20 +86,11 @@ Errores: `{"detail": "...", "codigo": "sin_sesion|acceso_denegado|no_encontrado|
 python -m pytest
 ```
 
-Usan `TEST_DATABASE_URL` (se borra y se recrea) y texto ficticio. `python -m scripts.evaluar` mide el agente con el modelo
-real (gasta cuota) y escribe `scripts/salidas/evaluacion.md`, que no se sube.
+Las pruebas históricas que dependían de semillas están excluidas de colección y se conservan para referencia. Las nuevas prueban HTTP, roles, transiciones, agente y transporte IA con dobles aislados; no crean ni destruyen tablas. La prueba PostgreSQL es de solo lectura y se habilita después de tu instalación:
 
-## Datos y privacidad (repositorio público)
+```powershell
+$env:VERIFY_DATABASE_URL='postgresql://USUARIO:CLAVE@localhost:5432/yakukhipu_fuentes'
+python -m pytest tests/test_postgres_fuentes.py
+```
 
-- No se suben `.env`, claves, PDF, texto extraído, caché ni salidas de evaluación.
-- `scripts/semillas/casos_reales.json` contiene fichas (eventos y cifras con su fuente) con identificadores anonimizados.
-- `scripts/semillas/demo_portal.json` son los ejemplos del frontend; las EPS distintas de Tacna son simuladas.
-- La capa gratuita de algunos proveedores puede usar los datos enviados: usar documentos públicos o de demostración.
-
-## Pendiente
-
-- Sesión institucional real (reemplaza `app/core/sesion.py` y `SESION_DEMO=false`).
-- Validar con la DRE las reglas de plazo, el calendario y la visibilidad de cada documento.
-- OCR de las páginas escaneadas de EMAPA Pasco (21 páginas marcadas).
-- Elegir un solo «momento» del caso Tacna: hoy la vista SUNASS, la EPS y la pública muestran fechas distintas del mismo expediente.
-- Tablas propias para los bloques de presentación que aún viven en JSON (línea de tiempo, comparador, impacto).
+El analizador `pglast` comprueba sintaxis; no reemplaza la ejecución en PostgreSQL. La prueba de integración queda omitida mientras no exista esa conexión explícita.
