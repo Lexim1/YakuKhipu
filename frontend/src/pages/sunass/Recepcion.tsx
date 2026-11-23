@@ -4,8 +4,12 @@ import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
 import { IconoAlerta, IconoChispa, IconoDocumento, IconoFlecha, IconoOjo } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
-import { ASIGNABLES } from '../../mocks/tramites'
-import { incorporarDocumento, listarDocumentosRecibidos, type Incorporacion } from '../../services/tramites'
+import {
+  incorporarDocumento,
+  listarDocumentosRecibidos,
+  useVersionTramites,
+  type Incorporacion,
+} from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
 import type { DocumentoRecibido } from '../../types/tramite'
 import { IncorporarDialogo } from './recepcion/IncorporarDialogo'
@@ -17,7 +21,8 @@ const CONFIANZA = {
 } as const
 
 export function Recepcion() {
-  const [resultado, reintentar] = useConsulta((signal) => listarDocumentosRecibidos(signal), [])
+  const versionDatos = useVersionTramites()
+  const [resultado, reintentar] = useConsulta((signal) => listarDocumentosRecibidos(signal), [versionDatos])
   const [incorporando, setIncorporando] = useState<DocumentoRecibido | null>(null)
   const [viendo, setViendo] = useState<DocumentoRecibido | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -43,13 +48,12 @@ export function Recepcion() {
     ],
   })
 
-  async function incorporar(datos: Incorporacion) {
+  async function incorporar(datos: Incorporacion, persona: string) {
     await incorporarDocumento(datos)
-    const doc = incorporando
-    const persona = ASIGNABLES.find((a) => a.id === datos.asignado_a)?.texto ?? datos.asignado_a
+    const lista = resultado.estado === 'listo' ? resultado.datos.items : []
+    const doc = lista.find((d) => d.id === datos.documento_id) ?? incorporando
     setIncorporando(null)
     setMensaje(`${doc?.titulo ?? 'Documento'} incorporado a ${datos.tramite_id} y asignado a ${persona}.`)
-    reintentar()
   }
 
   return (

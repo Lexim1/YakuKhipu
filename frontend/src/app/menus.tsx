@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { Contadores } from '../types/tramite'
 import {
   IconoArchivo,
   IconoBandeja,
@@ -15,8 +16,10 @@ export interface EnlaceMenu {
   ruta: string
   texto: string
   icono: ReactNode
-  /** Contador de pendientes. Valores de demostración hasta que el backend los entregue. */
+  /** Contador fijo de demostración, para pantallas que todavía no tienen datos. */
   contador?: number
+  /** Contador calculado con los servicios; se actualiza después de cada acción. */
+  contadorVivo?: keyof Contadores
 }
 
 export interface GrupoMenu {
@@ -29,15 +32,15 @@ export const MENU_SUNASS: GrupoMenu[] = [
     titulo: 'General',
     enlaces: [
       { ruta: '/sunass/dashboard', texto: 'Dashboard', icono: <IconoGrafico /> },
-      { ruta: '/sunass/alertas', texto: 'Alertas', icono: <IconoCampana />, contador: 6 },
+      { ruta: '/sunass/alertas', texto: 'Alertas', icono: <IconoCampana />, contadorVivo: 'alertas' },
     ],
   },
   {
     titulo: 'Trámites',
     enlaces: [
-      { ruta: '/sunass/te-toca', texto: 'Te toca actuar', icono: <IconoBandeja />, contador: 3 },
+      { ruta: '/sunass/te-toca', texto: 'Te toca actuar', icono: <IconoBandeja />, contadorVivo: 'te_toca' },
       { ruta: '/sunass/expedientes', texto: 'Expedientes', icono: <IconoLista /> },
-      { ruta: '/sunass/recepcion', texto: 'Recepción de documentos', icono: <IconoBandeja />, contador: 2 },
+      { ruta: '/sunass/recepcion', texto: 'Recepción de documentos', icono: <IconoBandeja />, contadorVivo: 'recepcion' },
       { ruta: '/sunass/por-resolver', texto: 'Por resolver', icono: <IconoMazo />, contador: 2 },
     ],
   },

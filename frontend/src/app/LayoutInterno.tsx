@@ -1,10 +1,29 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 import { PanelAgente } from '../agente/PanelAgente'
 import { IconoAbajo, IconoBuscar, IconoCampana, IconoPersonas } from '../components/Iconos'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
+import { obtenerContadores, useVersionTramites } from '../services/tramites'
+import type { Contadores } from '../types/tramite'
 import { Marca } from './Marca'
-import type { GrupoMenu } from './menus'
+import type { EnlaceMenu, GrupoMenu } from './menus'
+
+/** Contadores del menú. Conserva el último valor mientras se actualizan, para que no parpadeen. */
+function useContadores(necesarios: boolean): Contadores | null {
+  const version = useVersionTramites()
+  const [contadores, setContadores] = useState<Contadores | null>(null)
+  useEffect(() => {
+    if (!necesarios) return
+    const control = new AbortController()
+    obtenerContadores(control.signal)
+      .then(setContadores)
+      .catch(() => {
+        // Sin contadores el menú sigue funcionando; las pantallas muestran su propio error.
+      })
+    return () => control.abort()
+  }, [necesarios, version])
+  return contadores
+}
 
 interface Props {
   vista: string
@@ -22,6 +41,12 @@ interface Props {
 export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }: Props) {
   const navegar = useNavigate()
   const [busqueda, setBusqueda] = useState('')
+  const contadores = useContadores(menu.some((g) => g.enlaces.some((e) => e.contadorVivo)))
+
+  function contadorDe(enlace: EnlaceMenu) {
+    if (enlace.contadorVivo) return contadores?.[enlace.contadorVivo] ?? null
+    return enlace.contador ?? null
+  }
 
   function buscar(e: FormEvent) {
     e.preventDefault()
@@ -74,20 +99,23 @@ export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }
             <nav key={grupo.titulo} aria-label={grupo.titulo}>
               <p className="lateral__grupo">{grupo.titulo}</p>
               <ul className="lateral__lista">
-                {grupo.enlaces.map((enlace) => (
-                  <li key={enlace.ruta}>
-                    <NavLink to={enlace.ruta} className="lateral__enlace">
-                      {enlace.icono}
-                      <span className="lateral__texto">{enlace.texto}</span>
-                      {enlace.contador != null && (
-                        <span className="contador">
-                          {enlace.contador}
-                          <span className="solo-lectores"> pendientes</span>
-                        </span>
-                      )}
-                    </NavLink>
-                  </li>
-                ))}
+                {grupo.enlaces.map((enlace) => {
+                  const contador = contadorDe(enlace)
+                  return (
+                    <li key={enlace.ruta}>
+                      <NavLink to={enlace.ruta} className="lateral__enlace">
+                        {enlace.icono}
+                        <span className="lateral__texto">{enlace.texto}</span>
+                        {contador != null && contador > 0 && (
+                          <span className="contador">
+                            {contador}
+                            <span className="solo-lectores"> pendientes</span>
+                          </span>
+                        )}
+                      </NavLink>
+                    </li>
+                  )
+                })}
               </ul>
             </nav>
           ))}

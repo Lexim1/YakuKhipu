@@ -9,26 +9,26 @@ interface Props {
   vinculo: VinculoPropuesto
   abierto: boolean
   alCerrar: () => void
-  /** Registra la confirmación en la API; si falla, el diálogo muestra el error. */
+  /** Registran la decisión en la API; si fallan, el diálogo muestra el error. */
   alConfirmar: () => Promise<void>
-  alRechazar: () => void
+  alRechazar: () => Promise<void>
 }
 
 /** Una persona confirma o rechaza el vínculo que propuso el agente. */
 export function ValidarVinculo({ vinculo, abierto, alCerrar, alConfirmar, alRechazar }: Props) {
-  const [guardando, setGuardando] = useState(false)
+  const [guardando, setGuardando] = useState<'confirmar' | 'rechazar' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  async function confirmar() {
-    setGuardando(true)
+  async function decidir(decision: 'confirmar' | 'rechazar') {
+    setGuardando(decision)
     setError(null)
     try {
-      await alConfirmar()
+      await (decision === 'confirmar' ? alConfirmar() : alRechazar())
       alCerrar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos registrar la validación.')
+      setError(e instanceof Error ? e.message : 'No pudimos registrar tu decisión. Inténtalo de nuevo.')
     } finally {
-      setGuardando(false)
+      setGuardando(null)
     }
   }
 
@@ -62,11 +62,21 @@ export function ValidarVinculo({ vinculo, abierto, alCerrar, alConfirmar, alRech
         <p className="texto-suave texto-pequeno">{vinculo.efecto}</p>
         {error && <MensajeError mensaje={error} />}
         <div className="dialogo__acciones">
-          <button type="button" className="boton boton--secundario" onClick={alRechazar}>
-            Rechazar
+          <button
+            type="button"
+            className="boton boton--secundario"
+            onClick={() => decidir('rechazar')}
+            disabled={guardando != null}
+          >
+            {guardando === 'rechazar' ? 'Registrando…' : 'Rechazar'}
           </button>
-          <button type="button" className="boton boton--primario" onClick={confirmar} disabled={guardando}>
-            {guardando ? 'Guardando…' : 'Confirmar vínculo'}
+          <button
+            type="button"
+            className="boton boton--primario"
+            onClick={() => decidir('confirmar')}
+            disabled={guardando != null}
+          >
+            {guardando === 'confirmar' ? 'Guardando…' : 'Confirmar vínculo'}
             <IconoCheck tamano={16} />
           </button>
         </div>
