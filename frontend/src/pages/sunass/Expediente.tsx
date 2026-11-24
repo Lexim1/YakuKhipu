@@ -81,7 +81,13 @@ export function Expediente() {
   const pestana: IdPestana = (PESTANAS.find((p) => p.id === parametros.get('pestana'))?.id ?? 'linea') as IdPestana
 
   useContextoAgente(
-    expediente ? { espacio: `Espacio SUNASS · ${expediente.id}`, preguntas: preguntasDe(expediente) } : null,
+    expediente
+      ? {
+          espacio: `Espacio SUNASS · ${expediente.id}`,
+          preguntas: preguntasDe(expediente),
+          caso: { tipo: 'tramite', id: expediente.id },
+        }
+      : null,
   )
 
   function cambiarPestana(nueva: IdPestana) {

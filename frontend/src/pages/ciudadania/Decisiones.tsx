@@ -97,6 +97,7 @@ export function Decisiones() {
 
   useContextoAgente({
     espacio: 'Consulta ciudadana',
+    publico: true,
     preguntas: [
       {
         pregunta: '¿Qué se aprobó para Tacna?',

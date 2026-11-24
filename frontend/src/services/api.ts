@@ -17,6 +17,13 @@ const MENSAJES: Record<number, string> = {
   404: 'No encontramos lo que buscas o no tienes acceso.',
   409: 'El trámite cambió mientras trabajabas. Actualiza la página.',
   422: 'Hay datos que no son válidos. Revisa el formulario.',
+  429: 'Hiciste muchas consultas seguidas. Intenta de nuevo en unos minutos.',
+  503: 'El servicio no está disponible en este momento. Intenta de nuevo en unos minutos.',
+}
+
+/** Dirección completa de una ruta de la API, para enlaces que se abren en otra pestaña (por ejemplo, un PDF). */
+export function urlApi(ruta: string): string {
+  return `${import.meta.env.VITE_API_URL ?? ''}${ruta}`
 }
 
 // Cuando el servidor responde 401, la sesión se perdió: el portal vuelve al ingreso.
