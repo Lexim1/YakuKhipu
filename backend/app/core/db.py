@@ -21,5 +21,8 @@ def get_db() -> Iterator[Session]:
     db = SesionDB()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

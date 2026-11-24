@@ -10,11 +10,12 @@ El almacenamiento (tabla respuesta_cache) lo implementa FuentesAgente.
 from __future__ import annotations
 
 import hashlib
+import json
 
 from .retrieval import tokens
 
 
 def clave(actor: dict, tramite_id: str, version: str, pregunta: str, ultimo_turno: str = "") -> str:
-    partes = [actor["perfil"], actor.get("eps_id") or "-", tramite_id, version,
-              " ".join(sorted(set(tokens(pregunta)))), " ".join(sorted(set(tokens(ultimo_turno))))]
+    partes = [actor["perfil"], actor.get("eps_id") or "-", actor.get('usuario_id') or actor.get('visitante_id') or '-',tramite_id, version,
+              pregunta.strip(), ultimo_turno]
     return hashlib.sha256("|".join(partes).encode()).hexdigest()

@@ -2,17 +2,19 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class PreguntaInstitucional(BaseModel):
+    model_config = ConfigDict(extra='forbid',str_strip_whitespace=True)
     """POST /api/agente/chat. El perfil y la EPS NO se aceptan aquí: salen de la sesión."""
     pregunta: str = Field(min_length=2, max_length=1000)
-    tramite_id: str = Field(min_length=3, max_length=20)
+    tramite_id: str = Field(min_length=3, max_length=80)
     conversacion_id: str | None = Field(default=None, max_length=36)
 
 
 class PreguntaPublica(BaseModel):
+    model_config = ConfigDict(extra='forbid',str_strip_whitespace=True)
     """POST /api/publico/asistente/chat. Solo recupera datos habilitados para publicación."""
     pregunta: str = Field(min_length=2, max_length=600)
     caso_id: str = Field(min_length=3, max_length=60)

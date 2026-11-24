@@ -1,7 +1,8 @@
 """Configuración leída de backend/.env (nunca se sube) o de variables de entorno."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date,datetime
+from zoneinfo import ZoneInfo
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,12 +15,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BACKEND / ".env", extra="ignore", env_ignore_empty=True)
 
     # Aplicación
-    database_url: str = "postgresql+psycopg://yakukhipu:clave@localhost:5432/yakukhipu"
+    database_url: str = "postgresql+psycopg://yakukhipu:clave@localhost:5432/yakukhipu_fuentes"
     test_database_url: str | None = None   # base aparte para pytest (se borra en cada ejecución)
     frontend_origin: str = "http://localhost:5173"
     secret_key: str = "cambiar-en-env"
     # Sesión de demostración: permite elegir un usuario simulado. Desactivar cuando exista la sesión real.
-    sesion_demo: bool = True
+    sesion_demo: bool = False
     # Fecha «de hoy» para la demo. Vacía = fecha real. Fijarla hace reproducibles los plazos.
     fecha_demo: date | None = None
     # Carpeta local con los PDF de los casos (no se sube). Permite abrir el documento citado.
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
     limite_publico_por_hora: int = 30  # preguntas del asistente ciudadano por IP
 
     def hoy(self) -> date:
-        return self.fecha_demo or date.today()
+        return self.fecha_demo or datetime.now(ZoneInfo('America/Lima')).date()
 
 
 @lru_cache
