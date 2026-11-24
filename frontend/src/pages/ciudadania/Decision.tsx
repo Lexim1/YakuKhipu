@@ -284,7 +284,7 @@ export function Decision() {
                 pregunta: '¿Qué se autorizó?',
                 respuesta: `Sunass autorizó ${d.autorizado.texto}${d.autorizado.monto_texto ? ` por ${d.autorizado.monto_texto}` : ''} el ${fechaLarga(d.autorizado.fecha)}. ${d.resumen_ciudadano}`,
                 fuentes: [d.autorizado.origen],
-                palabras: ['autoriz', 'aprob', 'cuanto'],
+                palabras: ['autoriz', 'aprob'],
               },
             ]
           : []),

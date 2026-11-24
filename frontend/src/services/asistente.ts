@@ -58,13 +58,10 @@ export function respuestaDePantalla(
   exacta = false,
 ): PreguntaAgente | null {
   const t = normalizar(pregunta.trim())
-  return (
-    preguntas.find(
-      (p) =>
-        normalizar(p.pregunta) === t ||
-        (!exacta && (p.palabras ?? []).some((palabra) => t.includes(normalizar(palabra)))),
-    ) ?? null
-  )
+  // Primero la pregunta idéntica: una sugerida nunca debe recibir la respuesta de otra que comparte palabras.
+  const identica = preguntas.find((p) => normalizar(p.pregunta) === t)
+  if (identica || exacta) return identica ?? null
+  return preguntas.find((p) => (p.palabras ?? []).some((palabra) => t.includes(normalizar(palabra)))) ?? null
 }
 
 /** Cita sin enlace, para las respuestas preparadas en la pantalla. */

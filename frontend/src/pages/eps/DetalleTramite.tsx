@@ -91,7 +91,7 @@ export function DetalleTramite() {
           pregunta: '¿En qué va mi trámite?',
           respuesta: `${tramite.estado_texto}. ${tramite.resumen}`,
           fuentes: tramite.documentos.map((d) => d.titulo),
-          palabras: ['va', 'estado', 'avance'],
+          palabras: ['en que va', 'estado', 'avance'],
         },
         ...(tramite.siguiente_accion
           ? [
