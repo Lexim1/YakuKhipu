@@ -2,12 +2,15 @@ import { Link, NavLink, Outlet, useMatch } from 'react-router'
 import { PanelAgente } from '../agente/PanelAgente'
 import { IconoBuscar, IconoDocumento, IconoPersonas } from '../components/Iconos'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
+import { useSesion } from '../sesion/useSesion'
+import { INICIO_PERFIL } from '../types/sesion'
 import { Marca } from './Marca'
 
 /** Estructura de la consulta ciudadana: acceso público, sin sesión ni menú lateral. */
 export function LayoutPublico() {
   // «Ficha de la decisión» se marca activa cuando hay una ficha abierta.
   const enFicha = useMatch('/ciudadania/decisiones/:id')
+  const { sesion } = useSesion()
   return (
     <>
       <a className="saltar-contenido" href="#contenido">
@@ -24,10 +27,10 @@ export function LayoutPublico() {
             Ficha de la decisión
           </span>
         </nav>
-        <Link to="/" className="pildora-perfil" title="Volver al ingreso">
+        <Link to={sesion ? INICIO_PERFIL[sesion.perfil] : '/'} className="pildora-perfil">
           <IconoPersonas tamano={16} />
-          <span className="pildora-perfil__texto">Perfil: Ciudadanía</span>
-          <span className="solo-lectores"> (cambiar de vista)</span>
+          <span className="pildora-perfil__texto">{sesion ? 'Ir a mi vista' : 'Iniciar sesión'}</span>
+          <span className="solo-lectores">{sesion ? ' (volver a tu vista)' : ' (personal de SUNASS o de una EPS)'}</span>
         </Link>
         <Accesibilidad />
       </header>

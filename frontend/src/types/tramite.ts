@@ -85,7 +85,7 @@ export interface ItemHistorial {
   actual: boolean
 }
 
-export type AccionSiguiente = 'validar' | 'alertas'
+export type AccionSiguiente = 'validar' | 'alertas' | 'recepcion'
 
 export interface SiguienteAccion {
   titulo: string
@@ -202,4 +202,60 @@ export interface Alerta {
   /** Destino de la acción: un expediente (con pestaña opcional) o la recepción. */
   destino: { tipo: 'expediente'; id: string; pestana?: string } | { tipo: 'recepcion' }
   accion: string
+  /** Documento recibido al que se refiere la alerta; deja de mostrarse cuando se incorpora. */
+  documento_id?: string
+}
+
+/** Persona o equipo al que se puede asignar un documento. Por acordar con el backend. */
+export interface Asignable {
+  id: string
+  texto: string
+  menor_carga: boolean
+}
+
+/** Opciones del diálogo «Incorporar documento». Vienen de servicios, no de los ejemplos. */
+export interface CatalogosRecepcion {
+  expedientes: { id: string; eps: string }[]
+  asignables: Asignable[]
+  tipos_actuacion: string[]
+}
+
+export type UrgenciaTarea = 'hoy' | 'por_vencer' | 'en_plazo'
+
+/** Acción pendiente para el perfil actual en «Te toca actuar». Por acordar con el backend. */
+export interface Tarea {
+  id: string
+  tramite_id: string
+  eps: string
+  etapa: string
+  titulo: string
+  detalle: string
+  urgencia: UrgenciaTarea
+  tipo: 'validar' | 'comparar' | 'informe' | 'revisar_documento'
+  boton: string
+  /** Ruta del expediente, con pestaña o acción, a la que lleva el botón. */
+  destino: string
+}
+
+export interface AvisoAgente {
+  id: string
+  tipo: TipoAlerta | 'vinculo_propuesto'
+  texto: string
+}
+
+export interface BandejaTareas {
+  /** Cargo del perfil, por ejemplo «Analista SRT». */
+  cargo: string
+  tareas: Tarea[]
+  avisos: AvisoAgente[]
+  /** Plazos propios del perfil que están por vencer, por ejemplo el del informe. */
+  por_vencer: { total: number; detalle: string }
+  expedientes_asignados: { total: number; detalle: string }
+}
+
+/** Contadores del menú lateral. */
+export interface Contadores {
+  te_toca: number
+  recepcion: number
+  alertas: number
 }

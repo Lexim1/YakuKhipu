@@ -19,6 +19,15 @@ const MENSAJES: Record<number, string> = {
   422: 'Hay datos que no son válidos. Revisa el formulario.',
 }
 
+// Cuando el servidor responde 401, la sesión se perdió: el portal vuelve al ingreso.
+const alPerderSesion = new Set<() => void>()
+
+/** Registra una función que se llama cuando una consulta responde 401. Devuelve cómo quitarla. */
+export function escucharSesionPerdida(fn: () => void): () => void {
+  alPerderSesion.add(fn)
+  return () => alPerderSesion.delete(fn)
+}
+
 /** true cuando el equipo elige explícitamente los ejemplos simulados (solo desarrollo). */
 export const usarEjemplos = import.meta.env.VITE_USAR_EJEMPLOS === 'true'
 
@@ -41,8 +50,11 @@ export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Pr
   }
 
   if (!respuesta.ok) {
+    // El ingreso y la consulta de la sesión manejan su propio 401.
+    if (respuesta.status === 401 && !ruta.startsWith('/api/sesion')) alPerderSesion.forEach((fn) => fn())
     throw new ErrorApi(respuesta.status, MENSAJES[respuesta.status] ?? 'Ocurrió un error inesperado.')
   }
+  if (respuesta.status === 204) return undefined as T
   return (await respuesta.json()) as T
 }
 
