@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
-from ..core.sesion import ACTOR_PUBLICO
-from ..services import documentos, publico
+from ..auth.sesion import ACTOR_PUBLICO
+from ..modules import documentos, publico
 from ..schemas.salidas import DecisionPublica,DocumentoContenido
 from ..schemas.comun import ListaPublica
 

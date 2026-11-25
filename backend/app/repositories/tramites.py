@@ -14,6 +14,10 @@ from sqlalchemy.orm import Session
 from ..core.errores import NoEncontrado
 from ..models import Documento, Fragmento, Publicacion, Tramite
 from ..schemas.comun import Actor
+from ..models.seguridad import Asignacion
+from ..auth.permisos import exigir
+
+PROCEDIMIENTOS = ("CPI", "UFI", "RP")
 
 VISIBLES = {"sunass": {"interna", "partes", "publica"}, "eps": {"partes", "publica"}, "publico": {"publica"}}
 
@@ -24,14 +28,23 @@ def obtener_tramite(db: Session, actor: Actor, tramite_id: str, bloquear: bool =
     if bloquear:
         consulta = consulta.with_for_update()
     t = db.scalars(consulta).first()
-    if t is None or not puede_ver(db, actor, t):
+    if t is None or t.procedimiento not in PROCEDIMIENTOS or not puede_ver(db, actor, t):
         raise NoEncontrado("El trámite no existe o no tienes acceso.")
     return t
 
 
 def puede_ver(db: Session, actor: Actor, t: Tramite) -> bool:
+    if actor.perfil != "publico" and "expediente.consultar" not in actor.permisos:
+        return False
+    if t.procedimiento not in PROCEDIMIENTOS:
+        return False
     if actor.perfil == "sunass":
-        return True
+        if actor.rol_id in ("coordinacion_dre", "jefatura_dre"):
+            return True
+        if actor.rol_id != "analista_srt":
+            return False
+        return db.scalars(select(Asignacion).where(Asignacion.tramite_id == t.id,
+            Asignacion.usuario_id == actor.usuario_id, Asignacion.fin.is_(None))).first() is not None
     if actor.perfil == "eps":
         return actor.eps_id is not None and t.eps_id == actor.eps_id
     pub = db.scalars(select(Publicacion).where(Publicacion.tramite_id == t.id)).first()
@@ -45,7 +58,7 @@ def listar_tramites(db: Session, actor: Actor) -> list[Tramite]:
     elif actor.perfil == "publico":
         consulta = consulta.join(Publicacion, Publicacion.tramite_id == Tramite.id).where(
             Publicacion.publicada.is_(True), Tramite.publicable.is_(True))
-    return list(db.scalars(consulta))
+    return [t for t in db.scalars(consulta) if puede_ver(db, actor, t)]
 
 
 def obtener_documento(db: Session, actor: Actor, documento_id: str) -> Documento:
@@ -82,6 +95,6 @@ def publicacion(db: Session, caso_id: str) -> Publicacion:
         raise NoEncontrado("No encontramos esa decisión publicada.")
     t = db.get(Tramite, pub.tramite_id)
     activo = db.execute(text('SELECT presente FROM registro_fuente WHERE canonical_id=:id'),{'id':pub.tramite_id}).scalar()
-    if t is None or not t.publicable or not activo:
+    if t is None or t.procedimiento not in PROCEDIMIENTOS or not t.publicable or not activo:
         raise NoEncontrado("No encontramos esa decisión publicada.")
     return pub

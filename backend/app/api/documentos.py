@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
-from ..core.sesion import actor_institucional
+from ..auth.sesion import actor_institucional
 from ..schemas.comun import Actor
-from ..services import documentos
+from ..modules import documentos
 from ..schemas.salidas import DocumentoContenido
 
 router = APIRouter(prefix="/api/documentos", tags=["Documentos"])

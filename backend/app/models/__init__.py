@@ -1,4 +1,4 @@
-"""Entidades. Alembic importa este módulo para generar las migraciones."""
+"""Mapeos ORM del SQL único; importar este módulo nunca ejecuta DDL."""
 from ..core.db import Base
 from .asistente import Conversacion, Mensaje, RespuestaCache
 from .documento import Documento, Fragmento

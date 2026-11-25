@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 import { PanelAgente } from '../agente/PanelAgente'
-import { IconoAbajo, IconoBuscar, IconoCampana, IconoPersonas } from '../components/Iconos'
+import { IconoBuscar, IconoCampana, IconoPersonas } from '../components/Iconos'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
 import { Marca } from './Marca'
 import type { GrupoMenu } from './menus'
+import { useSesion } from './sesionEstado'
 
 interface Props {
   vista: string
@@ -15,13 +16,11 @@ interface Props {
   rutaAlertas?: string
 }
 
-/**
- * Estructura de las vistas con sesión (SUNASS y EPS): cabecera, menú lateral y contenido.
- * El perfil es simulado hasta que el backend entregue la sesión real.
- */
 export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }: Props) {
   const navegar = useNavigate()
   const [busqueda, setBusqueda] = useState('')
+  const [errorSesion, setErrorSesion] = useState('')
+  const { sesion, salir } = useSesion()
 
   function buscar(e: FormEvent) {
     e.preventDefault()
@@ -58,14 +57,12 @@ export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }
             <IconoCampana tamano={16} />
           </Link>
         )}
-        <Link to="/" className="pildora-perfil" title="Perfil simulado: volver al ingreso para cambiarlo">
+        <span className="pildora-perfil">
           <IconoPersonas tamano={16} />
           <span className="pildora-perfil__texto">Perfil: {perfil}</span>
-          <span className="solo-lectores"> (cambiar de vista)</span>
-          <span className="pildora-perfil__texto" aria-hidden="true">
-            <IconoAbajo tamano={14} />
-          </span>
-        </Link>
+        </span>
+        <button type="button" className="pildora-perfil" onClick={() =>
+          salir().catch(() => setErrorSesion('No se pudo cerrar la sesión. Intenta nuevamente.'))}>Cerrar sesión</button>
         <Accesibilidad />
       </header>
       <div className="estructura">
@@ -93,10 +90,11 @@ export function LayoutInterno({ vista, perfil, menu, rutaBusqueda, rutaAlertas }
           ))}
         </aside>
         <main id="contenido" className="principal" tabIndex={-1}>
+          {errorSesion && <p role="alert">{errorSesion}</p>}
           <Outlet />
         </main>
       </div>
-      <PanelAgente />
+      {sesion?.permisos.includes('agente.consultar') && <PanelAgente />}
     </>
   )
 }

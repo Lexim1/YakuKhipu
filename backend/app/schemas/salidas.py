@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class Sesion(BaseModel):
+    rol_id: Literal['analista_srt','coordinacion_dre','jefatura_dre','eps']
+    permisos: list[str]
     usuario_id: str
     nombre: str
     perfil: Literal['sunass','eps']
@@ -131,6 +133,12 @@ class Evento(BaseModel):
     estado_destino: str
 
 
+class EstadoPDF(BaseModel):
+    estado: str
+    error: str | None = None
+    paginas: int | None = None
+
+
 class Recepcion(BaseModel):
     id: str
     titulo: str
@@ -138,6 +146,7 @@ class Recepcion(BaseModel):
     fecha_documento: date
     eps_id: str
     registrado_por: str
+    procesamiento_pdf: EstadoPDF | None = None
 
 
 class Flujo(BaseModel):

@@ -27,3 +27,5 @@ class Usuario(Base):
     eps_id: Mapped[str | None] = mapped_column(ForeignKey("eps.id"))
     activo: Mapped[bool] = mapped_column(default=True)
     password_hash: Mapped[str | None] = mapped_column(String(256))
+    rol_id: Mapped[str] = mapped_column(String(30))
+    credenciales_version: Mapped[int] = mapped_column(default=1)

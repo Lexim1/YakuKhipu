@@ -1,5 +1,5 @@
 """Interfaz de lectura del agente. El grafo solo conoce estas firmas; la implementación con PostgreSQL está en
-app/services/fuentes.py y las pruebas pueden usar otra con la misma forma.
+app/modules/fuentes.py y las pruebas pueden usar otra con la misma forma.
 
 Todas las funciones aplican el permiso del actor ANTES de devolver datos: el agente nunca filtra por su cuenta.
 """

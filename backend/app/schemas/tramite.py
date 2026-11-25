@@ -46,10 +46,6 @@ class Incorporacion(Entrada):
     documento_id: str = Field(min_length=3,max_length=120)
     tramite_id: str = Field(min_length=3,max_length=80)
     tipo_actuacion: str = Field(min_length=2,max_length=80)
-    asignado_a: str = Field(min_length=2,max_length=120)
+    asignado_a: str | None = Field(default=None,min_length=2,max_length=120)
     avisar: bool = False
     version: int = Field(ge=1)
-
-
-class InicioDemo(BaseModel):
-    usuario_id: str

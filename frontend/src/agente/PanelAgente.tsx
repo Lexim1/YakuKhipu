@@ -1,14 +1,24 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useLocation, useMatch } from 'react-router'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
 import { IconoChispa, IconoCerrar, IconoEnviar } from '../components/Iconos'
 import { useAgente } from './useAgente'
 import type { PreguntaAgente } from './tipos'
+import { baseUrl, pedirJson, usarEjemplos } from '../services/api'
 
 interface Mensaje {
   pregunta: string
   respuesta: string
   fuentes: string[]
+  citas?: Cita[]
+}
+
+interface Cita {
+  titulo: string
+  fragmento_id: string
+  pagina_pdf: number | null
+  enlace: string | null
 }
 
 function normalizar(texto: string) {
@@ -31,28 +41,78 @@ function buscarRespuesta(texto: string, preguntas: PreguntaAgente[]): Mensaje {
 
 /** Botón flotante «Preguntar al agente» y su panel de conversación. */
 export function PanelAgente() {
+  const { pathname } = useLocation()
+  return <PanelConversacion key={pathname} />
+}
+
+function PanelConversacion() {
   const { abierto, abrir, cerrar, contexto, preguntaInicial } = useAgente()
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
+  const [ocupado, setOcupado] = useState(false)
   const final = useRef<HTMLDivElement>(null)
+  const solicitud = useRef<AbortController | null>(null)
+  const conversacion = useRef<string | undefined>(undefined)
+  const expediente = useMatch('/sunass/expedientes/:id')
+  const tramiteEps = useMatch('/eps/tramites/:id/*')
+  const decision = useMatch('/ciudadania/decisiones/:id')
+  const casoId = decision?.params.id
+  const tramiteId = expediente?.params.id || tramiteEps?.params.id
   const preguntas = contexto?.preguntas ?? []
 
-  // Al cambiar de pantalla, la conversación empieza de nuevo.
-  useEffect(() => setMensajes([]), [contexto?.espacio])
-
-  useEffect(() => {
-    if (abierto && preguntaInicial) setMensajes((m) => [...m, buscarRespuesta(preguntaInicial, preguntas)])
-    // Solo cuando se abre con una pregunta concreta.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abierto, preguntaInicial])
+  useEffect(() => () => {
+    solicitud.current?.abort()
+    solicitud.current = null
+  }, [])
 
   useEffect(() => final.current?.scrollIntoView({ block: 'end' }), [mensajes])
 
-  function preguntar(pregunta: string) {
-    if (!pregunta.trim()) return
-    setMensajes((m) => [...m, buscarRespuesta(pregunta.trim(), preguntas)])
+  const preguntar = useCallback(async (entrada: string) => {
+    const pregunta = entrada.trim()
+    if (pregunta.length < 2 || solicitud.current) return
     setTexto('')
-  }
+    if (usarEjemplos) {
+      setMensajes((m) => [...m, buscarRespuesta(pregunta, contexto?.preguntas ?? [])])
+      return
+    }
+    if (!casoId && !tramiteId) {
+      setMensajes((m) => [...m, { pregunta, respuesta: 'Abre un expediente o una decisión para consultar sus fuentes.', fuentes: [] }])
+      return
+    }
+    const controlador = new AbortController()
+    solicitud.current = controlador
+    setOcupado(true)
+    try {
+      const ruta = casoId ? '/api/publico/asistente/chat' : '/api/agente/chat'
+      const payload = { pregunta, conversacion_id: conversacion.current,
+        ...(casoId ? { caso_id: casoId } : { tramite_id: tramiteId }) }
+      const datos = await pedirJson<{ respuesta: string; fuentes: Cita[]; conversacion_id: string }>(ruta, {
+        method: 'POST', signal: controlador.signal,
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+      conversacion.current = datos.conversacion_id
+      setMensajes((m) => [...m, { pregunta, respuesta: datos.respuesta, fuentes: [], citas: datos.fuentes }])
+    } catch (e) {
+      if (!controlador.signal.aborted) {
+        const respuesta = e instanceof Error ? e.message : 'El agente no está disponible.'
+        setMensajes((m) => [...m, { pregunta, respuesta, fuentes: [] }])
+      }
+    } finally {
+      if (solicitud.current === controlador) {
+        solicitud.current = null
+        setOcupado(false)
+      }
+    }
+  }, [casoId, tramiteId, contexto])
+
+  const inicialProcesada = useRef<string | null>(null)
+  useEffect(() => {
+    if (!abierto) inicialProcesada.current = null
+    else if (preguntaInicial && preguntaInicial !== inicialProcesada.current) {
+      inicialProcesada.current = preguntaInicial
+      void preguntar(preguntaInicial)
+    }
+  }, [abierto, preguntaInicial, preguntar])
 
   function enviar(e: FormEvent) {
     e.preventDefault()
@@ -95,7 +155,7 @@ export function PanelAgente() {
               <p className="texto-suave">
                 {preguntas.length > 0
                   ? 'Elige una pregunta o escribe la tuya.'
-                  : 'Abre un expediente o una decisión para preguntar sobre ese caso.'}
+                  : casoId || tramiteId ? 'Escribe una pregunta sobre este caso.' : 'Abre un expediente o una decisión para preguntar sobre ese caso.'}
               </p>
             )}
             {mensajes.map((m, i) => (
@@ -110,6 +170,13 @@ export function PanelAgente() {
                       ))}
                     </div>
                   )}
+                  {m.citas?.map((cita) => {
+                    const rotulo = cita.pagina_pdf ? `${cita.titulo} · p. ${cita.pagina_pdf}` : cita.titulo
+                    return <p key={cita.fragmento_id}>
+                      {cita.enlace?.startsWith('/api/') ?
+                        <a href={baseUrl + cita.enlace} target="_blank" rel="noreferrer">{rotulo}</a> : rotulo}
+                    </p>
+                  })}
                   <p className="nota">Propuesta del agente · una persona la valida.</p>
                 </div>
               </div>
@@ -117,13 +184,14 @@ export function PanelAgente() {
             {pendientes.length > 0 && (
               <div className="agente__sugerencias" aria-label="Preguntas sugeridas">
                 {pendientes.map((p) => (
-                  <button key={p.pregunta} type="button" className="pastilla" onClick={() => preguntar(p.pregunta)}>
+                  <button key={p.pregunta} type="button" className="pastilla" disabled={ocupado} onClick={() => preguntar(p.pregunta)}>
                     {p.pregunta}
                   </button>
                 ))}
               </div>
             )}
             <div ref={final} />
+            {ocupado && <p role="status">Consultando fuentes…</p>}
           </div>
 
           <div className="agente__pie">
@@ -137,8 +205,9 @@ export function PanelAgente() {
                 onChange={(e) => setTexto(e.target.value)}
                 placeholder="Escribe tu pregunta sobre el caso"
                 autoComplete="off"
+                maxLength={casoId ? 600 : 1000}
               />
-              <button type="submit" className="boton boton--primario" aria-label="Enviar pregunta">
+              <button type="submit" className="boton boton--primario" aria-label="Enviar pregunta" disabled={ocupado}>
                 <IconoEnviar tamano={18} />
               </button>
             </form>

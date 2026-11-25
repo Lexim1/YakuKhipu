@@ -2,6 +2,8 @@ import { Link } from 'react-router'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
 import { IconoEdificio, IconoFlecha, IconoOjo, IconoPersonas } from '../components/Iconos'
 import { Marca } from './Marca'
+import { urlIngreso, useSesion } from './sesionEstado'
+import { usarEjemplos } from '../services/api'
 
 const VISTAS = [
   {
@@ -9,7 +11,7 @@ const VISTAS = [
     titulo: 'SUNASS',
     icono: <IconoPersonas />,
     texto:
-      'La DRE incorpora y vincula, la especialista valida y decide, y Gerencia y Consejo resuelven. Incluye a quién llega cada inversión.',
+      'Consulta y gestiona expedientes según tu perfil y tus asignaciones.',
     temas: ['Dashboard y alertas', 'Expedientes', 'Impacto social'],
     soloEscritorio: true,
   },
@@ -39,8 +41,9 @@ const PASOS = [
   { titulo: 'EPS y ciudadanía', texto: 'La EPS ve qué le falta; la ciudadanía, lo aprobado y a quién llega' },
 ]
 
-/** Pantalla de ingreso: elegir la vista. El perfil es simulado hasta conectar la sesión. */
 export function Inicio() {
+  const { sesion } = useSesion()
+  const fallo = new URLSearchParams(window.location.search).has('acceso')
   return (
     <>
       <header className="cabecera">
@@ -62,6 +65,7 @@ export function Inicio() {
               Desde el celular: la EPS responde y la ciudadanía consulta. La vista SUNASS se usa en computadora.
             </p>
           </div>
+          {fallo && <p role="alert">No se completó el ingreso. Si tu cuenta ya fue habilitada, vuelve a intentarlo.</p>}
 
           <section aria-labelledby="titulo-vistas">
             <h2 id="titulo-vistas" className="ingreso__etiqueta">
@@ -82,10 +86,11 @@ export function Inicio() {
                       </li>
                     ))}
                   </ul>
-                  <Link className="boton boton--primario vista__boton" to={vista.ruta}>
-                    Entrar <span className="solo-lectores">a la vista {vista.titulo}</span>
-                    <IconoFlecha tamano={16} />
-                  </Link>
+                  {vista.titulo === 'Ciudadanía' || (sesion && sesion.perfil === vista.titulo.toLowerCase()) ? (
+                    <Link className="boton boton--primario vista__boton" to={vista.ruta}>Entrar <IconoFlecha tamano={16} /></Link>
+                  ) : !sesion ? (
+                    <a className="boton boton--primario vista__boton" href={urlIngreso}>Iniciar sesión <IconoFlecha tamano={16} /></a>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -107,10 +112,10 @@ export function Inicio() {
             </ol>
           </section>
 
-          <p className="texto-suave texto-pequeno">
+          {usarEjemplos && <p className="texto-suave texto-pequeno">
             Datos de demostración. Los documentos de ejemplo se basan en expedientes reales; las cifras simuladas se
             marcan como «Simulado».
-          </p>
+          </p>}
         </div>
       </main>
     </>

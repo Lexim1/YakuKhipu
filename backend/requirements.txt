@@ -1,5 +1,4 @@
 agent-detector==2.0.0
-alembic==1.20.1
 annotated-doc==0.0.7
 annotated-types==0.8.0
 anyio==4.16.0
@@ -89,3 +88,5 @@ xxhash==4.1.0
 zstandard==0.25.0
 openpyxl==3.1.5
 pglast==8.9
+PyJWT[crypto]==2.15.1
+boto3==1.44.11

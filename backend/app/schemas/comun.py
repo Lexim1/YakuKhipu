@@ -13,6 +13,8 @@ class Actor(BaseModel):
     eps_id: str | None = None
     usuario_id: str | None = None
     visitante_id: str | None = None
+    rol_id: Literal['analista_srt','coordinacion_dre','jefatura_dre','eps'] | None = None
+    permisos: list[str] = []
 
 
 class ListaPaginada(BaseModel, Generic[T]):

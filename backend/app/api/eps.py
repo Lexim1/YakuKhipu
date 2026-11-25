@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 
 from ..core.config import settings
 from ..core.db import get_db
-from ..core.sesion import actor_eps
+from ..auth.sesion import actor_eps
 from ..repositories import tramites as repo
 from ..schemas.comun import Actor
 from ..schemas.tramite import NuevaRespuestaEps
 from ..schemas.salidas import FichaEps, ResumenEps
 from ..schemas.comun import ListaPaginada
-from ..services import eps as servicio
+from ..modules import eps as servicio
 
 router = APIRouter(prefix="/api/eps", tags=["EPS"])
 

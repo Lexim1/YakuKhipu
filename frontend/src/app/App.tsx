@@ -15,6 +15,35 @@ import { DetalleTramite } from '../pages/eps/DetalleTramite'
 import { Respuesta } from '../pages/eps/Respuesta'
 import { Decisiones } from '../pages/ciudadania/Decisiones'
 import { Decision } from '../pages/ciudadania/Decision'
+import { ProveedorSesion } from './Sesion'
+import { nombresRol, urlIngreso, useSesion } from './sesionEstado'
+import type { ReactNode } from 'react'
+
+const permisosVista: Record<string, string> = {
+  dashboard: 'dashboard.consultar', alertas: 'alerta.consultar', 'te-toca': 'bandeja.consultar',
+  expedientes: 'expediente.consultar', recepcion: 'recepcion.gestionar', 'por-resolver': 'acto_externo.registrar',
+  'ficha-eps': 'ficha360.consultar', encargos: 'encargo.consultar', reportes: 'reporte.consultar',
+  configuracion: 'configuracion.consultar', tramites: 'expediente.consultar',
+}
+
+function Autorizar({ permiso, children }: { permiso: string; children: ReactNode }) {
+  const { sesion } = useSesion()
+  return sesion?.permisos.includes(permiso) ? children : <p role="alert">No tienes permiso para ver esta sección.</p>
+}
+
+function Area({ perfil }: { perfil: 'sunass' | 'eps' }) {
+  const { sesion, error } = useSesion()
+  if (sesion === undefined) return <p role="status">Comprobando sesión…</p>
+  if (!sesion) return <main><p>{error || 'Inicia sesión para continuar.'}</p><a href={urlIngreso}>Iniciar sesión</a></main>
+  if (sesion.perfil !== perfil) return <Navigate to={sesion.perfil === 'sunass' ? '/sunass' : '/eps'} replace />
+  const menu = (perfil === 'sunass' ? MENU_SUNASS : MENU_EPS).map((grupo) => ({
+    ...grupo, enlaces: grupo.enlaces.filter(({ ruta }) =>
+      sesion.permisos.includes(permisosVista[ruta.split('/').at(-1) || ''])),
+  })).filter(({ enlaces }) => enlaces.length > 0)
+  return <LayoutInterno vista={perfil === 'sunass' ? 'SUNASS' : 'EPS'} perfil={nombresRol[sesion.rol_id]} menu={menu}
+    rutaBusqueda={perfil === 'sunass' && sesion.permisos.includes('expediente.consultar') ? '/sunass/expedientes' : undefined}
+    rutaAlertas={perfil === 'sunass' && sesion.permisos.includes('alerta.consultar') ? '/sunass/alertas' : undefined} />
+}
 
 /** Pantallas SUNASS del Figma que la guía todavía no asigna a una tarea. */
 const SUNASS_SIN_ASIGNAR = [
@@ -30,41 +59,34 @@ const SUNASS_SIN_ASIGNAR = [
 export function App() {
   return (
     <BrowserRouter>
+      <ProveedorSesion>
       <AgenteProveedor>
         <Routes>
           <Route index element={<Inicio />} />
 
           <Route
             path="sunass"
-            element={
-              <LayoutInterno
-                vista="SUNASS · Vista completa"
-                perfil="Jefatura DRE"
-                menu={MENU_SUNASS}
-                rutaBusqueda="/sunass/expedientes"
-                rutaAlertas="/sunass/alertas"
-              />
-            }
+            element={<Area perfil="sunass" />}
           >
             <Route index element={<Navigate to="expedientes" replace />} />
-            <Route path="expedientes" element={<Expedientes />} />
-            <Route path="expedientes/:id" element={<Expediente />} />
-            <Route path="recepcion" element={<Recepcion />} />
-            <Route path="alertas" element={<Alertas />} />
+            <Route path="expedientes" element={<Autorizar permiso="expediente.consultar"><Expedientes /></Autorizar>} />
+            <Route path="expedientes/:id" element={<Autorizar permiso="expediente.consultar"><Expediente /></Autorizar>} />
+            <Route path="recepcion" element={<Autorizar permiso="recepcion.gestionar"><Recepcion /></Autorizar>} />
+            <Route path="alertas" element={<Autorizar permiso="alerta.consultar"><Alertas /></Autorizar>} />
             {SUNASS_SIN_ASIGNAR.map((p) => (
               <Route
                 key={p.ruta}
                 path={p.ruta}
-                element={<PaginaPendiente titulo={p.titulo} responsable="por asignar" />}
+                element={<Autorizar permiso={permisosVista[p.ruta]}><PaginaPendiente titulo={p.titulo} responsable="por asignar" /></Autorizar>}
               />
             ))}
           </Route>
 
-          <Route path="eps" element={<LayoutInterno vista="EPS" perfil="EPS (simulada)" menu={MENU_EPS} />}>
+          <Route path="eps" element={<Area perfil="eps" />}>
             <Route index element={<Navigate to="tramites" replace />} />
-            <Route path="tramites" element={<MisTramites />} />
-            <Route path="tramites/:id" element={<DetalleTramite />} />
-            <Route path="tramites/:id/respuesta" element={<Respuesta />} />
+            <Route path="tramites" element={<Autorizar permiso="expediente.consultar"><MisTramites /></Autorizar>} />
+            <Route path="tramites/:id" element={<Autorizar permiso="expediente.consultar"><DetalleTramite /></Autorizar>} />
+            <Route path="tramites/:id/respuesta" element={<Autorizar permiso="eps.respuesta_informar"><Respuesta /></Autorizar>} />
           </Route>
 
           <Route path="ciudadania" element={<LayoutPublico />}>
@@ -76,6 +98,7 @@ export function App() {
           <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </AgenteProveedor>
+      </ProveedorSesion>
     </BrowserRouter>
   )
 }

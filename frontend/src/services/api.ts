@@ -21,13 +21,9 @@ const MENSAJES: Record<number, string> = {
 
 /** true cuando el equipo elige explícitamente los ejemplos simulados (solo desarrollo). */
 export const usarEjemplos = import.meta.env.VITE_USAR_EJEMPLOS === 'true'
+export const baseUrl = import.meta.env.VITE_API_URL || ''
 
-export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
-  const baseUrl = import.meta.env.VITE_API_URL
-  if (!baseUrl) {
-    throw new ErrorApi(0, 'Falta configurar la URL de la API (VITE_API_URL).')
-  }
-
+export async function pedir(ruta: string, opciones: RequestInit = {}): Promise<Response> {
   let respuesta: Response
   try {
     respuesta = await fetch(`${baseUrl}${ruta}`, {
@@ -41,8 +37,16 @@ export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Pr
   }
 
   if (!respuesta.ok) {
-    throw new ErrorApi(respuesta.status, MENSAJES[respuesta.status] ?? 'Ocurrió un error inesperado.')
+    const error = await respuesta.json().catch(() => null)
+    if (respuesta.status === 401 && ruta !== '/api/sesion') window.dispatchEvent(new Event('sesion-vencida'))
+    throw new ErrorApi(respuesta.status, error?.detail ?? MENSAJES[respuesta.status] ?? 'Ocurrió un error inesperado.')
   }
+  return respuesta
+}
+
+export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+  const respuesta = await pedir(ruta, opciones)
+  if (respuesta.status === 204) return undefined as T
   return (await respuesta.json()) as T
 }
 

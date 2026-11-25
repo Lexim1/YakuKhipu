@@ -10,11 +10,11 @@ from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.db import get_db
 from ..core.errores import DemasiadasConsultas
-from ..core.sesion import actor_institucional, visitante
+from ..auth.sesion import actor_institucional, visitante
 from ..repositories import tramites as repo
 from ..schemas.agente import PreguntaInstitucional, PreguntaPublica, RespuestaChat
 from ..schemas.comun import Actor
-from ..services import asistente
+from ..modules import asistente
 
 router = APIRouter(tags=["Asistente"])
 _consultas: dict[str, deque] = defaultdict(deque)

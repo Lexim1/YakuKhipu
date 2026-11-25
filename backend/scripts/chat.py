@@ -1,9 +1,8 @@
 """Chat con el agente desde la terminal, contra la base local.
 
 Uso (desde backend/):
-  python -m scripts.chat                                    (SUNASS, caso Tacna)
-  python -m scripts.chat --usuario eps-tacna
-  python -m scripts.chat --publico --tramite UFI-2025-0001
+  python -m scripts.chat --usuario ID_REAL --tramite ID_CANONICO
+  python -m scripts.chat --publico --tramite ID_CANONICO
 Escribe 'salir' para terminar.
 """
 import argparse
@@ -12,21 +11,28 @@ import sys
 
 from app.agent import graph
 from app.core.db import SesionDB
-from app.core.sesion import actor_de
+from app.auth.sesion import actor_de
 from app.models import Usuario
 from app.schemas.comun import Actor
-from app.services.fuentes import FuentesBD
+from app.modules.fuentes import FuentesBD
 
 
 async def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser()
-    p.add_argument("--usuario", default="sunass-srt", help="sunass-srt · eps-tacna · eps-epssmu · eps-emapa-pasco")
-    p.add_argument("--publico", action="store_true")
-    p.add_argument("--tramite", default="CPI-2026-0007")
+    grupo = p.add_mutually_exclusive_group(required=True)
+    grupo.add_argument("--usuario", help="Identificador real provisionado en PostgreSQL")
+    grupo.add_argument("--publico", action="store_true")
+    p.add_argument("--tramite", required=True, help="Identificador canónico de expediente")
     a = p.parse_args()
     with SesionDB() as db:
-        actor = Actor(perfil="publico") if a.publico else actor_de(db.get(Usuario, a.usuario))
+        usuario = db.get(Usuario, a.usuario) if a.usuario else None
+        if not a.publico and (usuario is None or not usuario.activo):
+            p.error("La cuenta no existe o está inactiva.")
+        actor = Actor(perfil="publico") if a.publico else actor_de(usuario, db)
+        if not a.publico:
+            from app.auth.permisos import exigir
+            exigir(actor, "agente.consultar")
         fuentes, historial = FuentesBD(db), []
         print(f"YakuKhipu · {actor.perfil} {actor.eps_id or ''} · {a.tramite} · escribe 'salir' para terminar\n")
         while (pregunta := input("Tú: ").strip()).lower() not in {"salir", "exit", "q"}:

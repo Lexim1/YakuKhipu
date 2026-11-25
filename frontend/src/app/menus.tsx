@@ -29,16 +29,16 @@ export const MENU_SUNASS: GrupoMenu[] = [
     titulo: 'General',
     enlaces: [
       { ruta: '/sunass/dashboard', texto: 'Dashboard', icono: <IconoGrafico /> },
-      { ruta: '/sunass/alertas', texto: 'Alertas', icono: <IconoCampana />, contador: 6 },
+      { ruta: '/sunass/alertas', texto: 'Alertas', icono: <IconoCampana /> },
     ],
   },
   {
     titulo: 'Trámites',
     enlaces: [
-      { ruta: '/sunass/te-toca', texto: 'Te toca actuar', icono: <IconoBandeja />, contador: 3 },
+      { ruta: '/sunass/te-toca', texto: 'Te toca actuar', icono: <IconoBandeja /> },
       { ruta: '/sunass/expedientes', texto: 'Expedientes', icono: <IconoLista /> },
-      { ruta: '/sunass/recepcion', texto: 'Recepción de documentos', icono: <IconoBandeja />, contador: 2 },
-      { ruta: '/sunass/por-resolver', texto: 'Por resolver', icono: <IconoMazo />, contador: 2 },
+      { ruta: '/sunass/recepcion', texto: 'Recepción de documentos', icono: <IconoBandeja /> },
+      { ruta: '/sunass/por-resolver', texto: 'Por resolver', icono: <IconoMazo /> },
     ],
   },
   {
