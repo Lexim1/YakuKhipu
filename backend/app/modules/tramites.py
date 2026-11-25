@@ -479,4 +479,3 @@ def listar_alertas(db: Session, hoy: date, actor: Actor) -> list[dict]:
                            "destino": {"tipo": "expediente", "id": t.id, "pestana": "plazos"},
                            "accion": "Abrir expediente"})
     return salida
-
