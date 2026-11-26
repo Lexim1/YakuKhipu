@@ -4,30 +4,26 @@ import { RequiereSesion } from '../sesion/RequiereSesion'
 import { SesionProveedor } from '../sesion/SesionProveedor'
 import { Ingreso } from './Ingreso'
 import { LayoutInterno } from './LayoutInterno'
+import { LayoutSunass, SoloPerfil } from './LayoutSunass'
 import { LayoutPublico } from './LayoutPublico'
-import { MENU_EPS, MENU_SUNASS } from './menus'
+import { MENU_EPS } from './menus'
 import { NoEncontrada } from './NoEncontrada'
-import { PaginaPendiente } from './PaginaPendiente'
 import { Expedientes } from '../pages/sunass/Expedientes'
 import { Expediente } from '../pages/sunass/Expediente'
 import { Recepcion } from '../pages/sunass/Recepcion'
 import { Alertas } from '../pages/sunass/Alertas'
 import { TeToca } from '../pages/sunass/TeToca'
+import { Dashboard } from '../pages/sunass/Dashboard'
+import { FichaEps } from '../pages/sunass/FichaEps'
+import { ActosExternos, ResumenActo } from '../pages/sunass/ActosExternos'
+import { Encargos } from '../pages/sunass/Encargos'
+import { Reportes } from '../pages/sunass/Reportes'
+import { Configuracion } from '../pages/sunass/Configuracion'
 import { MisTramites } from '../pages/eps/MisTramites'
 import { DetalleTramite } from '../pages/eps/DetalleTramite'
 import { Respuesta } from '../pages/eps/Respuesta'
 import { Decisiones } from '../pages/ciudadania/Decisiones'
 import { Decision } from '../pages/ciudadania/Decision'
-
-/** Pantallas SUNASS del Figma que la guía todavía no asigna a una tarea. */
-const SUNASS_SIN_ASIGNAR = [
-  { ruta: 'dashboard', titulo: 'Dashboard' },
-  { ruta: 'por-resolver', titulo: 'Por resolver' },
-  { ruta: 'ficha-eps', titulo: 'Ficha 360 de EPS' },
-  { ruta: 'encargos', titulo: 'Encargos posteriores' },
-  { ruta: 'reportes', titulo: 'Reportes' },
-  { ruta: 'configuracion', titulo: 'Configuración' },
-]
 
 export function App() {
   return (
@@ -41,28 +37,23 @@ export function App() {
               path="sunass"
               element={
                 <RequiereSesion perfil="sunass">
-                  <LayoutInterno
-                    vista="SUNASS · Vista completa"
-                    menu={MENU_SUNASS}
-                    rutaBusqueda="/sunass/expedientes"
-                    rutaAlertas="/sunass/alertas"
-                  />
+                  <LayoutSunass />
                 </RequiereSesion>
               }
             >
               <Route index element={<Navigate to="expedientes" replace />} />
               <Route path="expedientes" element={<Expedientes />} />
               <Route path="expedientes/:id" element={<Expediente />} />
-              <Route path="recepcion" element={<Recepcion />} />
               <Route path="alertas" element={<Alertas />} />
               <Route path="te-toca" element={<TeToca />} />
-              {SUNASS_SIN_ASIGNAR.map((p) => (
-                <Route
-                  key={p.ruta}
-                  path={p.ruta}
-                  element={<PaginaPendiente titulo={p.titulo} responsable="por asignar" />}
-                />
-              ))}
+              <Route path="dashboard" element={<SoloPerfil ruta="dashboard"><Dashboard /></SoloPerfil>} />
+              <Route path="ficha-eps" element={<FichaEps />} />
+              <Route path="actos" element={<SoloPerfil ruta="actos"><ActosExternos /></SoloPerfil>} />
+              <Route path="actos/:id" element={<SoloPerfil ruta="actos"><ResumenActo /></SoloPerfil>} />
+              <Route path="encargos" element={<Encargos />} />
+              <Route path="reportes" element={<SoloPerfil ruta="reportes"><Reportes /></SoloPerfil>} />
+              <Route path="configuracion" element={<SoloPerfil ruta="configuracion"><Configuracion /></SoloPerfil>} />
+              <Route path="recepcion" element={<SoloPerfil ruta="recepcion"><Recepcion /></SoloPerfil>} />
             </Route>
 
             <Route

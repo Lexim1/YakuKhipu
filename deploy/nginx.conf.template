@@ -1,0 +1,37 @@
+# Portal YakuKhipu en la nube: sirve el frontend y reenvía la API al backend por la red privada.
+# Portal y API comparten origen (patrón BFF): la cookie HttpOnly y el ingreso OIDC funcionan sin CORS.
+# La imagen oficial de nginx reemplaza ${PORT} y ${BACKEND_URL} al arrancar (solo variables definidas).
+
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # PDF de hasta 20 MiB (POST /api/recepcion/pdf) más el formulario.
+    client_max_body_size 21m;
+
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 120s;
+    }
+
+    location = /health {
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $proxy_host;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # Rutas del portal (/sunass/..., /eps/..., /ciudadania/...): las resuelve React.
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri /index.html;
+    }
+}

@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { IconoEdificio, IconoFlecha, IconoOjo, IconoPersonas } from '../components/Iconos'
 import { MensajeError } from '../components/Mensajes'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
 import { CLAVE_DEMO, USUARIOS_DEMO } from '../mocks/sesion'
 import { usarEjemplos } from '../services/api'
+import { URL_INGRESO_INSTITUCIONAL, obtenerEstadoServidor, type ModoIngreso } from '../services/sesion'
 import { useSesion } from '../sesion/useSesion'
 import { INICIO_PERFIL, type Sesion } from '../types/sesion'
 
@@ -43,6 +44,17 @@ export function Ingreso() {
   const [verClave, setVerClave] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // null mientras se consulta al servidor si el ingreso es con contraseña o institucional (Keycloak).
+  const [modo, setModo] = useState<ModoIngreso | null>(null)
+  const accesoFallido = parametros.get('acceso') === 'fallido'
+
+  useEffect(() => {
+    let vigente = true
+    void obtenerEstadoServidor().then((e) => vigente && setModo(e.ingreso))
+    return () => {
+      vigente = false
+    }
+  }, [])
 
   if (estado === 'listo' && sesion && !enviando) return <Navigate to={destino(sesion, volver)} replace />
 
@@ -129,7 +141,25 @@ export function Ingreso() {
                 </p>
               )}
 
-              <form className="acceso__formulario" onSubmit={enviar} noValidate>
+              {accesoFallido && (
+                <MensajeError mensaje="No se completó el ingreso. Si tu cuenta ya fue habilitada en YakuKhipu, vuelve a intentarlo." />
+              )}
+
+              {modo === null && <p className="texto-suave" role="status">Preparando el ingreso…</p>}
+
+              {modo === 'oidc' && (
+                <div className="acceso__formulario">
+                  <p className="texto-suave">
+                    Usa tu cuenta institucional. La contraseña se escribe en el servicio de identidad, no en este portal.
+                  </p>
+                  <a className="boton boton--primario acceso__entrar" href={URL_INGRESO_INSTITUCIONAL}>
+                    Ingresar con cuenta institucional
+                    <IconoFlecha tamano={16} />
+                  </a>
+                </div>
+              )}
+
+              {modo === 'clave' && <form className="acceso__formulario" onSubmit={enviar} noValidate>
                 <label className="campo">
                   Usuario
                   <input
@@ -173,7 +203,7 @@ export function Ingreso() {
                   {enviando ? 'Ingresando…' : 'Ingresar'}
                   <IconoFlecha tamano={16} />
                 </button>
-              </form>
+              </form>}
 
               <p className="acceso__alterno">
                 ¿Eres ciudadana o ciudadano?{' '}

@@ -32,13 +32,17 @@ interface Props {
   /** Ruta de la lista donde busca la cabecera, por ejemplo /sunass/expedientes. */
   rutaBusqueda?: string
   rutaAlertas?: string
+  /** Perfil y ámbito que se muestran arriba del menú (vistas SUNASS). */
+  ambito?: { cargo: string; detalle: string }
+  /** false si la cuenta no tiene el permiso agente.consultar: no se muestra el botón del agente. */
+  conAgente?: boolean
 }
 
 /**
  * Estructura de las vistas con sesión (SUNASS y EPS): cabecera, menú lateral y contenido.
  * El cargo que se muestra sale de la sesión.
  */
-export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas }: Props) {
+export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito, conAgente = true }: Props) {
   const navegar = useNavigate()
   const { sesion, salir } = useSesion()
   const [saliendo, setSaliendo] = useState(false)
@@ -120,6 +124,12 @@ export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas }: Props)
       </header>
       <div className="estructura">
         <aside className="lateral">
+          {ambito && (
+            <div className="lateral__ambito">
+              <p className="lateral__cargo">{ambito.cargo}</p>
+              <p className="lateral__detalle">{ambito.detalle}</p>
+            </div>
+          )}
           {menu.map((grupo) => (
             <nav key={grupo.titulo} aria-label={grupo.titulo}>
               <p className="lateral__grupo">{grupo.titulo}</p>
@@ -144,12 +154,18 @@ export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas }: Props)
               </ul>
             </nav>
           ))}
+          {ambito && (
+            <div className="lateral__nota">
+              <p className="lateral__nota-titulo">Trazabilidad disponible</p>
+              <p>Historia, fuentes, responsables y plazos dentro de tu ámbito.</p>
+            </div>
+          )}
         </aside>
         <main id="contenido" className="principal" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
-      <PanelAgente />
+      {conAgente && <PanelAgente />}
     </>
   )
 }
