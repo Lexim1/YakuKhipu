@@ -273,6 +273,24 @@ export async function listarDestinos(signal?: AbortSignal): Promise<DestinoApi[]
   return (await pedirJson<{ items: DestinoApi[] }>('/api/recepcion/destinos', { signal })).items
 }
 
+export interface CandidatoAsignacion {
+  id: string
+  nombre: string
+}
+
+export function listarCandidatosAsignacion(id: string, signal?: AbortSignal) {
+  return pedirJson<CandidatoAsignacion[]>(`/api/tramites/${encodeURIComponent(id)}/asignaciones/candidatos`, { signal })
+}
+
+export async function asignarExpediente(id: string, datos: { usuario_id: string; motivo: string; version: number }) {
+  await pedir(`/api/tramites/${encodeURIComponent(id)}/asignaciones`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  })
+  avisarCambio()
+}
+
 export async function listarDocumentosRecibidos(signal?: AbortSignal): Promise<ListaPaginada<DocumentoRecibido>> {
   if (usarEjemplos) return ejemplo({ items: documentosPendientes, total: documentosPendientes.length }, signal)
   const [recibidos, destinos] = await Promise.all([
