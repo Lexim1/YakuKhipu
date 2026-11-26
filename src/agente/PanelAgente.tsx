@@ -1,73 +1,31 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
-import { IconoChispa, IconoCerrar, IconoEnviar } from '../components/Iconos'
-import { usarEjemplos } from '../services/api'
-import { preguntarAgente, urlFuente } from '../services/agente'
+import { IconoChispa, IconoCerrar, IconoDocumento, IconoEnviar } from '../components/Iconos'
+import { ErrorApi } from '../services/api'
+import {
+  citaDeTexto,
+  preguntarAlAgente,
+  respuestaDePantalla,
+  type FuenteCita,
+  type RespuestaAgente,
+} from '../services/asistente'
 import { useAgente } from './useAgente'
-import type { ConsultaAgente, PreguntaAgente } from './tipos'
+import { VisorFuente } from './VisorFuente'
 
-interface FuenteMensaje {
-  texto: string
-  url?: string | null
+type Mensaje = { id: number; pregunta: string } & (
+  | { estado: 'cargando' }
+  | { estado: 'listo'; respuesta: RespuestaAgente }
+  | { estado: 'error'; mensaje: string }
+)
+
+const NOTA_SIN_FUENTES: Record<string, string> = {
+  sin_fuentes: 'No encontré documentos que respalden una respuesta. Revisa el expediente o pregunta de otra forma.',
+  no_disponible: 'Esta información todavía no está disponible en las fuentes del caso.',
 }
 
-interface Mensaje {
-  pregunta: string
-  respuesta: string
-  fuentes: FuenteMensaje[]
-  advertencias?: string[]
-  cargando?: boolean
-}
-
-/** Respuesta de la API real, con la cita de cada página. */
-async function consultarApi(
-  consulta: ConsultaAgente,
-  pregunta: string,
-  conversacion: { current: string | null },
-): Promise<Mensaje> {
-  try {
-    const r = await preguntarAgente(consulta, pregunta, conversacion.current)
-    conversacion.current = r.conversacion_id
-    return {
-      pregunta,
-      respuesta: r.respuesta,
-      fuentes: r.fuentes.map((f) => ({
-        texto: f.pagina_pdf ? `${f.titulo} · p. ${f.pagina_pdf}` : f.titulo,
-        url: urlFuente(f.enlace),
-      })),
-      advertencias: r.advertencias,
-    }
-  } catch (error) {
-    const estado = error instanceof Error && 'estado' in error ? (error as { estado: number }).estado : 0
-    const respuesta =
-      estado === 503
-        ? 'El agente no está disponible en este momento. El resto del portal sigue funcionando.'
-        : estado === 429
-          ? 'Se alcanzó el límite de preguntas por hora. Inténtalo más tarde.'
-          : error instanceof Error
-            ? error.message
-            : 'No pudimos consultar al agente.'
-    return { pregunta, respuesta, fuentes: [] }
-  }
-}
-
-function normalizar(texto: string) {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
-function buscarRespuesta(texto: string, preguntas: PreguntaAgente[]): Mensaje {
-  const t = normalizar(texto)
-  const elegida = preguntas.find(
-    (p) => normalizar(p.pregunta) === t || (p.palabras ?? []).some((palabra) => t.includes(normalizar(palabra))),
-  )
-  if (elegida) return { pregunta: texto, respuesta: elegida.respuesta, fuentes: elegida.fuentes.map((f) => ({ texto: f })) }
-  return {
-    pregunta: texto,
-    respuesta:
-      'En esta demostración el agente responde las preguntas sugeridas. Con el backend conectado, buscará en los documentos del expediente y citará la página.',
-    fuentes: [],
-  }
+function textoCita(f: FuenteCita) {
+  return f.pagina_pdf ? `${f.titulo} · pág. ${f.pagina_pdf}` : f.titulo
 }
 
 /** Botón flotante «Preguntar al agente» y su panel de conversación. */
@@ -75,18 +33,25 @@ export function PanelAgente() {
   const { abierto, abrir, cerrar, contexto, preguntaInicial } = useAgente()
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
-  const final = useRef<HTMLDivElement>(null)
+  const [citaAbierta, setCitaAbierta] = useState<FuenteCita | null>(null)
   const conversacion = useRef<string | null>(null)
-  // Con la API real el agente responde sobre un caso concreto; sin caso no hay a quién preguntar.
-  const consulta = usarEjemplos ? undefined : contexto?.consulta
-  const preguntas = usarEjemplos || consulta ? (contexto?.preguntas ?? []) : []
-  const esperando = mensajes.some((m) => m.cargando)
+  const control = useRef<AbortController | null>(null)
+  const final = useRef<HTMLDivElement>(null)
+  const siguienteId = useRef(0)
+  const preguntas = contexto?.preguntas ?? []
+  const publico = contexto?.publico ?? contexto?.caso?.tipo === 'publico'
+  const claveCaso = `${contexto?.espacio ?? ''}|${contexto?.caso?.id ?? ''}`
+  const esperando = mensajes.some((m) => m.estado === 'cargando')
 
-  // Al cambiar de pantalla, la conversación empieza de nuevo.
+  // Al cambiar de caso, la conversación empieza de nuevo y se cancela la pregunta pendiente.
   useEffect(() => {
-    setMensajes([])
+    control.current?.abort()
     conversacion.current = null
-  }, [contexto?.espacio])
+    setMensajes([])
+    setCitaAbierta(null)
+  }, [claveCaso])
+
+  useEffect(() => () => control.current?.abort(), [])
 
   useEffect(() => {
     if (abierto && preguntaInicial) preguntar(preguntaInicial)
@@ -94,28 +59,64 @@ export function PanelAgente() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto, preguntaInicial])
 
-  // Con llaves: algunos navegadores devuelven una promesa desde scrollIntoView y React la tomaría como limpieza.
   useEffect(() => {
-    final.current?.scrollIntoView({ block: 'end' })
-  }, [mensajes])
+    if (!citaAbierta) final.current?.scrollIntoView({ block: 'end' })
+  }, [mensajes, citaAbierta])
 
-  function preguntar(entrada: string) {
-    const pregunta = entrada.trim()
-    if (!pregunta || esperando) return
+  function actualizar(mensaje: Mensaje) {
+    setMensajes((actuales) => actuales.map((m) => (m.id === mensaje.id ? mensaje : m)))
+  }
+
+  async function preguntar(pregunta: string) {
+    const limpia = pregunta.trim()
+    if (!limpia || esperando) return
     setTexto('')
-    if (!consulta) {
-      setMensajes((m) => [...m, buscarRespuesta(pregunta, preguntas)])
-      return
+    siguienteId.current += 1
+    const id = siguienteId.current
+    setMensajes((actuales) => [...actuales, { id, pregunta: limpia, estado: 'cargando' }])
+
+    const nuevo = new AbortController()
+    control.current = nuevo
+    try {
+      const respuesta = await preguntarAlAgente(
+        { caso: contexto?.caso, pregunta: limpia, preguntas, conversacionId: conversacion.current },
+        nuevo.signal,
+      )
+      if (respuesta.conversacion_id !== 'ejemplo') conversacion.current = respuesta.conversacion_id
+      actualizar({ id, pregunta: limpia, estado: 'listo', respuesta })
+    } catch (error) {
+      if (nuevo.signal.aborted) return
+      // Si el servicio de IA no responde y era una pregunta sugerida, se usa la respuesta preparada
+      // con los datos de la pantalla. Una pregunta escrita a mano no recibe una respuesta parecida.
+      const deRespaldo = respuestaDePantalla(limpia, preguntas, true)
+      if (error instanceof ErrorApi && error.estado === 503 && deRespaldo) {
+        actualizar({
+          id,
+          pregunta: limpia,
+          estado: 'listo',
+          respuesta: {
+            estado: 'ok',
+            respuesta: deRespaldo.respuesta,
+            fuentes: deRespaldo.fuentes.map(citaDeTexto),
+            advertencias: ['El agente no está disponible: esta respuesta usa los datos que ves en la pantalla.'],
+            conversacion_id: conversacion.current ?? '',
+          },
+        })
+        return
+      }
+      const mensaje = error instanceof Error ? error.message : 'No pudimos obtener la respuesta.'
+      actualizar({ id, pregunta: limpia, estado: 'error', mensaje })
     }
-    setMensajes((m) => [...m, { pregunta, respuesta: 'Buscando en los documentos del caso…', fuentes: [], cargando: true }])
-    void consultarApi(consulta, pregunta, conversacion).then((respuesta) =>
-      setMensajes((m) => m.map((x) => (x.cargando && x.pregunta === pregunta ? respuesta : x))),
-    )
+  }
+
+  function reintentar(id: number, pregunta: string) {
+    setMensajes((actuales) => actuales.filter((m) => m.id !== id))
+    void preguntar(pregunta)
   }
 
   function enviar(e: FormEvent) {
     e.preventDefault()
-    preguntar(texto)
+    void preguntar(texto)
   }
 
   const pendientes = preguntas.filter((p) => !mensajes.some((m) => m.pregunta === p.pregunta))
@@ -137,7 +138,9 @@ export function PanelAgente() {
             </span>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '1.0625rem' }}>Agente YakuKhipu</h2>
-              <p className="texto-pequeno texto-suave">Te ayuda a revisar con fuentes</p>
+              <p className="texto-pequeno texto-suave">
+                {publico ? 'Explica en lenguaje sencillo' : 'Te ayuda a revisar con fuentes'}
+              </p>
               {contexto && (
                 <span className="chip chip--marca chip--sin-punto" style={{ marginTop: 6 }}>
                   {contexto.espacio}
@@ -149,52 +152,101 @@ export function PanelAgente() {
             </button>
           </div>
 
-          <div className="agente__conversacion" aria-live="polite">
-            {mensajes.length === 0 && (
-              <p className="texto-suave">
-                {preguntas.length > 0
-                  ? 'Elige una pregunta o escribe la tuya.'
-                  : 'Abre un expediente o una decisión para preguntar sobre ese caso.'}
-              </p>
-            )}
-            {mensajes.map((m, i) => (
-              <div key={i} style={{ display: 'contents' }}>
-                <p className="agente__pregunta">{m.pregunta}</p>
-                <div className="agente__respuesta">
-                  <p>{m.respuesta}</p>
-                  {m.fuentes.length > 0 && (
-                    <div className="fila-chips">
-                      {m.fuentes.map((f) =>
-                        f.url ? (
-                          <a key={f.texto} href={f.url} target="_blank" rel="noreferrer">
-                            <Fuente>{f.texto}</Fuente>
-                          </a>
-                        ) : (
-                          <Fuente key={f.texto}>{f.texto}</Fuente>
-                        ),
-                      )}
+          {citaAbierta ? (
+            <div className="agente__conversacion">
+              <VisorFuente cita={citaAbierta} alVolver={() => setCitaAbierta(null)} />
+            </div>
+          ) : (
+            <div className="agente__conversacion" aria-live="polite">
+              {mensajes.length === 0 && (
+                <p className="texto-suave">
+                  {contexto?.caso
+                    ? 'Pregunta lo que quieras sobre este caso. Responderé citando la página de cada documento.'
+                    : preguntas.length > 0
+                      ? 'Elige una pregunta. Para preguntar con tus palabras, abre un caso.'
+                      : 'Abre un expediente o una decisión para preguntar sobre ese caso.'}
+                </p>
+              )}
+              {mensajes.map((m) => (
+                <div key={m.id} style={{ display: 'contents' }}>
+                  <p className="agente__pregunta">{m.pregunta}</p>
+                  {m.estado === 'cargando' && (
+                    <div className="agente__respuesta agente__respuesta--cargando" role="status">
+                      <span className="agente__puntos" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      Revisando las fuentes…
                     </div>
                   )}
-                  {m.advertencias?.map((a) => (
-                    <p key={a} className="nota">
-                      ⚠ {a}
-                    </p>
-                  ))}
-                  {!m.cargando && <p className="nota">Propuesta del agente · una persona la valida.</p>}
+                  {m.estado === 'error' && (
+                    <div className="agente__respuesta agente__respuesta--error">
+                      <p>{m.mensaje}</p>
+                      <button
+                        type="button"
+                        className="boton boton--secundario"
+                        onClick={() => reintentar(m.id, m.pregunta)}
+                        disabled={esperando}
+                      >
+                        Volver a preguntar
+                      </button>
+                    </div>
+                  )}
+                  {m.estado === 'listo' && (
+                    <div className="agente__respuesta">
+                      <p>{m.respuesta.respuesta}</p>
+                      {m.respuesta.estado !== 'ok' && (
+                        <p className="agente__aviso">{NOTA_SIN_FUENTES[m.respuesta.estado]}</p>
+                      )}
+                      {m.respuesta.fuentes.length > 0 && (
+                        <div className="fila-chips">
+                          {m.respuesta.fuentes.map((f) =>
+                            f.enlace ? (
+                              <button
+                                key={f.fragmento_id}
+                                type="button"
+                                className="fuente fuente--boton"
+                                onClick={() => setCitaAbierta(f)}
+                              >
+                                <IconoDocumento tamano={12} />
+                                {textoCita(f)}
+                                <span className="solo-lectores"> (abrir la fuente)</span>
+                              </button>
+                            ) : (
+                              <Fuente key={f.fragmento_id}>{textoCita(f)}</Fuente>
+                            ),
+                          )}
+                        </div>
+                      )}
+                      {m.respuesta.advertencias.map((a) => (
+                        <p key={a} className="agente__aviso">
+                          {a}
+                        </p>
+                      ))}
+                      <p className="nota">Propuesta del agente · una persona la valida.</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
-            {pendientes.length > 0 && (
-              <div className="agente__sugerencias" aria-label="Preguntas sugeridas">
-                {pendientes.map((p) => (
-                  <button key={p.pregunta} type="button" className="pastilla" onClick={() => preguntar(p.pregunta)}>
-                    {p.pregunta}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div ref={final} />
-          </div>
+              ))}
+              {pendientes.length > 0 && (
+                <div className="agente__sugerencias" aria-label="Preguntas sugeridas">
+                  {pendientes.map((p) => (
+                    <button
+                      key={p.pregunta}
+                      type="button"
+                      className="pastilla"
+                      onClick={() => preguntar(p.pregunta)}
+                      disabled={esperando}
+                    >
+                      {p.pregunta}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div ref={final} />
+            </div>
+          )}
 
           <div className="agente__pie">
             <form className="agente__formulario" onSubmit={enviar}>
@@ -207,12 +259,22 @@ export function PanelAgente() {
                 onChange={(e) => setTexto(e.target.value)}
                 placeholder="Escribe tu pregunta sobre el caso"
                 autoComplete="off"
+                maxLength={publico ? 600 : 1000}
               />
-              <button type="submit" className="boton boton--primario" aria-label="Enviar pregunta" disabled={esperando}>
+              <button
+                type="submit"
+                className="boton boton--primario"
+                aria-label="Enviar pregunta"
+                disabled={esperando || texto.trim().length < 2}
+              >
                 <IconoEnviar tamano={18} />
               </button>
             </form>
-            <p className="nota">Propone con cita de página. Una persona decide.</p>
+            <p className="nota">
+              {publico
+                ? 'Cita solo fuentes públicas. Para participar, usa los canales oficiales.'
+                : 'Propone con cita de página. Una persona decide.'}
+            </p>
           </div>
         </div>
       </Dialogo>

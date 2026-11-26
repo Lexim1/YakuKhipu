@@ -85,7 +85,7 @@ export function Expediente() {
       ? {
           espacio: `Espacio SUNASS · ${expediente.id}`,
           preguntas: preguntasDe(expediente),
-          consulta: { tipo: 'tramite', tramite_id: expediente.id },
+          caso: { tipo: 'tramite', id: expediente.id },
         }
       : null,
   )

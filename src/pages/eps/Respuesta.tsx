@@ -355,7 +355,7 @@ export function Respuesta() {
     tramite && accion
       ? {
         espacio: `Espacio EPS · ${tramite.id}`,
-        consulta: { tipo: 'tramite', tramite_id: tramite.id },
+        caso: { tipo: 'tramite', id: tramite.id },
         preguntas: [
           {
             pregunta: '¿Qué me falta presentar?',

@@ -7,13 +7,19 @@ export interface PreguntaAgente {
   palabras?: string[]
 }
 
-/** Caso sobre el que pregunta la pantalla. Con la API real, el agente busca en sus documentos. */
-export type ConsultaAgente = { tipo: 'tramite'; tramite_id: string } | { tipo: 'publico'; caso_id: string }
+/**
+ * Caso sobre el que pregunta el agente al backend.
+ * - tramite: vistas SUNASS y EPS → POST /api/agente/chat (con sesión).
+ * - publico: ciudadanía → POST /api/publico/asistente/chat (solo fuentes publicadas).
+ */
+export type CasoAgente = { tipo: 'tramite'; id: string } | { tipo: 'publico'; id: string }
 
 export interface ContextoAgente {
   /** Texto del chip, por ejemplo «Espacio SUNASS · CPI-2026-0007». */
   espacio: string
-  /** Respuestas de ejemplo. Con la API real solo se usan sus preguntas como sugerencias. */
   preguntas: PreguntaAgente[]
-  consulta?: ConsultaAgente
+  /** Si la pantalla trata de un caso, el agente consulta al backend sobre ese caso. */
+  caso?: CasoAgente
+  /** true en la consulta ciudadana: el agente explica en lenguaje sencillo y cita solo fuentes públicas. */
+  publico?: boolean
 }
