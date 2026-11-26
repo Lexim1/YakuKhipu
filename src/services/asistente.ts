@@ -93,15 +93,15 @@ function responderConEjemplos(pregunta: string, preguntas: PreguntaAgente[], sig
 }
 
 /**
- * Pregunta al agente sobre un caso. Sin caso (por ejemplo, en un listado) o en modo de ejemplos,
- * responde con las preguntas preparadas de la pantalla.
+ * Pregunta al agente sobre un caso. Las respuestas preparadas solo existen en modo de ejemplos.
  */
 export async function preguntarAlAgente(
   datos: { caso?: CasoAgente; pregunta: string; preguntas: PreguntaAgente[]; conversacionId: string | null },
   signal?: AbortSignal,
 ): Promise<RespuestaAgente> {
   const { caso, pregunta, preguntas, conversacionId } = datos
-  if (usarEjemplos || !caso) return responderConEjemplos(pregunta, preguntas, signal)
+  if (usarEjemplos) return responderConEjemplos(pregunta, preguntas, signal)
+  if (!caso) throw new ErrorApi(400, 'Abre un expediente o una decisión para consultar sus documentos. Para próximos vencimientos, revisa Alertas.')
 
   const ruta = caso.tipo === 'publico' ? '/api/publico/asistente/chat' : '/api/agente/chat'
   const cuerpo =
