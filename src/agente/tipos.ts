@@ -20,6 +20,7 @@ export interface ContextoAgente {
   preguntas: PreguntaAgente[]
   /** Si la pantalla trata de un caso, el agente consulta al backend sobre ese caso. */
   caso?: CasoAgente
+  cartera?: boolean
   /** true en la consulta ciudadana: el agente explica en lenguaje sencillo y cita solo fuentes públicas. */
   publico?: boolean
 }

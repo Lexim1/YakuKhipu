@@ -34,6 +34,7 @@ export function Expedientes() {
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Expedientes',
+    cartera: true,
     preguntas: [
       {
         pregunta: '¿Qué expedientes atiendo primero?',

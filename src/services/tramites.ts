@@ -293,11 +293,11 @@ export async function asignarExpediente(id: string, datos: { usuario_id: string;
 
 export async function listarDocumentosRecibidos(signal?: AbortSignal): Promise<ListaPaginada<DocumentoRecibido>> {
   if (usarEjemplos) return ejemplo({ items: documentosPendientes, total: documentosPendientes.length }, signal)
-  const [recibidos, destinos] = await Promise.all([
+  const [recibidos, catalogo] = await Promise.all([
     pedirJson<ListaPaginada<RecepcionApi>>('/api/recepcion', { signal }),
-    listarDestinos(signal).catch(() => [] as DestinoApi[]),
+    consultarCatalogoRecepcion(signal).catch(() => ({ empresas: [], analistas: [] })),
   ])
-  const nombres = new Map(destinos.map((d) => [d.eps_id, d.eps]))
+  const nombres = new Map(catalogo.empresas.map((e) => [e.id, e.nombre]))
   const items: DocumentoRecibido[] = recibidos.items.map((r) => ({
     id: r.id,
     titulo: r.titulo,
@@ -305,7 +305,7 @@ export async function listarDocumentosRecibidos(signal?: AbortSignal): Promise<L
     eps_id: r.eps_id,
     fecha_texto: fechaLegible(r.fecha_documento),
     hoja: r.referencia,
-    // Todo lo que registra el backend entra por Mesa de Partes: es canal oficial.
+    // La carga manual corresponde a un documento recibido fuera del portal.
     canal_oficial: true,
     detalle: null,
     procesamiento_pdf: r.procesamiento_pdf ?? null,
@@ -326,6 +326,30 @@ export async function cargarPdf(datos: FormData): Promise<void> {
   avisarCambio()
 }
 
+export function consultarCatalogoRecepcion(signal?: AbortSignal) {
+  return pedirJson<{
+    empresas: { id: string; nombre: string }[]
+    analistas: CandidatoAsignacion[]
+  }>('/api/recepcion/catalogos', { signal })
+}
+
+export interface NuevoExpedienteRecepcion {
+  documento_id: string
+  procedimiento: 'CPI' | 'UFI' | 'RP'
+  fecha_ingreso: string
+  asignado_a: string
+}
+
+export async function registrarExpedienteRecepcion(datos: NuevoExpedienteRecepcion) {
+  const nuevo = await pedirJson<{ tramite_id: string }>('/api/recepcion/expedientes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  })
+  avisarCambio()
+  return nuevo
+}
+
 /** Expedientes, personas asignables y tipos de actuación para incorporar un documento. */
 export async function obtenerCatalogosRecepcion(signal?: AbortSignal): Promise<CatalogosRecepcion> {
   if (usarEjemplos) {
@@ -338,12 +362,10 @@ export async function obtenerCatalogosRecepcion(signal?: AbortSignal): Promise<C
       signal,
     )
   }
-  // El backend entrega los expedientes abiertos con su versión. No tiene catálogo de personas
-  // asignables (la asignación se hace en el expediente) y el tipo de actuación es texto libre.
-  const destinos = await listarDestinos(signal)
+  const [destinos, catalogo] = await Promise.all([listarDestinos(signal), consultarCatalogoRecepcion(signal)])
   return {
     expedientes: destinos.map((t) => ({ id: t.id, eps: t.eps, version: t.version, eps_id: t.eps_id })),
-    asignables: [],
+    asignables: catalogo.analistas.map((persona) => ({ id: persona.id, texto: persona.nombre, menor_carga: false })),
     tipos_actuacion: TIPOS_ACTUACION,
   }
 }
@@ -366,7 +388,7 @@ export async function incorporarDocumento(datos: Incorporacion): Promise<void> {
     documentosPendientes = documentosPendientes.filter((d) => d.id !== datos.documento_id)
     incorporaciones.push({ documento, datos, persona: datos.asignado_a ? personaDe(datos.asignado_a) : 'Sin asignar' })
   } else {
-    await pedirJson('/api/recepcion/incorporaciones', {
+    await pedir('/api/recepcion/incorporaciones', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos),

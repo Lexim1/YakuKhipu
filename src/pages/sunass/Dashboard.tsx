@@ -23,6 +23,11 @@ const TRAMOS: { situacion: Situacion; texto: string; clase: string }[] = [
 ]
 
 const ALERTA: Record<Alerta['tipo'], { tono: Tono; texto: string }> = {
+  reporte_faltante: { tono: 'aviso', texto: 'Reporte faltante' },
+  avance_inconsistente: { tono: 'aviso', texto: 'Avance por verificar' },
+  dato_duplicado: { tono: 'aviso', texto: 'Dato duplicado' },
+  saldo_inconsistente: { tono: 'aviso', texto: 'Saldo por conciliar' },
+  deposito_insuficiente: { tono: 'aviso', texto: 'Depósito insuficiente' },
   vencido: { tono: 'peligro', texto: 'Vencido' },
   por_vencer: { tono: 'aviso', texto: 'Por vencer' },
   cifra_sin_documento: { tono: 'aviso', texto: 'Cifra sin documento' },
@@ -48,11 +53,12 @@ export function Dashboard() {
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Dashboard',
+    cartera: true,
     preguntas: [
       {
-        pregunta: '¿Dónde se demora más el trámite?',
+        pregunta: '¿Qué expedientes están próximos a vencer?',
         respuesta:
-          'En la evaluación técnica: 11 días hábiles en promedio, el 39 % del tiempo total (dato simulado de la demostración).',
+          'En esta demostración, RP-2026-0002 y UFI-2026-0001 están por vencer. Consulta sus plazos en el expediente.',
         fuentes: ['Dashboard · tiempos por etapa (simulado)'],
         palabras: ['demora', 'etapa', 'tiempo'],
       },

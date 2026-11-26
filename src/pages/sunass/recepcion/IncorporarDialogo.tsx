@@ -3,9 +3,10 @@ import { Chip } from '../../../components/Chip'
 import { Dialogo } from '../../../components/Dialogo'
 import { IconoCheck } from '../../../components/Iconos'
 import { Contenido, MensajeError } from '../../../components/Mensajes'
-import { obtenerCatalogosRecepcion, type Incorporacion } from '../../../services/tramites'
+import { usarEjemplos } from '../../../services/api'
+import { obtenerCatalogosRecepcion, registrarExpedienteRecepcion, type Incorporacion } from '../../../services/tramites'
 import { useConsulta } from '../../../services/useConsulta'
-import type { CatalogosRecepcion, DocumentoRecibido } from '../../../types/tramite'
+import { NOMBRE_COMPLETO, type CatalogosRecepcion, type DocumentoRecibido, type Procedimiento } from '../../../types/tramite'
 
 interface Props {
   documento: DocumentoRecibido | null
@@ -13,10 +14,11 @@ interface Props {
   alCerrar: () => void
   /** Recibe también el nombre de la persona asignada, para el mensaje de confirmación. */
   alIncorporar: (datos: Incorporacion, persona: string) => Promise<void>
+  alRegistrar: (id: string, persona: string) => void
 }
 
 /** «Incorporar documento»: la persona confirma el expediente propuesto y a quién se asigna. */
-export function IncorporarDialogo({ documento, documentos, alCerrar, alIncorporar }: Props) {
+export function IncorporarDialogo({ documento, documentos, alCerrar, alIncorporar, alRegistrar }: Props) {
   // Las opciones vienen del servicio: con la API real incluyen los expedientes que entrega el backend.
   const [catalogos, reintentar] = useConsulta((signal) => obtenerCatalogosRecepcion(signal), [])
 
@@ -30,6 +32,7 @@ export function IncorporarDialogo({ documento, documentos, alCerrar, alIncorpora
             documentos={documentos}
             alCerrar={alCerrar}
             alIncorporar={alIncorporar}
+            alRegistrar={alRegistrar}
           />
         )}
       </Contenido>
@@ -37,7 +40,7 @@ export function IncorporarDialogo({ documento, documentos, alCerrar, alIncorpora
   )
 }
 
-function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }: Props & { catalogos: CatalogosRecepcion }) {
+function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, alRegistrar }: Props & { catalogos: CatalogosRecepcion }) {
   // Solo documentos oficiales cuyo PDF (si lo tienen) ya terminó de procesarse.
   const oficiales = documentos.filter(
     (d) => d.canal_oficial && (!d.procesamiento_pdf || d.procesamiento_pdf.estado === 'listo'),
@@ -51,8 +54,10 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
   )
   const [tramiteId, setTramiteId] = useState(propuesto)
   const [tipo, setTipo] = useState(catalogos.tipos_actuacion[0] ?? '')
-  const [asignado, setAsignado] = useState(catalogos.asignables[0]?.id ?? '')
-  const [avisar, setAvisar] = useState(true)
+  const [asignado, setAsignado] = useState('')
+  const [nuevo, setNuevo] = useState(false)
+  const [procedimiento, setProcedimiento] = useState<Procedimiento>('CPI')
+  const [fechaIngreso, setFechaIngreso] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,32 +68,39 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
-    if (!tramiteId) {
+    if (guardando) return
+    if (!nuevo && !tramiteId) {
       setError('Elige el expediente al que pertenece el documento.')
       return
     }
-    // Sin personas asignables (API real), el documento se incorpora sin asignar.
-    if (!asignado && catalogos.asignables.length > 0) {
-      setError('Elige a quién se asigna el documento.')
+    if (nuevo && (!asignado || !fechaIngreso)) {
+      setError('Indica la fecha de ingreso y el analista que recibirá el expediente.')
       return
     }
     const version = catalogos.expedientes.find((t) => t.id === tramiteId)?.version
-    if (version == null) {
+    if (!nuevo && version == null) {
       setError('Ese expediente ya no admite documentos. Elige otro.')
       return
     }
     setGuardando(true)
     setError(null)
     try {
-      const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? 'nadie todavía'
+      const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? ''
+      if (nuevo) {
+        const creado = await registrarExpedienteRecepcion({
+          documento_id: documentoId, procedimiento, fecha_ingreso: fechaIngreso, asignado_a: asignado,
+        })
+        alRegistrar(creado.tramite_id, persona)
+        return
+      }
       await alIncorporar(
         {
           documento_id: documentoId,
           tramite_id: tramiteId,
           tipo_actuacion: tipo,
           asignado_a: asignado || null,
-          avisar,
-          version,
+          avisar: false,
+          version: version!,
         },
         persona,
       )
@@ -110,6 +122,30 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
             ))}
           </select>
         </label>
+        {!usarEjemplos && catalogos.asignables.length > 0 && (
+          <label className="campo">
+            Destino
+            <select value={nuevo ? 'nuevo' : 'existente'} onChange={(e) => setNuevo(e.target.value === 'nuevo')}>
+              <option value="existente">Expediente existente</option>
+              <option value="nuevo">Registrar expediente nuevo</option>
+            </select>
+          </label>
+        )}
+        {nuevo ? (
+          <>
+            <label className="campo">
+              Procedimiento
+              <select value={procedimiento} onChange={(e) => setProcedimiento(e.target.value as Procedimiento)}>
+                {(['CPI', 'UFI', 'RP'] as const).map((p) => <option key={p} value={p}>{NOMBRE_COMPLETO[p]}</option>)}
+              </select>
+            </label>
+            <label className="campo">
+              Fecha de ingreso según el cargo de Mesa de Partes
+              <input type="date" value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)} required />
+            </label>
+          </>
+        ) : (
+          <>
         <label className="campo">
           <span className="etiqueta-campo">
             Expediente
@@ -132,11 +168,14 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
             ))}
           </select>
         </label>
+          </>
+        )}
         {catalogos.asignables.length > 0 && <label className="campo">
           <span className="etiqueta-campo">
             Asignar a{catalogos.asignables.find((a) => a.id === asignado)?.menor_carga && <Chip tono="agente">Menor carga</Chip>}
           </span>
-          <select value={asignado} onChange={(e) => setAsignado(e.target.value)}>
+          <select value={asignado} required={nuevo} onChange={(e) => setAsignado(e.target.value)}>
+            <option value="">{nuevo ? 'Selecciona un analista' : 'Conservar la asignación actual'}</option>
             {catalogos.asignables.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.texto}
@@ -144,17 +183,13 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
             ))}
           </select>
         </label>}
-        <label className="casilla">
-          <input type="checkbox" checked={avisar} onChange={(e) => setAvisar(e.target.checked)} />
-          Avisar a la analista y abrir su tarea
-        </label>
         {error && <MensajeError mensaje={error} />}
         <div className="dialogo__acciones">
           <button type="button" className="boton boton--secundario" onClick={alCerrar}>
             Cancelar
           </button>
           <button type="submit" className="boton boton--primario" disabled={guardando}>
-            {guardando ? 'Incorporando…' : 'Incorporar y asignar'}
+            {guardando ? 'Guardando…' : nuevo ? 'Registrar y derivar' : asignado ? 'Incorporar y asignar' : 'Incorporar documento'}
             <IconoCheck tamano={16} />
           </button>
         </div>

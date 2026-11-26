@@ -6,6 +6,7 @@
 
 import type { CasoAgente, PreguntaAgente } from '../agente/tipos'
 import { ErrorApi, ejemplo, pedirJson, urlApi, usarEjemplos } from './api'
+import { listarAlertas, listarExpedientes } from './tramites'
 
 export interface FuenteCita {
   documento_id: string
@@ -96,11 +97,12 @@ function responderConEjemplos(pregunta: string, preguntas: PreguntaAgente[], sig
  * Pregunta al agente sobre un caso. Las respuestas preparadas solo existen en modo de ejemplos.
  */
 export async function preguntarAlAgente(
-  datos: { caso?: CasoAgente; pregunta: string; preguntas: PreguntaAgente[]; conversacionId: string | null },
+  datos: { caso?: CasoAgente; cartera?: boolean; pregunta: string; preguntas: PreguntaAgente[]; conversacionId: string | null },
   signal?: AbortSignal,
 ): Promise<RespuestaAgente> {
   const { caso, pregunta, preguntas, conversacionId } = datos
   if (usarEjemplos) return responderConEjemplos(pregunta, preguntas, signal)
+  if (!caso && datos.cartera) return consultarCartera(pregunta, signal)
   if (!caso) throw new ErrorApi(400, 'Abre un expediente o una decisión para consultar sus documentos. Para próximos vencimientos, revisa Alertas.')
 
   const ruta = caso.tipo === 'publico' ? '/api/publico/asistente/chat' : '/api/agente/chat'
@@ -123,6 +125,45 @@ export async function preguntarAlAgente(
       throw new ErrorApi(404, 'No encontramos este caso o no tienes acceso a sus documentos.')
     }
     throw error
+  }
+}
+
+async function consultarCartera(pregunta: string, signal?: AbortSignal): Promise<RespuestaAgente> {
+  const texto = normalizar(pregunta)
+  if (/alerta|reporte|duplicad|saldo|deposito|avance/.test(texto)) {
+    const { items } = await listarAlertas(signal)
+    const filtro = /reporte/.test(texto) ? 'reporte_faltante' : /duplicad/.test(texto) ? 'dato_duplicado'
+      : /saldo/.test(texto) ? 'saldo_inconsistente' : /deposito/.test(texto) ? 'deposito_insuficiente'
+        : /avance/.test(texto) ? 'avance_inconsistente' : null
+    const visibles = items.filter((a) => !filtro || a.tipo === filtro)
+    return {
+      estado: 'ok',
+      respuesta: visibles.slice(0, 5).map((a) => `${a.titulo}: ${a.detalle}\nRegla: ${a.regla}\nFuente: ${a.fuente}`).join('\n\n')
+        || 'No se detectaron alertas de ese tipo en los datos visibles para tu perfil.',
+      fuentes: [], conversacion_id: 'cartera',
+      advertencias: [`Consulta de alertas registradas y calculadas, sin análisis generado. Se muestran hasta cinco de ${visibles.length}; revisa Alertas para verlas todas.`],
+    }
+  }
+  if (!/(venc|urgenc|priorid|atiendo primero|empiezo)/.test(texto)) {
+    return {
+      estado: 'ok', respuesta: 'Puedo consultar los vencimientos y las alertas visibles para tu perfil. Prueba «¿Qué expedientes están próximos a vencer?» o «¿Hay saldos por conciliar?». Abre un expediente para analizar sus documentos y proponer un siguiente paso.',
+      fuentes: [], advertencias: [], conversacion_id: 'cartera',
+    }
+  }
+  const { items } = await listarExpedientes(signal)
+  const estados = /(^|\b)(proxim\w*|por vencer)(\b|$)/.test(texto)
+    ? ['por_vencer'] : /vencid/.test(texto) ? ['vencido'] : ['vencido', 'por_vencer']
+  const prioritarios = estados.flatMap((estado) => items.filter((t) => t.plazo.situacion === estado))
+  const lineas = prioritarios.slice(0, 10).map((t) =>
+    `${t.id} · ${t.eps} · ${t.plazo.situacion === 'vencido' ? 'vencido' : 'por vencer'}.`,
+  )
+  if (prioritarios.length > 10) lineas.push('Consulta Alertas para ver los demás.')
+  return {
+    estado: 'ok',
+    respuesta: lineas.join('\n') || 'No hay expedientes visibles en el estado de plazo que consultaste.',
+    fuentes: [],
+    advertencias: ['Resultado de los plazos registrados para tu perfil en Expedientes.'],
+    conversacion_id: 'cartera',
   }
 }
 
