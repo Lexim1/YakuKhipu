@@ -48,7 +48,7 @@ El enlace de QA se añadirá cuando exista un despliegue verificado. El portal u
 El backend vive en [Lexim1/YakuKhipu-Backend](https://github.com/Lexim1/YakuKhipu-Backend). Portal y API comparten origen: el navegador llama a `/api/...` del propio portal y un proxy lo reenvía a FastAPI. Así viaja la cookie de sesión (HttpOnly, sin tokens en el navegador) y funciona el ingreso institucional.
 
 - **Desarrollo:** copiar `.env.example` como `.env.local` (`VITE_API_URL` vacío). `npm run dev` reenvía `/api` y `/health` a `VITE_PROXY_API` (por defecto `http://localhost:8000`).
-- **Ingreso:** el portal lee `GET /health` → `ingreso`. Con `clave` muestra usuario y contraseña (`POST /api/sesion`); con `oidc` muestra «Ingresar con cuenta institucional», que lleva a `/api/auth/login` → Keycloak → `/api/auth/callback`. Cerrar sesión también cierra Keycloak si el backend devuelve `X-Logout-URL`.
+- **Ingreso:** «Ingresar con cuenta institucional» lleva a `/api/auth/login` → Keycloak → `/api/auth/callback`. El portal no solicita ni almacena contraseñas. Cerrar sesión también cierra Keycloak si el backend devuelve `X-Logout-URL`.
 - **Permisos:** el menú y las acciones siguen la lista `permisos` de `GET /api/sesion`; el backend los vuelve a exigir en cada petición.
 - **PDF:** si `GET /health` → `carga_pdf` es `habilitada`, Recepción permite cargar PDF; el worker del backend extrae el texto y el agente propone un análisis que SUNASS revisa en la ficha del expediente.
 

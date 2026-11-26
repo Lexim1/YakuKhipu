@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { escucharSesionPerdida } from '../services/api'
-import { cerrarSesion, iniciarSesion, obtenerSesion } from '../services/sesion'
-import type { Credenciales, Sesion } from '../types/sesion'
+import { cerrarSesion, obtenerSesion } from '../services/sesion'
+import type { Sesion } from '../types/sesion'
 import { ContextoSesion, type ValorSesion } from './contexto'
 
 /** Consulta la sesión al abrir el portal y la comparte con todas las pantallas. */
@@ -28,12 +28,6 @@ export function SesionProveedor({ children }: { children: ReactNode }) {
   // Un 401 en cualquier pantalla significa que la sesión venció.
   useEffect(() => escucharSesionPerdida(() => setSesion(null)), [])
 
-  const ingresar = useCallback(async (credenciales: Credenciales) => {
-    const nueva = await iniciarSesion(credenciales)
-    setSesion(nueva)
-    return nueva
-  }, [])
-
   const salir = useCallback(async () => {
     let cierreInstitucional: string | null = null
     try {
@@ -45,6 +39,6 @@ export function SesionProveedor({ children }: { children: ReactNode }) {
     if (cierreInstitucional) window.location.assign(cierreInstitucional)
   }, [])
 
-  const valor = useMemo(() => ({ estado, sesion, ingresar, salir }), [estado, sesion, ingresar, salir])
+  const valor = useMemo(() => ({ estado, sesion, salir }), [estado, sesion, salir])
   return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>
 }
