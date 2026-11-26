@@ -200,6 +200,7 @@ export interface DocumentoRecibido {
 }
 
 export type TipoAlerta = 'vencido' | 'por_vencer' | 'cifra_sin_documento' | 'documento_por_asociar' | 'dos_numeraciones'
+  | 'reporte_faltante' | 'avance_inconsistente' | 'dato_duplicado' | 'saldo_inconsistente' | 'deposito_insuficiente'
 
 export interface Alerta {
   id: string

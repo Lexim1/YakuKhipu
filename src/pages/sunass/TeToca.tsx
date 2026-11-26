@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { Chip, type Tono } from '../../components/Chip'
+import { Anillo, Burbuja, ContadorAnimado, Saludo } from '../../components/Graficos'
+import { Gotita, type PoseGotita } from '../../components/Gotita'
 import { IconoChispa, IconoEnlace, IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { obtenerBandeja, useVersionTramites } from '../../services/tramites'
@@ -15,6 +17,11 @@ const URGENCIA: Record<UrgenciaTarea, { tono: Tono; texto: string; orden: number
 }
 
 const AVISO: Record<AvisoAgente['tipo'], { tono: Tono; texto: string }> = {
+  reporte_faltante: { tono: 'aviso', texto: 'Reporte faltante' },
+  avance_inconsistente: { tono: 'aviso', texto: 'Avance por verificar' },
+  dato_duplicado: { tono: 'aviso', texto: 'Dato duplicado' },
+  saldo_inconsistente: { tono: 'aviso', texto: 'Saldo por conciliar' },
+  deposito_insuficiente: { tono: 'aviso', texto: 'Depósito insuficiente' },
   cifra_sin_documento: { tono: 'aviso', texto: 'Cifra sin documento' },
   vinculo_propuesto: { tono: 'agente', texto: 'Vínculo propuesto' },
   por_vencer: { tono: 'info', texto: 'Plazo próximo' },
@@ -27,26 +34,48 @@ function plural(n: number, uno: string, varios: string) {
   return `${n} ${n === 1 ? uno : varios}`
 }
 
-function TarjetaTarea({ tarea }: { tarea: Tarea }) {
+const EMOJI_TAREA: Record<Tarea['tipo'], string> = {
+  validar: '🔗',
+  comparar: '⚖️',
+  informe: '📝',
+  revisar_documento: '📄',
+}
+
+const GOTA_URGENCIA: Record<UrgenciaTarea, PoseGotita> = {
+  hoy: 'avatar-rojo',
+  por_vencer: 'avatar-naranja',
+  en_plazo: 'avatar-azul',
+}
+
+function TarjetaTarea({ tarea, numero }: { tarea: Tarea; numero: number }) {
   const urgencia = URGENCIA[tarea.urgencia]
   const principal = tarea.tipo === 'validar'
   return (
-    <li className="tarjeta tarea">
-      <div className="tarea__cuerpo">
-        <div className="fila-chips">
-          <Chip tono={urgencia.tono}>{urgencia.texto}</Chip>
-          <span className="texto-pequeno texto-suave">
-            {tarea.tramite_id} · {tarea.eps} · {tarea.etapa}
-          </span>
+    <li className={`mision mision--${tarea.urgencia}`}>
+      <span className="mision__numero" aria-hidden="true">
+        {numero}
+      </span>
+      <div className="tarjeta tarea mision__tarjeta">
+        <span className="mision__emoji" aria-hidden="true">
+          {EMOJI_TAREA[tarea.tipo]}
+        </span>
+        <div className="tarea__cuerpo">
+          <div className="fila-chips">
+            <Chip tono={urgencia.tono}>{urgencia.texto}</Chip>
+            <span className="texto-pequeno texto-suave">
+              {tarea.tramite_id} · {tarea.eps} · {tarea.etapa}
+            </span>
+          </div>
+          <h3 className="tarea__titulo">{tarea.titulo}</h3>
+          <p className="texto-suave">{tarea.detalle}</p>
         </div>
-        <h3 className="tarea__titulo">{tarea.titulo}</h3>
-        <p className="texto-suave">{tarea.detalle}</p>
+        <Gotita pose={GOTA_URGENCIA[tarea.urgencia]} alto={46} animada={false} className="mision__gota" />
+        <Link className={`boton ${principal ? 'boton--primario' : 'boton--secundario'}`} to={tarea.destino}>
+          {tarea.boton}
+          <span className="solo-lectores">: {tarea.titulo}</span>
+          {principal ? <IconoEnlace tamano={16} /> : <IconoFlecha tamano={16} />}
+        </Link>
       </div>
-      <Link className={`boton ${principal ? 'boton--primario' : 'boton--secundario'}`} to={tarea.destino}>
-        {tarea.boton}
-        <span className="solo-lectores">: {tarea.titulo}</span>
-        {principal ? <IconoEnlace tamano={16} /> : <IconoFlecha tamano={16} />}
-      </Link>
     </li>
   )
 }
@@ -60,27 +89,36 @@ function Resumen({ bandeja }: { bandeja: BandejaTareas }) {
       valor: bandeja.tareas.length,
       detalle: expedientes.length > 0 ? `En ${expedientes.join(', ')}` : 'Sin acciones pendientes',
       tono: '',
+      emoji: '🎯',
+      color: 'cielo',
     },
-    { etiqueta: 'Por vencer', valor: bandeja.por_vencer.total, detalle: bandeja.por_vencer.detalle, tono: 'aviso' },
+    { etiqueta: 'Por vencer', emoji: '⏳', color: 'durazno', valor: bandeja.por_vencer.total, detalle: bandeja.por_vencer.detalle, tono: 'aviso' },
     {
       etiqueta: 'Por validar',
       valor: porValidar,
       detalle: porValidar > 0 ? 'Vínculo propuesto por el agente' : 'Nada por validar',
       tono: 'agente',
+      emoji: '🔗',
+      color: 'lila',
     },
     {
       etiqueta: 'Expedientes asignados',
       valor: bandeja.expedientes_asignados.total,
       detalle: bandeja.expedientes_asignados.detalle,
       tono: '',
+      emoji: '📂',
+      color: 'menta',
     },
-  ]
+  ] as const
   return (
     <ul className="cuatro-columnas resumen-bandeja">
       {tarjetas.map((t) => (
-        <li key={t.etiqueta} className="tarjeta resumen-bandeja__tarjeta">
+        <li key={t.etiqueta} className="tarjeta resumen-bandeja__tarjeta indicador-vivo">
+          <Burbuja emoji={t.emoji} color={t.color} tamano="sm" />
           <p className="texto-suave">{t.etiqueta}</p>
-          <p className={`indicador__valor${t.tono ? ` indicador__valor--${t.tono}` : ''}`}>{t.valor}</p>
+          <p className={`indicador__valor${t.tono ? ` indicador__valor--${t.tono}` : ''}`}>
+            <ContadorAnimado valor={t.valor} />
+          </p>
           <p className="texto-pequeno texto-suave">{t.detalle}</p>
         </li>
       ))}
@@ -97,6 +135,7 @@ export function TeToca() {
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Te toca actuar',
+    cartera: true,
     preguntas: [
       {
         pregunta: '¿Por dónde empiezo hoy?',
@@ -126,44 +165,79 @@ export function TeToca() {
               <div>
                 <p className="antetitulo">{sesion?.nombre ?? bandeja.cargo}</p>
                 <h1>Te toca actuar</h1>
-                <p className="subtitulo">
-                  {tareas.length > 0
-                    ? `Tienes ${plural(tareas.length, 'acción', 'acciones')} en ${plural(expedientes, 'expediente', 'expedientes')}. Empieza por la más urgente.`
-                    : 'No tienes acciones pendientes.'}
-                </p>
               </div>
+
+              <Saludo
+                pose={tareas.length === 0 ? 'al-dia' : 'hola'}
+                titulo={tareas.length > 0 ? `🎯 Hoy tienes ${plural(tareas.length, 'misión', 'misiones')}` : '🌤️ ¡Estás al día!'}
+                texto={
+                  tareas.length > 0
+                    ? `En ${plural(expedientes, 'expediente', 'expedientes')}. Sigue la ruta de abajo: empieza por la número 1, que es la más urgente.`
+                    : 'No tienes acciones pendientes. ¡Buen trabajo!'
+                }
+              >
+                {tareas.length > 0 && (
+                  <div className="saludo__progreso">
+                    <Anillo porcentaje={0} tono="marca" tamano={54} grosor={7} etiqueta={`0 de ${tareas.length} misiones hechas`}>
+                      <strong className="texto-pequeno">0/{tareas.length}</strong>
+                    </Anillo>
+                    <span className="texto-pequeno">
+                      Misiones de hoy · {plural(tareas.filter((t) => t.urgencia === 'hoy').length, 'urgente', 'urgentes')} 🔥
+                    </span>
+                  </div>
+                )}
+              </Saludo>
 
               <Resumen bandeja={bandeja} />
 
               <div className="dos-columnas">
                 <section aria-labelledby="titulo-tareas" className="columna">
-                  <h2 id="titulo-tareas">Te toca actuar</h2>
+                  <h2 id="titulo-tareas" className="titulo-icono">
+                    <Burbuja emoji="🗺️" color="limon" tamano="sm" />
+                    <span>Tu ruta de hoy</span>
+                  </h2>
                   {tareas.length === 0 ? (
                     <SinResultados titulo="Estás al día">
                       <p className="texto-suave">Cuando te asignen un documento o una validación, aparecerá aquí.</p>
                     </SinResultados>
                   ) : (
-                    <ul className="lista-tareas">
-                      {tareas.map((t) => (
-                        <TarjetaTarea key={t.id} tarea={t} />
+                    <ol className="lista-tareas ruta-misiones">
+                      {tareas.map((t, i) => (
+                        <TarjetaTarea key={t.id} tarea={t} numero={i + 1} />
                       ))}
-                    </ul>
+                      <li className="ruta-misiones__meta" aria-hidden="true">
+                        <span className="mision__numero">🏁</span>
+                        <span className="texto-pequeno texto-suave">¡Meta! Al terminar, Yaku celebra contigo 🎉</span>
+                      </li>
+                    </ol>
                   )}
                 </section>
 
                 <section aria-labelledby="titulo-avisos" className="columna">
-                  <h2 id="titulo-avisos">Avisos del agente</h2>
-                  <div className="tarjeta avisos-agente">
+                  <h2 id="titulo-avisos" className="titulo-icono">
+                    <Burbuja emoji="💬" color="lila" tamano="sm" />
+                    <span>Yaku te avisa</span>
+                  </h2>
+                  <div className="tarjeta avisos-agente chat-yaku">
+                    <div className="chat-yaku__cabeza">
+                      <Gotita pose="verificando" alto={70} />
+                      <p className="texto-pequeno texto-suave">Revisé tus expedientes y encontré esto 👇</p>
+                    </div>
                     {bandeja.avisos.length === 0 ? (
                       <p className="texto-suave">El agente no tiene avisos nuevos.</p>
                     ) : (
-                      <ul className="avisos-agente__lista">
-                        {bandeja.avisos.map((a) => (
-                          <li key={a.id}>
+                      <ul className="avisos-agente__lista chat-yaku__lista">
+                        {bandeja.avisos.map((a, i) => (
+                          <li key={a.id} className="chat-yaku__burbuja" style={{ animationDelay: `${300 + i * 450}ms` }}>
                             <Chip tono={AVISO[a.tipo].tono}>{AVISO[a.tipo].texto}</Chip>
                             <p>{a.texto}</p>
                           </li>
                         ))}
+                        <li className="chat-yaku__escribiendo" aria-hidden="true" style={{ animationDelay: `${300 + bandeja.avisos.length * 450}ms` }}>
+                          <span />
+                          <span />
+                          <span />
+                        </li>
                       </ul>
                     )}
                     <button type="button" className="boton boton--secundario boton--bloque" onClick={() => abrir()}>

@@ -5,7 +5,7 @@
 //   que abre la sesión. El navegador nunca recibe tokens (patrón BFF).
 // GET /api/sesion devuelve la sesión actual y DELETE /api/sesion la cierra.
 
-import { ErrorApi, baseUrl, pedir, pedirJson } from './api'
+import { ErrorApi, baseUrl, pedir, pedirJson, usarEjemplos } from './api'
 
 export interface EstadoServidor {
   carga_pdf: boolean
@@ -28,8 +28,53 @@ export function obtenerEstadoServidor(): Promise<EstadoServidor> {
 export const URL_INGRESO_INSTITUCIONAL = `${baseUrl}/api/auth/login`
 import type { Sesion } from '../types/sesion'
 
+// SOLO PARA PROBAR EN LOCAL con VITE_USAR_EJEMPLOS=true: sesiones de ejemplo sin backend ni Keycloak.
+// En producción usarEjemplos es false y estas sesiones no existen.
+const CLAVE_EJEMPLO = 'yakukhipu-sesion-ejemplo'
+
+export const SESIONES_EJEMPLO: Record<'sunass' | 'eps', Sesion> = {
+  sunass: {
+    usuario_id: 'ejemplo-sunass',
+    nombre: 'Jefatura DRE',
+    perfil: 'sunass',
+    eps_id: null,
+    eps: null,
+    simulado: true,
+    rol_id: 'jefatura_dre',
+  },
+  eps: {
+    usuario_id: 'ejemplo-eps',
+    nombre: 'Gerencia EPS',
+    perfil: 'eps',
+    eps_id: 'eps-tacna',
+    eps: 'EPS Tacna S.A.',
+    simulado: true,
+    rol_id: 'eps',
+  },
+}
+
+/** Abre una sesión de ejemplo (solo en modo de ejemplos). */
+export function entrarConEjemplo(perfil: 'sunass' | 'eps') {
+  if (!usarEjemplos) return
+  try {
+    sessionStorage.setItem(CLAVE_EJEMPLO, perfil)
+  } catch {
+    // Sin almacenamiento, la sesión de ejemplo dura hasta recargar.
+  }
+}
+
+function sesionDeEjemplo(): Sesion | null {
+  try {
+    const perfil = sessionStorage.getItem(CLAVE_EJEMPLO)
+    return perfil === 'sunass' || perfil === 'eps' ? SESIONES_EJEMPLO[perfil] : null
+  } catch {
+    return null
+  }
+}
+
 /** Sesión actual, o null si nadie inició sesión. */
 export async function obtenerSesion(signal?: AbortSignal): Promise<Sesion | null> {
+  if (usarEjemplos) return sesionDeEjemplo()
   try {
     return await pedirJson<Sesion>('/api/sesion', { signal })
   } catch (error) {
@@ -43,6 +88,14 @@ export async function obtenerSesion(signal?: AbortSignal): Promise<Sesion | null
  * de Keycloak (cabecera X-Logout-URL); si no la hay, devuelve null.
  */
 export async function cerrarSesion(): Promise<string | null> {
+  if (usarEjemplos) {
+    try {
+      sessionStorage.removeItem(CLAVE_EJEMPLO)
+    } catch {
+      // Nada que limpiar.
+    }
+    return null
+  }
   const respuesta = await pedir('/api/sesion', { method: 'DELETE' })
   return respuesta.headers.get('X-Logout-URL')
 }

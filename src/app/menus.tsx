@@ -22,6 +22,8 @@ export interface EnlaceMenu {
   contador?: number
   /** Contador calculado con los servicios; se actualiza después de cada acción. */
   contadorVivo?: keyof Contadores
+  /** Solo se marca activo en esa ruta exacta, no en sus subrutas. */
+  exacto?: boolean
 }
 
 export interface GrupoMenu {
@@ -108,6 +110,6 @@ export function rutaPermitida(sesion: Sesion | null, ruta: string): boolean {
 export const MENU_EPS: GrupoMenu[] = [
   {
     titulo: 'Mi EPS',
-    enlaces: [{ ruta: '/eps/tramites', texto: 'Mis trámites', icono: <IconoLista /> }],
+    enlaces: [{ ruta: '/eps/tramites', texto: 'Mis trámites', icono: <IconoLista />, exacto: true }],
   },
 ]

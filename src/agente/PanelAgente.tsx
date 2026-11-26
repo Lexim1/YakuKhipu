@@ -1,12 +1,11 @@
+import { Gotita } from '../components/Gotita'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
-import { IconoChispa, IconoCerrar, IconoDocumento, IconoEnviar } from '../components/Iconos'
-import { ErrorApi } from '../services/api'
+import { IconoCerrar, IconoDocumento, IconoEnviar } from '../components/Iconos'
+import { usarEjemplos } from '../services/api'
 import {
-  citaDeTexto,
   preguntarAlAgente,
-  respuestaDePantalla,
   type FuenteCita,
   type RespuestaAgente,
 } from '../services/asistente'
@@ -42,6 +41,7 @@ export function PanelAgente() {
   const publico = contexto?.publico ?? contexto?.caso?.tipo === 'publico'
   const claveCaso = `${contexto?.espacio ?? ''}|${contexto?.caso?.id ?? ''}`
   const esperando = mensajes.some((m) => m.estado === 'cargando')
+  const puedePreguntar = usarEjemplos || Boolean(contexto?.caso || contexto?.cartera)
 
   // Al cambiar de caso, la conversación empieza de nuevo y se cancela la pregunta pendiente.
   useEffect(() => {
@@ -69,7 +69,7 @@ export function PanelAgente() {
 
   async function preguntar(pregunta: string) {
     const limpia = pregunta.trim()
-    if (!limpia || esperando) return
+    if (!limpia || esperando || !puedePreguntar) return
     setTexto('')
     siguienteId.current += 1
     const id = siguienteId.current
@@ -79,31 +79,13 @@ export function PanelAgente() {
     control.current = nuevo
     try {
       const respuesta = await preguntarAlAgente(
-        { caso: contexto?.caso, pregunta: limpia, preguntas, conversacionId: conversacion.current },
+        { caso: contexto?.caso, cartera: contexto?.cartera, pregunta: limpia, preguntas, conversacionId: conversacion.current },
         nuevo.signal,
       )
-      if (respuesta.conversacion_id !== 'ejemplo') conversacion.current = respuesta.conversacion_id
+      if (contexto?.caso && !usarEjemplos) conversacion.current = respuesta.conversacion_id
       actualizar({ id, pregunta: limpia, estado: 'listo', respuesta })
     } catch (error) {
       if (nuevo.signal.aborted) return
-      // Si el servicio de IA no responde y era una pregunta sugerida, se usa la respuesta preparada
-      // con los datos de la pantalla. Una pregunta escrita a mano no recibe una respuesta parecida.
-      const deRespaldo = respuestaDePantalla(limpia, preguntas, true)
-      if (error instanceof ErrorApi && error.estado === 503 && deRespaldo) {
-        actualizar({
-          id,
-          pregunta: limpia,
-          estado: 'listo',
-          respuesta: {
-            estado: 'ok',
-            respuesta: deRespaldo.respuesta,
-            fuentes: deRespaldo.fuentes.map(citaDeTexto),
-            advertencias: ['El agente no está disponible: esta respuesta usa los datos que ves en la pantalla.'],
-            conversacion_id: conversacion.current ?? '',
-          },
-        })
-        return
-      }
       const mensaje = error instanceof Error ? error.message : 'No pudimos obtener la respuesta.'
       actualizar({ id, pregunta: limpia, estado: 'error', mensaje })
     }
@@ -124,18 +106,14 @@ export function PanelAgente() {
   return (
     <>
       <button type="button" className="boton-agente" onClick={() => abrir()} aria-haspopup="dialog">
-        <span className="boton-agente__icono">
-          <IconoChispa tamano={16} />
-        </span>
+        <Gotita pose="avatar" alto={34} animada={false} className="boton-agente__gotita" />
         <span className="boton-agente__texto">Preguntar al agente</span>
         <span className="solo-lectores">Preguntar al agente</span>
       </button>
       <Dialogo abierto={abierto} titulo="Agente YakuKhipu" alCerrar={cerrar} lateral sinCabecera>
         <div className="agente">
           <div className="agente__cabecera">
-            <span className="agente__logo">
-              <IconoChispa tamano={18} />
-            </span>
+            <Gotita pose="avatar" alto={40} animada={false} />
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '1.0625rem' }}>Agente YakuKhipu</h2>
               <p className="texto-pequeno texto-suave">
@@ -162,9 +140,11 @@ export function PanelAgente() {
                 <p className="texto-suave">
                   {contexto?.caso
                     ? 'Pregunta lo que quieras sobre este caso. Responderé citando la página de cada documento.'
-                    : preguntas.length > 0
-                      ? 'Elige una pregunta. Para preguntar con tus palabras, abre un caso.'
-                      : 'Abre un expediente o una decisión para preguntar sobre ese caso.'}
+                    : contexto?.cartera
+                      ? 'Consulta qué expedientes de tu cartera ya vencieron o están por vencer.'
+                      : puedePreguntar
+                      ? 'Elige una pregunta sugerida o escribe la tuya.'
+                      : 'Abre un expediente o una decisión para consultar documentos con el agente. Para próximos vencimientos, revisa Alertas.'}
                 </p>
               )}
               {mensajes.map((m) => (
@@ -172,6 +152,7 @@ export function PanelAgente() {
                   <p className="agente__pregunta">{m.pregunta}</p>
                   {m.estado === 'cargando' && (
                     <div className="agente__respuesta agente__respuesta--cargando" role="status">
+                      <Gotita pose="pensando" alto={56} />
                       <span className="agente__puntos" aria-hidden="true">
                         <span />
                         <span />
@@ -224,12 +205,12 @@ export function PanelAgente() {
                           {a}
                         </p>
                       ))}
-                      <p className="nota">Propuesta del agente · una persona la valida.</p>
+                      {m.respuesta.conversacion_id !== 'cartera' && <p className="nota">Consulta de fuentes · una persona revisa el resultado.</p>}
                     </div>
                   )}
                 </div>
               ))}
-              {pendientes.length > 0 && (
+              {puedePreguntar && pendientes.length > 0 && (
                 <div className="agente__sugerencias" aria-label="Preguntas sugeridas">
                   {pendientes.map((p) => (
                     <button
@@ -249,7 +230,7 @@ export function PanelAgente() {
           )}
 
           <div className="agente__pie">
-            <form className="agente__formulario" onSubmit={enviar}>
+            {puedePreguntar && <form className="agente__formulario" onSubmit={enviar}>
               <label htmlFor="pregunta-agente" className="solo-lectores">
                 Escribe tu pregunta sobre el caso
               </label>
@@ -269,7 +250,7 @@ export function PanelAgente() {
               >
                 <IconoEnviar tamano={18} />
               </button>
-            </form>
+            </form>}
             <p className="nota">
               {publico
                 ? 'Cita solo fuentes públicas. Para participar, usa los canales oficiales.'

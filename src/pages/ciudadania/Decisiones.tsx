@@ -3,11 +3,13 @@ import { Link, useSearchParams } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip, Fuente } from '../../components/Chip'
+import { Anillo, OlaAnimada, Puntos, TituloIcono } from '../../components/Graficos'
+import { Gotita } from '../../components/Gotita'
 import { IconoBuscar, IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { buscarDecisiones, obtenerCifrasSector } from '../../services/publico'
 import { useConsulta } from '../../services/useConsulta'
-import { TEXTO_ESTADO_PUBLICO, type DecisionResumen, type EstadoPublico } from '../../types/publico'
+import { TEXTO_ESTADO_PUBLICO, type CifraSector, type DecisionResumen, type EstadoPublico } from '../../types/publico'
 
 const POR_PAGINA = 9
 
@@ -23,22 +25,65 @@ const TONO_ESTADO: Record<EstadoPublico, 'ok' | 'info' | 'aviso'> = {
   en_consulta: 'aviso',
 }
 
+/** Ícono decorativo de cada proceso: medidor y obras, fondo de emergencia, tarifa. */
+const ICONO_PROCESO: Record<string, string> = { CPI: '🛠️', UFI: '🛟', RP: '🧾' }
+
+/** Avance del plazo cuando la nota dice «Día 23 de 30». */
+function avancePlazo(nota: string) {
+  const m = /d[ií]a\s+(\d+)\s+de\s+(\d+)/i.exec(nota)
+  return m ? { dia: Number(m[1]), total: Number(m[2]) } : null
+}
+
 function TarjetaDecision({ decision }: { decision: DecisionResumen }) {
+  const plazo = avancePlazo(decision.nota_estado)
+  const publicada = decision.estado_publico === 'decision_publicada'
   return (
     <li className="tarjeta decision">
-      <p className="decision__eps">{decision.eps}</p>
-      <h2 className="decision__titulo">{decision.titulo}</h2>
+      <div className="decision__cabeza">
+        <span className={`decision__icono decision__icono--${decision.procedimiento}`} aria-hidden="true">
+          {ICONO_PROCESO[decision.procedimiento] ?? '💧'}
+        </span>
+        <div>
+          <p className="decision__eps">{decision.eps}</p>
+          <h2 className="decision__titulo">{decision.titulo}</h2>
+        </div>
+      </div>
       <p className="decision__cifra">{decision.cifra}</p>
       <div className="fila-chips">
         <Chip tono={TONO_ESTADO[decision.estado_publico]}>{TEXTO_ESTADO_PUBLICO[decision.estado_publico]}</Chip>
         <span className="texto-pequeno texto-suave">{decision.nota_estado}</span>
       </div>
+      {decision.estado_publico === 'en_consulta' && (
+        <p className="texto-pequeno decision__invitacion">🗣️ ¡Tu opinión cuenta! Participa en la audiencia pública.</p>
+      )}
+      {(plazo || publicada) && (
+        <div className="progreso-plazo">
+          <span className="progreso-plazo__pista" aria-hidden="true">
+            <span
+              className={`progreso-plazo__barra${publicada ? ' progreso-plazo__barra--ok' : plazo && plazo.dia / plazo.total >= 0.75 ? ' progreso-plazo__barra--aviso' : ''}`}
+              style={{ width: publicada ? '100%' : `${(plazo!.dia / plazo!.total) * 100}%` }}
+            />
+          </span>
+          <span className="texto-pequeno texto-suave progreso-plazo__texto">
+            {!publicada && plazo && (
+              <Gotita
+                pose={plazo.dia / plazo.total >= 0.75 ? 'avatar-naranja' : 'avatar-azul'}
+                alto={28}
+                animada={false}
+              />
+            )}
+            {publicada
+              ? '✅ ¡Listo! Ya puedes ver qué se autorizó'
+              : `⏳ Sunass lleva ${plazo!.dia} de ${plazo!.total} días para decidir`}
+          </span>
+        </div>
+      )}
       {decision.ficha_disponible && (
         <Link
           className="boton boton--secundario boton--bloque decision__boton"
           to={`/ciudadania/decisiones/${encodeURIComponent(decision.id)}`}
         >
-          Ver la decisión
+          👀 Ver qué se aprobó
           <span className="solo-lectores">
             : {decision.titulo}, {decision.eps}
           </span>
@@ -138,10 +183,22 @@ export function Decisiones() {
 
   return (
     <div className="pagina publico__pagina">
-      <section className="portada-ciudadana" aria-labelledby="titulo-decisiones">
-        <h1 id="titulo-decisiones">Decisiones sobre inversiones de agua</h1>
+      <section
+        className="portada-ciudadana portada-ciudadana--viva"
+        aria-labelledby="titulo-decisiones"
+        onMouseMove={(e) => {
+          const caja = e.currentTarget.getBoundingClientRect()
+          e.currentTarget.style.setProperty('--mx', String((e.clientX - caja.left) / caja.width - 0.5))
+          e.currentTarget.style.setProperty('--my', String((e.clientY - caja.top) / caja.height - 0.5))
+        }}
+      >
+        <OlaAnimada />
+        <span className="burbujas-suben" aria-hidden="true">
+          <i /> <i /> <i /> <i /> <i /> <i />
+        </span>
+        <h1 id="titulo-decisiones">¿En qué se invierte el agua de tu ciudad?</h1>
         <p className="portada-ciudadana__texto">
-          Busca tu empresa de agua y mira qué se autorizó, qué se hizo y a quién llega.
+          Busca tu empresa de agua y mira qué se aprobó, cuánto avanza y cómo te llega. Sin cuentas ni trámites.
         </p>
         <form role="search" className="buscador-publico" onSubmit={(e) => e.preventDefault()}>
           <label htmlFor="busqueda-publica" className="solo-lectores">
@@ -157,6 +214,15 @@ export function Decisiones() {
             autoComplete="off"
           />
         </form>
+        <div className="sugerencias" aria-label="Búsquedas rápidas">
+          {['Tacna', 'Río Claro', 'Altiplano'].map((lugar) => (
+            <button key={lugar} type="button" onClick={() => escribir(lugar)}>
+              📍 {lugar}
+            </button>
+          ))}
+        </div>
+        <Gotita pose="hola" alto={210} className="portada-ciudadana__gotita" />
+
       </section>
 
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Buscando decisiones…">
@@ -233,13 +299,16 @@ export function Decisiones() {
       </Contenido>
 
       <section aria-labelledby="titulo-cifras" className="columna">
-        <h2 id="titulo-cifras">El agua en el Perú, en cifras de Sunass</h2>
+        <TituloIcono id="titulo-cifras" emoji="🗺️" color="cielo">El agua en el Perú, en números</TituloIcono>
         <Contenido resultado={cifras} reintentar={reintentarCifras} textoCarga="Cargando cifras…">
           {(lista) => (
             <ul className="decisiones">
               {lista.map((c) => (
                 <li key={c.valor} className="tarjeta cifra-sector">
-                  <p className="cifra-sector__valor">{c.valor}</p>
+                  <div className="cifra-visual">
+                    <VisualCifra cifra={c} />
+                    <p className="cifra-sector__valor">{c.valor}</p>
+                  </div>
                   <p>{c.texto}</p>
                   <Fuente>{c.fuente}</Fuente>
                 </li>
@@ -249,5 +318,27 @@ export function Decisiones() {
         </Contenido>
       </section>
     </div>
+  )
+}
+
+/** Dibujo de cada cifra según su forma: porcentaje (anillo), «N de M» (puntos) o personas (gotas). */
+function VisualCifra({ cifra }: { cifra: CifraSector }) {
+  const porcentaje = /^([\d.,]+)\s*%/.exec(cifra.valor)
+  if (porcentaje) {
+    const valor = Number(porcentaje[1].replace(',', '.'))
+    return (
+      <Anillo porcentaje={valor} tono="aviso" tamano={64} grosor={8} etiqueta={`${cifra.valor} ${cifra.texto}`}>
+        <span className="texto-pequeno">💧</span>
+      </Anillo>
+    )
+  }
+  const parte = /^(\d+)\s+de\s+(\d+)/.exec(cifra.valor)
+  if (parte) {
+    return <Puntos marcados={Number(parte[1])} total={Number(parte[2])} etiqueta={`${cifra.valor} ${cifra.texto}`} />
+  }
+  return (
+    <span className="cifra-visual__gotas" aria-hidden="true">
+      🚱
+    </span>
   )
 }

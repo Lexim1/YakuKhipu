@@ -9,6 +9,11 @@ import { useConsulta } from '../../services/useConsulta'
 import type { Alerta, TipoAlerta } from '../../types/tramite'
 
 const TIPOS: Record<TipoAlerta, { tono: Tono; texto: string; icono: ReactNode; grupo: Grupo }> = {
+  reporte_faltante: { tono: 'aviso', texto: 'Reporte faltante', icono: <IconoDocumento tamano={20} />, grupo: 'calidad' },
+  avance_inconsistente: { tono: 'aviso', texto: 'Avance por verificar', icono: <IconoAlerta tamano={20} />, grupo: 'calidad' },
+  dato_duplicado: { tono: 'aviso', texto: 'Dato duplicado', icono: <IconoLista tamano={20} />, grupo: 'calidad' },
+  saldo_inconsistente: { tono: 'aviso', texto: 'Saldo por conciliar', icono: <IconoAlerta tamano={20} />, grupo: 'calidad' },
+  deposito_insuficiente: { tono: 'aviso', texto: 'Depósito menor al programado', icono: <IconoAlerta tamano={20} />, grupo: 'calidad' },
   vencido: { tono: 'peligro', texto: 'Vencido', icono: <IconoAlerta tamano={20} />, grupo: 'plazos' },
   por_vencer: { tono: 'aviso', texto: 'Por vencer', icono: <IconoAlerta tamano={20} />, grupo: 'plazos' },
   cifra_sin_documento: {
@@ -26,13 +31,14 @@ const TIPOS: Record<TipoAlerta, { tono: Tono; texto: string; icono: ReactNode; g
   dos_numeraciones: { tono: 'info', texto: 'Dos numeraciones', icono: <IconoLista tamano={20} />, grupo: 'documentos' },
 }
 
-type Grupo = 'plazos' | 'cifras' | 'documentos'
+type Grupo = 'plazos' | 'cifras' | 'documentos' | 'calidad'
 
 const GRUPOS: { id: Grupo | ''; texto: string }[] = [
   { id: '', texto: 'Todas' },
   { id: 'plazos', texto: 'Plazos' },
   { id: 'cifras', texto: 'Cifras' },
   { id: 'documentos', texto: 'Documentos' },
+  { id: 'calidad', texto: 'Calidad de datos' },
 ]
 
 function destino(alerta: Alerta) {
@@ -50,6 +56,7 @@ export function Alertas() {
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Alertas',
+    cartera: true,
     preguntas: [
       {
         pregunta: '¿Qué alerta atiendo primero?',
@@ -89,7 +96,7 @@ export function Alertas() {
               </div>
               {visibles.length === 0 ? (
                 <SinResultados titulo="No hay alertas de este tipo">
-                  <p className="texto-suave">Los expedientes están en plazo y con sus documentos.</p>
+                  <p className="texto-suave">No se detectaron alertas para este filtro en los registros disponibles.</p>
                 </SinResultados>
               ) : (
                 visibles.map((a) => {
