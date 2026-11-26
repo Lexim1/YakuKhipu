@@ -1,8 +1,8 @@
 // Servicios de sesión. El backend guarda la sesión en una cookie firmada; el perfil y la EPS
 // siempre salen del servidor, nunca de lo que elige el navegador.
 //
-// Por acordar con el backend (Aracely): POST /api/sesion con { usuario, clave }.
-// Ya existen GET /api/sesion (sesión actual) y DELETE /api/sesion (cerrar sesión).
+// POST /api/sesion con { usuario_id, password }, GET /api/sesion (sesión actual)
+// y DELETE /api/sesion (cerrar sesión).
 
 import { ErrorApi, ejemplo, pedirJson, usarEjemplos } from './api'
 import { CLAVE_DEMO, USUARIOS_DEMO } from '../mocks/sesion'
@@ -60,7 +60,8 @@ export async function iniciarSesion(credenciales: Credenciales): Promise<Sesion>
     return await pedirJson<Sesion>('/api/sesion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, clave: credenciales.clave }),
+      // Contrato del backend (app/api/sesion.py): { usuario_id, password }.
+      body: JSON.stringify({ usuario_id: usuario, password: credenciales.clave }),
     })
   } catch (error) {
     // En el ingreso, 401 significa credenciales incorrectas, no una sesión vencida.

@@ -1,9 +1,9 @@
-// Servicios de la vista SUNASS.
-// /api/tramites y /api/tramites/{id} siguen docs/contrato_api.md. Las demás rutas son una
-// propuesta por acordar con el backend: recepción, catálogos, alertas, vínculos, bandeja y contadores.
+// Servicios de la vista SUNASS. Siguen el backend YakuKhipu-Backend (docs/openapi.json).
+// «Te toca actuar» y los contadores del menú se arman con /api/tramites, /api/recepcion y /api/alertas,
+// porque el backend no tiene una bandeja propia.
 
 import { useSyncExternalStore } from 'react'
-import { ejemplo, noEncontrado, pedirJson, usarEjemplos } from './api'
+import { ErrorApi, ejemplo, noEncontrado, pedirJson, usarEjemplos } from './api'
 import {
   ALERTAS,
   ASIGNABLES,
@@ -169,12 +169,35 @@ export function listarExpedientes(signal?: AbortSignal): Promise<ListaPaginada<T
   return pedirJson('/api/tramites', { signal })
 }
 
+/** true si el valor es un objeto con la lista `campo`: así se reconoce el formato que dibuja cada pestaña. */
+function tieneLista(valor: unknown, campo: string): boolean {
+  return typeof valor === 'object' && valor !== null && Array.isArray((valor as Record<string, unknown>)[campo])
+}
+
+/**
+ * El backend entrega algunas secciones con otra forma (por ejemplo, `resumen` trae la procedencia
+ * del caso y `plazos` solo su validación). Lo que no tiene el formato de la pantalla se deja en null
+ * para que esa pestaña no se muestre, en lugar de romper la ficha.
+ */
+function adaptarExpediente(e: Expediente): Expediente {
+  const lineaTiempo = Array.isArray(e.linea_tiempo) && e.linea_tiempo.length > 0 ? e.linea_tiempo : null
+  return {
+    ...e,
+    resumen: Array.isArray(e.resumen) ? e.resumen : null,
+    comparador: tieneLista(e.comparador, 'versiones') ? e.comparador : null,
+    plazos: tieneLista(e.plazos, 'tarjetas') ? e.plazos : null,
+    impacto: tieneLista(e.impacto, 'indicadores') ? e.impacto : null,
+    linea_tiempo: lineaTiempo,
+    historial: lineaTiempo ? e.historial : Array.isArray(e.historial) ? e.historial : [],
+  }
+}
+
 export async function obtenerExpediente(id: string, signal?: AbortSignal): Promise<Expediente> {
   if (usarEjemplos) {
     const expediente = expedienteDeEjemplo(id) ?? noEncontrado()
     return ejemplo(conCambiosAplicados(expediente), signal)
   }
-  return pedirJson(`/api/tramites/${encodeURIComponent(id)}`, { signal })
+  return adaptarExpediente(await pedirJson<Expediente>(`/api/tramites/${encodeURIComponent(id)}`, { signal }))
 }
 
 /** Registra la decisión de una persona sobre el vínculo que propuso el agente. */
@@ -182,6 +205,7 @@ async function decidirVinculo(
   id: string,
   documento: string,
   decision: 'confirmar' | 'rechazar',
+  version: number,
 ): Promise<Expediente> {
   let expediente: Expediente
   if (usarEjemplos) {
@@ -189,22 +213,28 @@ async function decidirVinculo(
     vinculos.set(id, decision === 'confirmar' ? 'confirmado' : 'rechazado')
     expediente = await obtenerExpediente(id)
   } else {
-    expediente = await pedirJson(`/api/tramites/${encodeURIComponent(id)}/vinculos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documento, decision }),
-    })
+    if (decision === 'rechazar') {
+      // El backend solo registra confirmaciones (ConfirmarVinculo admite decision = «confirmar»).
+      throw new ErrorApi(409, 'El rechazo del vínculo todavía no se registra en el servidor.')
+    }
+    expediente = adaptarExpediente(
+      await pedirJson<Expediente>(`/api/tramites/${encodeURIComponent(id)}/vinculos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documento, decision, version }),
+      }),
+    )
   }
   avisarCambio()
   return expediente
 }
 
-export function confirmarVinculo(id: string, documento: string): Promise<Expediente> {
-  return decidirVinculo(id, documento, 'confirmar')
+export function confirmarVinculo(id: string, documento: string, version: number): Promise<Expediente> {
+  return decidirVinculo(id, documento, 'confirmar', version)
 }
 
-export function rechazarVinculo(id: string, documento: string): Promise<Expediente> {
-  return decidirVinculo(id, documento, 'rechazar')
+export function rechazarVinculo(id: string, documento: string, version: number): Promise<Expediente> {
+  return decidirVinculo(id, documento, 'rechazar', version)
 }
 
 // ─── Recepción ───────────────────────────────────────────────────────────────────
@@ -219,22 +249,23 @@ export async function obtenerCatalogosRecepcion(signal?: AbortSignal): Promise<C
   if (usarEjemplos) {
     return ejemplo(
       {
-        expedientes: TRAMITES.map((t) => ({ id: t.id, eps: t.eps })),
+        expedientes: TRAMITES.map((t) => ({ id: t.id, eps: t.eps, version: 1 })),
         asignables: ASIGNABLES,
         tipos_actuacion: TIPOS_ACTUACION,
       },
       signal,
     )
   }
-  const [expedientes, asignables, tipos] = await Promise.all([
-    pedirJson<ListaPaginada<TramiteResumen>>('/api/tramites', { signal }),
-    pedirJson<CatalogosRecepcion['asignables']>('/api/recepcion/asignables', { signal }),
-    pedirJson<string[]>('/api/recepcion/tipos-actuacion', { signal }),
-  ])
+  // El backend entrega los expedientes abiertos con su versión. No tiene catálogo de personas
+  // asignables (la asignación se hace en el expediente) y el tipo de actuación es texto libre.
+  const destinos = await pedirJson<{ items: { id: string; eps: string; version: number }[] }>(
+    '/api/recepcion/destinos',
+    { signal },
+  )
   return {
-    expedientes: expedientes.items.map((t) => ({ id: t.id, eps: t.eps })),
-    asignables,
-    tipos_actuacion: tipos,
+    expedientes: destinos.items.map((t) => ({ id: t.id, eps: t.eps, version: t.version })),
+    asignables: [],
+    tipos_actuacion: TIPOS_ACTUACION,
   }
 }
 
@@ -242,8 +273,11 @@ export interface Incorporacion {
   documento_id: string
   tramite_id: string
   tipo_actuacion: string
-  asignado_a: string
+  /** null cuando no hay a quién asignar desde recepción. */
+  asignado_a: string | null
   avisar: boolean
+  /** Versión del expediente elegido. */
+  version: number
 }
 
 export async function incorporarDocumento(datos: Incorporacion): Promise<void> {
@@ -251,7 +285,7 @@ export async function incorporarDocumento(datos: Incorporacion): Promise<void> {
     await ejemplo(null)
     const documento = documentosPendientes.find((d) => d.id === datos.documento_id) ?? noEncontrado()
     documentosPendientes = documentosPendientes.filter((d) => d.id !== datos.documento_id)
-    incorporaciones.push({ documento, datos, persona: personaDe(datos.asignado_a) })
+    incorporaciones.push({ documento, datos, persona: datos.asignado_a ? personaDe(datos.asignado_a) : 'Sin asignar' })
   } else {
     await pedirJson('/api/recepcion/incorporaciones', {
       method: 'POST',
@@ -321,14 +355,80 @@ function bandejaDeEjemplo(): BandejaTareas {
   }
 }
 
+/** Lista de una ruta que el perfil puede no tener permitida: sin permiso, cuenta como vacía. */
+async function listaSiPermitida<T>(ruta: string, signal?: AbortSignal): Promise<ListaPaginada<T>> {
+  try {
+    return await pedirJson<ListaPaginada<T>>(ruta, { signal })
+  } catch (error) {
+    if (error instanceof ErrorApi && (error.estado === 403 || error.estado === 404)) return { items: [], total: 0 }
+    throw error
+  }
+}
+
+const URGENCIA: Partial<Record<TramiteResumen['plazo']['situacion'], Tarea['urgencia']>> = {
+  vencido: 'hoy',
+  por_vencer: 'por_vencer',
+}
+
+/** Bandeja calculada con los datos reales: expedientes con plazo en riesgo y documentos por incorporar. */
+async function bandejaReal(signal?: AbortSignal): Promise<BandejaTareas> {
+  const [tramites, recibidos] = await Promise.all([
+    pedirJson<ListaPaginada<TramiteResumen>>('/api/tramites', { signal }),
+    listaSiPermitida<DocumentoRecibido>('/api/recepcion', signal),
+  ])
+  const enRiesgo = tramites.items.filter((t) => URGENCIA[t.plazo.situacion])
+  const tareas: Tarea[] = [
+    ...enRiesgo.map((t) => ({
+      id: `plazo-${t.id}`,
+      tramite_id: t.id,
+      eps: t.eps,
+      etapa: t.etapa,
+      titulo: t.plazo.situacion === 'vencido' ? 'Plazo vencido: revisar el expediente' : 'Plazo por vencer',
+      detalle: `${t.plazo.dias_usados} de ${t.plazo.dias_totales} días hábiles · lo tiene ${t.responsable}.`,
+      urgencia: URGENCIA[t.plazo.situacion]!,
+      tipo: 'informe' as const,
+      boton: 'Abrir ficha',
+      destino: `/sunass/expedientes/${encodeURIComponent(t.id)}`,
+    })),
+    ...recibidos.items
+      .filter((d) => d.canal_oficial)
+      .map((d) => ({
+        id: `recibido-${d.id}`,
+        tramite_id: d.propuesta?.tramite_id ?? '',
+        eps: d.eps,
+        etapa: 'Recepción',
+        titulo: `Incorporar ${d.titulo}`,
+        detalle: `Llegó el ${d.fecha_texto}. Asócialo al expediente que corresponda.`,
+        urgencia: 'en_plazo' as const,
+        tipo: 'revisar_documento' as const,
+        boton: 'Ir a recepción',
+        destino: '/sunass/recepcion',
+      })),
+  ]
+  const porValidar = tramites.items.filter((t) => t.plazo.situacion === 'pendiente_de_validacion').length
+  return {
+    cargo: 'Tus expedientes',
+    tareas,
+    avisos: [],
+    por_vencer: {
+      total: enRiesgo.length,
+      detalle: enRiesgo.length ? 'Vencidos o por vencer' : 'Ningún plazo en riesgo',
+    },
+    expedientes_asignados: {
+      total: tramites.total,
+      detalle: porValidar ? `${porValidar} con plazo por validar` : 'Todos con plazo calculado',
+    },
+  }
+}
+
 /** Acciones pendientes del perfil que inició sesión. */
 export function obtenerBandeja(signal?: AbortSignal): Promise<BandejaTareas> {
   if (usarEjemplos) return ejemplo(bandejaDeEjemplo(), signal)
-  return pedirJson('/api/sunass/te-toca', { signal })
+  return bandejaReal(signal)
 }
 
 /** Contadores del menú lateral, calculados con los mismos datos que muestran las pantallas. */
-export function obtenerContadores(signal?: AbortSignal): Promise<Contadores> {
+export async function obtenerContadores(signal?: AbortSignal): Promise<Contadores> {
   if (usarEjemplos) {
     return ejemplo(
       {
@@ -339,5 +439,14 @@ export function obtenerContadores(signal?: AbortSignal): Promise<Contadores> {
       signal,
     )
   }
-  return pedirJson('/api/sunass/contadores', { signal })
+  const [bandeja, recibidos, alertas] = await Promise.all([
+    bandejaReal(signal),
+    listaSiPermitida<DocumentoRecibido>('/api/recepcion', signal),
+    listaSiPermitida<Alerta>('/api/alertas', signal),
+  ])
+  return {
+    te_toca: bandeja.tareas.length,
+    recepcion: recibidos.items.filter((d) => d.canal_oficial).length,
+    alertas: alertas.total,
+  }
 }

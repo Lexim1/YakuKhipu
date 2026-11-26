@@ -53,7 +53,9 @@ export function LineaTiempo({ expediente, alValidar }: { expediente: Expediente;
               ))}
             </dl>
             <p className="texto-pequeno" style={{ margin: '12px 0 6px', fontWeight: 600 }}>
-              Plazo usado: {expediente.plazo.dias_usados} de {expediente.plazo.dias_totales} días hábiles
+              {expediente.plazo.dias_usados == null || expediente.plazo.dias_totales == null
+                ? 'Plazo pendiente de validación: falta una regla o calendario acreditado.'
+                : `Plazo usado: ${expediente.plazo.dias_usados} de ${expediente.plazo.dias_totales} días hábiles`}
             </p>
             <Barra
               usado={expediente.plazo.dias_usados}

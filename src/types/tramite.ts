@@ -17,13 +17,16 @@ export const NOMBRE_COMPLETO: Record<Procedimiento, string> = {
 
 export type TamanoEps = 'Pequeña' | 'Mediana' | 'Grande'
 
-/** Situación del plazo que calcula el backend. */
-export type Situacion = 'en_plazo' | 'por_vencer' | 'vencido' | 'concluido'
+/**
+ * Situación del plazo que calcula el backend. «pendiente_de_validacion»: falta una regla, notificación
+ * o calendario acreditado, así que el backend no cuenta días (dias_usados y dias_totales llegan en null).
+ */
+export type Situacion = 'en_plazo' | 'por_vencer' | 'vencido' | 'concluido' | 'pendiente_de_validacion'
 
 export interface Plazo {
   situacion: Situacion
-  dias_usados: number
-  dias_totales: number
+  dias_usados: number | null
+  dias_totales: number | null
   /** Etapa medida en revisión periódica (se mide la etapa activa). */
   etapa: string | null
 }
@@ -172,6 +175,8 @@ export interface Expediente extends TramiteResumen {
   vinculo: VinculoPropuesto | null
   /** Expedientes sin pestañas: historial del trámite. */
   historial: ItemHistorial[] | null
+  /** Versión vigente. Toda escritura la envía; si otra persona cambió el trámite, el backend responde 409. */
+  version: number
 }
 
 export interface DocumentoRecibido {
@@ -215,7 +220,8 @@ export interface Asignable {
 
 /** Opciones del diálogo «Incorporar documento». Vienen de servicios, no de los ejemplos. */
 export interface CatalogosRecepcion {
-  expedientes: { id: string; eps: string }[]
+  /** Expedientes abiertos que admiten documentos, con su versión vigente. */
+  expedientes: { id: string; eps: string; version: number }[]
   asignables: Asignable[]
   tipos_actuacion: string[]
 }

@@ -96,7 +96,13 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
     try {
       const actualizado = await informarRespuesta(
         tramite.id,
-        { documento: documento.trim(), fecha_presentacion: fecha, cargo: cargo.trim() || null, canal: accion.canal },
+        {
+          documento: documento.trim(),
+          fecha_presentacion: fecha,
+          cargo: cargo.trim() || null,
+          canal: accion.canal,
+          version: tramite.version,
+        },
         clave.current,
       )
       alInformar(actualizado)
@@ -349,6 +355,7 @@ export function Respuesta() {
     tramite && accion
       ? {
         espacio: `Espacio EPS · ${tramite.id}`,
+        caso: { tipo: 'tramite', id: tramite.id },
         preguntas: [
           {
             pregunta: '¿Qué me falta presentar?',

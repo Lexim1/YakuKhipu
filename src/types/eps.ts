@@ -102,6 +102,8 @@ export interface TramiteEps {
   documentos: DocumentoEps[]
   seguimiento: PasoSeguimiento[]
   respuesta_informada: RespuestaInformada | null
+  /** Versión vigente del trámite; la respuesta la envía para evitar escrituras sobre datos viejos. */
+  version: number
 }
 
 /** Fila del listado EPS: GET /api/eps/tramites. Campos por acordar. */
@@ -133,4 +135,5 @@ export interface NuevaRespuesta {
   fecha_presentacion: string
   cargo: string | null
   canal: string
+  version: number
 }

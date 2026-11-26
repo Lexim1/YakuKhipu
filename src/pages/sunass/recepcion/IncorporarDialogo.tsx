@@ -60,16 +60,29 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
       setError('Elige el expediente al que pertenece el documento.')
       return
     }
-    if (!asignado) {
+    // Sin personas asignables (API real), el documento se incorpora sin asignar.
+    if (!asignado && catalogos.asignables.length > 0) {
       setError('Elige a quién se asigna el documento.')
+      return
+    }
+    const version = catalogos.expedientes.find((t) => t.id === tramiteId)?.version
+    if (version == null) {
+      setError('Ese expediente ya no admite documentos. Elige otro.')
       return
     }
     setGuardando(true)
     setError(null)
     try {
-      const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? asignado
+      const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? 'nadie todavía'
       await alIncorporar(
-        { documento_id: documentoId, tramite_id: tramiteId, tipo_actuacion: tipo, asignado_a: asignado, avisar },
+        {
+          documento_id: documentoId,
+          tramite_id: tramiteId,
+          tipo_actuacion: tipo,
+          asignado_a: asignado || null,
+          avisar,
+          version,
+        },
         persona,
       )
     } catch (err) {
@@ -112,7 +125,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
             ))}
           </select>
         </label>
-        <label className="campo">
+        {catalogos.asignables.length > 0 && <label className="campo">
           <span className="etiqueta-campo">
             Asignar a{catalogos.asignables.find((a) => a.id === asignado)?.menor_carga && <Chip tono="agente">Menor carga</Chip>}
           </span>
@@ -123,7 +136,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
               </option>
             ))}
           </select>
-        </label>
+        </label>}
         <label className="casilla">
           <input type="checkbox" checked={avisar} onChange={(e) => setAvisar(e.target.checked)} />
           Avisar a la analista y abrir su tarea

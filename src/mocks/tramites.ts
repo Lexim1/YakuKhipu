@@ -165,6 +165,7 @@ function flujo(
 
 const TACNA: Expediente = {
   ...TRAMITES[4],
+  version: 1,
   tema: 'Adquisición de medidores',
   chip_plazo: 'En plazo · 18 de 30 días hábiles',
   flujo: flujo(
@@ -393,6 +394,7 @@ const TACNA: Expediente = {
 
 const RIO_CLARO: Expediente = {
   ...TRAMITES[3],
+  version: 1,
   tema: 'Equipos de bombeo por emergencia',
   chip_plazo: 'Por vencer · 23 de 30 días hábiles',
   flujo: flujo(
@@ -450,6 +452,7 @@ const RIO_CLARO: Expediente = {
 
 const COSTA_SUR: Expediente = {
   ...TRAMITES[2],
+  version: 1,
   tema: 'Nuevo periodo regulatorio y estudio tarifario',
   chip_plazo: 'Aprobación · 48 de 60 DH',
   flujo: flujo(
@@ -524,7 +527,13 @@ const PASO_ACTUAL: Record<string, number> = {
   'RP-2026-0001': 2,
 }
 
-const TONO_SITUACION = { en_plazo: 'en plazo', por_vencer: 'por vencer', vencido: 'vencido', concluido: 'concluido' }
+const TONO_SITUACION = {
+  en_plazo: 'en plazo',
+  por_vencer: 'por vencer',
+  vencido: 'vencido',
+  concluido: 'concluido',
+  pendiente_de_validacion: 'por validar',
+}
 
 /** Detalle básico para los casos simulados sin datos propios. */
 function expedienteBasico(t: TramiteResumen): Expediente {
@@ -533,6 +542,7 @@ function expedienteBasico(t: TramiteResumen): Expediente {
   const dias = `${t.plazo.dias_usados} de ${t.plazo.dias_totales} días hábiles`
   return {
     ...t,
+    version: 1,
     tema: 'Caso simulado',
     chip_plazo: `${t.plazo.etapa ? `${t.plazo.etapa} · ` : ''}${dias}`,
     flujo: flujo(
