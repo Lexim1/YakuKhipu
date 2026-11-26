@@ -1,10 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { IconoEdificio, IconoFlecha, IconoOjo, IconoPersonas } from '../components/Iconos'
 import { MensajeError } from '../components/Mensajes'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
-import { CLAVE_DEMO, USUARIOS_DEMO } from '../mocks/sesion'
-import { usarEjemplos } from '../services/api'
+import { URL_INGRESO_INSTITUCIONAL } from '../services/sesion'
 import { useSesion } from '../sesion/useSesion'
 import { INICIO_PERFIL, type Sesion } from '../types/sesion'
 
@@ -34,40 +32,11 @@ function Ondas() {
 
 /** Ingreso al portal: cada cuenta abre la vista de su perfil (SUNASS o EPS). Ciudadanía no necesita cuenta. */
 export function Ingreso() {
-  const { estado, sesion, ingresar } = useSesion()
+  const { estado, sesion } = useSesion()
   const [parametros] = useSearchParams()
-  const navegar = useNavigate()
   const volver = parametros.get('volver')
-  const [usuario, setUsuario] = useState('')
-  const [clave, setClave] = useState('')
-  const [verClave, setVerClave] = useState(false)
-  const [enviando, setEnviando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  if (estado === 'listo' && sesion && !enviando) return <Navigate to={destino(sesion, volver)} replace />
-
-  async function enviar(e: FormEvent) {
-    e.preventDefault()
-    if (!usuario.trim() || !clave) {
-      setError('Escribe tu usuario y tu contraseña.')
-      return
-    }
-    setEnviando(true)
-    setError(null)
-    try {
-      const nueva = await ingresar({ usuario, clave })
-      navegar(destino(nueva, volver), { replace: true })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión. Inténtalo de nuevo.')
-      setEnviando(false)
-    }
-  }
-
-  function usarCuenta(id: string) {
-    setUsuario(id)
-    setClave(CLAVE_DEMO)
-    setError(null)
-  }
+  const accesoFallido = parametros.get('acceso') === 'fallido'
+  if (estado === 'listo' && sesion) return <Navigate to={destino(sesion, volver)} replace />
 
   return (
     <>
@@ -129,51 +98,17 @@ export function Ingreso() {
                 </p>
               )}
 
-              <form className="acceso__formulario" onSubmit={enviar} noValidate>
-                <label className="campo">
-                  Usuario
-                  <input
-                    type="text"
-                    name="usuario"
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    placeholder="Ej. sunass-srt"
-                    value={usuario}
-                    onChange={(e) => setUsuario(e.target.value)}
-                    required
-                  />
-                </label>
-                <div className="campo">
-                  <label htmlFor="clave">Contraseña</label>
-                  <div className="acceso__clave">
-                    <input
-                      id="clave"
-                      name="clave"
-                      type={verClave ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      placeholder="Tu contraseña"
-                      value={clave}
-                      onChange={(e) => setClave(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="acceso__ver"
-                      onClick={() => setVerClave((v) => !v)}
-                      aria-pressed={verClave}
-                      aria-label={verClave ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    >
-                      <IconoOjo tamano={18} />
-                    </button>
-                  </div>
-                </div>
-                {error && <MensajeError mensaje={error} />}
-                <button type="submit" className="boton boton--primario acceso__entrar" disabled={enviando}>
-                  {enviando ? 'Ingresando…' : 'Ingresar'}
+              {accesoFallido && (
+                <MensajeError mensaje="No se completó el ingreso. Si tu cuenta ya fue habilitada en YakuKhipu, vuelve a intentarlo." />
+              )}
+
+              <div className="acceso__formulario">
+                <p className="texto-suave">Usa tu cuenta institucional. La contraseña se escribe en Keycloak.</p>
+                <a className="boton boton--primario acceso__entrar" href={URL_INGRESO_INSTITUCIONAL}>
+                  Ingresar con cuenta institucional
                   <IconoFlecha tamano={16} />
-                </button>
-              </form>
+                </a>
+              </div>
 
               <p className="acceso__alterno">
                 ¿Eres ciudadana o ciudadano?{' '}
@@ -181,30 +116,6 @@ export function Ingreso() {
               </p>
             </section>
 
-            {usarEjemplos && (
-              <section className="acceso__demo" aria-labelledby="titulo-demo">
-                <p id="titulo-demo" className="acceso__demo-titulo">
-                  Cuentas de demostración · contraseña <code>{CLAVE_DEMO}</code>
-                </p>
-                <ul>
-                  {USUARIOS_DEMO.map((u) => (
-                    <li key={u.usuario_id}>
-                      <button
-                        type="button"
-                        className={`acceso__cuenta${usuario === u.usuario_id ? ' acceso__cuenta--elegida' : ''}`}
-                        onClick={() => usarCuenta(u.usuario_id)}
-                        aria-pressed={usuario === u.usuario_id}
-                      >
-                        <span className={`acceso__perfil acceso__perfil--${u.perfil}`}>
-                          {u.perfil === 'sunass' ? 'SUNASS' : 'EPS'}
-                        </span>
-                        {u.nombre}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </div>
         </main>
       </div>

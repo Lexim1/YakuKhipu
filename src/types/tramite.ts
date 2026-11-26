@@ -187,6 +187,10 @@ export interface DocumentoRecibido {
   hoja: string | null
   canal_oficial: boolean
   detalle: string | null
+  /** EPS del documento (API real); el expediente destino debe ser de la misma EPS. */
+  eps_id?: string
+  /** Estado del PDF cargado: pendiente, procesando, listo o error. null si se registró sin PDF. */
+  procesamiento_pdf?: { estado: string; error?: string | null; paginas?: number | null } | null
   propuesta: {
     tramite_id: string
     motivo: string
@@ -221,7 +225,7 @@ export interface Asignable {
 /** Opciones del diálogo «Incorporar documento». Vienen de servicios, no de los ejemplos. */
 export interface CatalogosRecepcion {
   /** Expedientes abiertos que admiten documentos, con su versión vigente. */
-  expedientes: { id: string; eps: string; version: number }[]
+  expedientes: { id: string; eps: string; version: number; eps_id?: string }[]
   asignables: Asignable[]
   tipos_actuacion: string[]
 }

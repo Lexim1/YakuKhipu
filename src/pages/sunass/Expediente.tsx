@@ -7,13 +7,16 @@ import { Chip } from '../../components/Chip'
 import { IconoAtras, IconoChispa } from '../../components/Iconos'
 import { Contenido } from '../../components/Mensajes'
 import { confirmarVinculo, obtenerExpediente, rechazarVinculo } from '../../services/tramites'
+import { usarEjemplos } from '../../services/api'
 import { useConsulta } from '../../services/useConsulta'
+import { useSesion } from '../../sesion/useSesion'
 import { NOMBRE_COMPLETO, type Expediente as TipoExpediente } from '../../types/tramite'
 import { Comparador } from './expediente/Comparador'
 import { Flujograma } from './expediente/Flujograma'
 import { LineaTiempo } from './expediente/LineaTiempo'
 import { PanelImpacto } from './expediente/PanelImpacto'
 import { PanelPlazos } from './expediente/PanelPlazos'
+import { PropuestasAgente } from './expediente/PropuestasAgente'
 import { RutasDialogo } from './expediente/RutasDialogo'
 import { SiguienteAccion } from './expediente/SiguienteAccion'
 import { ValidarVinculo } from './expediente/ValidarVinculo'
@@ -67,6 +70,9 @@ function preguntasDe(e: TipoExpediente): PreguntaAgente[] {
 
 export function Expediente() {
   const { id = '' } = useParams()
+  const { sesion } = useSesion()
+  // Con la API real, los permisos vienen de la sesión; sin lista (modo de ejemplos) se permite todo.
+  const puede = (permiso: string) => !sesion?.permisos || sesion.permisos.includes(permiso)
   const [parametros, setParametros] = useSearchParams()
   const [resultado, reintentar] = useConsulta((signal) => obtenerExpediente(id, signal), [id])
   const [actualizado, setActualizado] = useState<TipoExpediente | null>(null)
@@ -239,6 +245,10 @@ export function Expediente() {
                   </section>
                   <SiguienteAccion accion={expediente.siguiente} alValidar={() => setValidarAbierto(true)} />
                 </div>
+              )}
+
+              {!usarEjemplos && puede('agente.consultar') && (
+                <PropuestasAgente tramiteId={expediente.id} puedeRevisar={puede('evaluacion.validar')} />
               )}
 
               <RutasDialogo

@@ -38,10 +38,17 @@ export function IncorporarDialogo({ documento, documentos, alCerrar, alIncorpora
 }
 
 function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }: Props & { catalogos: CatalogosRecepcion }) {
-  const oficiales = documentos.filter((d) => d.canal_oficial)
+  // Solo documentos oficiales cuyo PDF (si lo tienen) ya terminó de procesarse.
+  const oficiales = documentos.filter(
+    (d) => d.canal_oficial && (!d.procesamiento_pdf || d.procesamiento_pdf.estado === 'listo'),
+  )
   const [documentoId, setDocumentoId] = useState(documento?.id ?? '')
   const elegido = oficiales.find((d) => d.id === documentoId) ?? documento
   const propuesto = elegido?.propuesta?.tramite_id ?? ''
+  // El backend solo acepta expedientes de la misma EPS que el documento.
+  const expedientes = catalogos.expedientes.filter(
+    (t) => !elegido?.eps_id || !t.eps_id || t.eps_id === elegido.eps_id,
+  )
   const [tramiteId, setTramiteId] = useState(propuesto)
   const [tipo, setTipo] = useState(catalogos.tipos_actuacion[0] ?? '')
   const [asignado, setAsignado] = useState(catalogos.asignables[0]?.id ?? '')
@@ -110,7 +117,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar }
           </span>
           <select value={tramiteId} onChange={(e) => setTramiteId(e.target.value)} required>
             <option value="">Elige un expediente</option>
-            {catalogos.expedientes.map((t) => (
+            {expedientes.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.id} · {t.eps}
               </option>

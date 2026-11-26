@@ -43,6 +43,24 @@ Primero se abre un PR de la rama feature a qa. Después de la validación en QA 
 
 El enlace de QA se añadirá cuando exista un despliegue verificado. El portal usará rutas como `/sunass/expedientes`, `/eps/tramites` y `/ciudadania/decisiones` bajo el mismo sitio.
 
+## Conexión con el backend
+
+El backend vive en [Lexim1/YakuKhipu-Backend](https://github.com/Lexim1/YakuKhipu-Backend). Portal y API comparten origen: el navegador llama a `/api/...` del propio portal y un proxy lo reenvía a FastAPI. Así viaja la cookie de sesión (HttpOnly, sin tokens en el navegador) y funciona el ingreso institucional.
+
+- **Desarrollo:** copiar `.env.example` como `.env.local` (`VITE_API_URL` vacío). `npm run dev` reenvía `/api` y `/health` a `VITE_PROXY_API` (por defecto `http://localhost:8000`).
+- **Ingreso:** «Ingresar con cuenta institucional» lleva a `/api/auth/login` → Keycloak → `/api/auth/callback`. El portal no solicita ni almacena contraseñas. Cerrar sesión también cierra Keycloak si el backend devuelve `X-Logout-URL`.
+- **Permisos:** el menú y las acciones siguen la lista `permisos` de `GET /api/sesion`; el backend los vuelve a exigir en cada petición.
+- **PDF:** si `GET /health` → `carga_pdf` es `habilitada`, Recepción permite cargar PDF; el worker del backend extrae el texto y el agente propone un análisis que SUNASS revisa en la ficha del expediente.
+
+## Despliegue en Railway
+
+El `Dockerfile` compila el portal y lo sirve con nginx (`deploy/nginx.conf.template`), que reenvía `/api` y `/health` al backend por la red privada.
+
+1. Crear un servicio desde este repositorio (rama conectada) con el `Dockerfile` de la raíz.
+2. Variable `BACKEND_URL`: dirección privada del servicio del backend, por ejemplo `http://portal.railway.internal:8080` (sin barra final). Railway define `PORT`.
+3. Generar el dominio HTTPS del portal y usarlo en el backend como `PORTAL_ORIGIN` y `FRONTEND_ORIGIN`, y en Keycloak como Redirect URI `https://<portal>/api/auth/callback`, post logout `https://<portal>/` y Web origin `https://<portal>`.
+4. El resto (PostgreSQL, Keycloak, bucket y worker) está en `infra/railway/README.md` del backend.
+
 ## Alcance funcional
 
 Los procedimientos son cambio del programa de inversiones, uso excepcional del fondo y revisión periódica. SUNASS consulta responsable, tareas, documentos, historial y plazos. La EPS consulta sus trámites, su siguiente acción, su fecha límite y sus documentos relevantes. Ciudadanía consulta sin sesión los casos habilitados para publicación, busca por EPS o localidad y abre una ficha con solicitado, autorizado, ejecutado, impacto sustentado y fuentes públicas. El asistente ciudadano utiliza exclusivamente información pública. El backend entrega una respuesta pública específica que excluye la información interna.
