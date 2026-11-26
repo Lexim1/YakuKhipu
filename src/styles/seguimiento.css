@@ -1,0 +1,344 @@
+/* Vistas de seguimiento del Figma (Prototipo v2): ámbito del perfil, dashboard, ficha 360,
+   actos externos, encargos y reportes. Usa solo las variables de variables.css. */
+
+.lateral__ambito {
+  padding: 0 12px var(--espacio-3);
+}
+
+.lateral__cargo {
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primario-texto);
+}
+
+.lateral__detalle {
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.lateral__nota {
+  margin: var(--espacio-3) 8px 0;
+  padding: 12px;
+  border-radius: var(--radio);
+  background: var(--color-ok-fondo);
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.lateral__nota-titulo {
+  font-weight: 700;
+  color: var(--color-texto);
+}
+
+.franja-ambito {
+  padding: 14px 16px;
+  border-radius: var(--radio-tarjeta);
+  background: var(--color-ok-fondo);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.franja-ambito__titulo {
+  font-weight: 700;
+  color: var(--color-texto);
+}
+
+.cinco-columnas {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--espacio-4);
+}
+
+.dos-mitades {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+.dos-mitades > .tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  height: 100%;
+}
+
+.indicador-grande {
+  font-size: var(--texto-xxl);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-texto);
+}
+
+.indicador-grande--ok {
+  color: var(--color-primario-texto);
+}
+
+.indicador-grande--aviso {
+  color: var(--color-aviso);
+}
+
+.indicador-grande--peligro {
+  color: var(--color-peligro);
+}
+
+.tarjeta--menta {
+  background: var(--color-ok-fondo);
+  border-color: transparent;
+}
+
+.texto-aviso {
+  color: var(--color-aviso);
+  font-weight: 600;
+}
+
+/* Barras apiladas por proceso */
+.procesos,
+.lista-simple,
+.alertas-recientes,
+.demora,
+.leyenda,
+.columnas-mes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.procesos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.procesos__fila {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  margin-bottom: 6px;
+  font-size: var(--texto-md);
+}
+
+.barra-apilada {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  min-height: 12px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-superficie-suave);
+  overflow: hidden;
+}
+
+.barra-apilada__tramo {
+  flex-basis: 0;
+  border-radius: var(--radio-pildora);
+}
+
+.barra-apilada__tramo--ok,
+.leyenda__punto--ok,
+.leyenda__punto--marca {
+  background: var(--color-primario);
+}
+
+.barra-apilada__tramo--aviso,
+.leyenda__punto--aviso {
+  background: var(--color-aviso);
+}
+
+.barra-apilada__tramo--peligro,
+.leyenda__punto--peligro {
+  background: var(--color-peligro);
+}
+
+.barra-apilada__tramo--neutro,
+.leyenda__punto--neutro {
+  background: var(--color-neutro);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leyenda__punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ¿Dónde se demora? */
+.demora {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.demora__fila {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.3fr) 1fr auto;
+  align-items: center;
+  gap: var(--espacio-3);
+  font-size: var(--texto-sm);
+}
+
+.demora__pista {
+  height: 8px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-superficie-suave);
+  overflow: hidden;
+}
+
+.demora__barra {
+  display: block;
+  height: 100%;
+  border-radius: var(--radio-pildora);
+  background: var(--color-primario);
+}
+
+.demora__barra--mayor {
+  background: var(--color-aviso);
+}
+
+/* Resueltos por mes */
+.columnas-mes {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+  min-height: 170px;
+}
+
+.columnas-mes li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--texto-sm);
+}
+
+.columnas-mes__pila {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 40px;
+}
+
+.columnas-mes__dentro,
+.columnas-mes__fuera {
+  flex-basis: 0;
+  border-radius: 4px;
+}
+
+.columnas-mes__dentro {
+  background: var(--color-primario);
+}
+
+.columnas-mes__fuera {
+  background: var(--color-aviso);
+}
+
+.alertas-recientes li,
+.lista-simple li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.alertas-recientes li {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alertas-recientes li:last-child,
+.lista-simple li:last-child {
+  border-bottom: 0;
+}
+
+.lista-simple--metas li {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Actos externos */
+.acto {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.acto__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.acto__decision {
+  font-size: var(--texto-lg);
+}
+
+.acto__documentos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Reportes */
+.reporte {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reporte__icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radio);
+  background: var(--color-ok-fondo);
+  color: var(--color-primario-texto);
+}
+
+.reporte__titulo {
+  font-size: var(--texto-lg);
+}
+
+@media (max-width: 1100px) {
+  .cinco-columnas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dos-mitades {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .cinco-columnas {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .demora__fila {
+    grid-template-columns: 1fr auto;
+  }
+
+  .demora__pista {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
