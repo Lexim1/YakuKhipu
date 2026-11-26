@@ -11,6 +11,10 @@ export interface Sesion {
   eps: string | null
   /** true mientras la sesión sea de demostración. */
   simulado: boolean
+  /** Rol de la cuenta (analista_srt, coordinacion_dre, jefatura_dre o eps). Lo asigna el backend. */
+  rol_id?: string
+  /** Permisos que el backend lee de seguridad.rol_permiso. El backend los vuelve a exigir en cada petición. */
+  permisos?: string[]
 }
 
 export interface Credenciales {
