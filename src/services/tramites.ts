@@ -3,7 +3,7 @@
 // porque el backend no tiene una bandeja propia.
 
 import { useSyncExternalStore } from 'react'
-import { ErrorApi, ejemplo, noEncontrado, pedirJson, usarEjemplos } from './api'
+import { ErrorApi, ejemplo, noEncontrado, pedir, pedirJson, usarEjemplos } from './api'
 import {
   ALERTAS,
   ASIGNABLES,
@@ -239,9 +239,73 @@ export function rechazarVinculo(id: string, documento: string, version: number):
 
 // ─── Recepción ───────────────────────────────────────────────────────────────────
 
-export function listarDocumentosRecibidos(signal?: AbortSignal): Promise<ListaPaginada<DocumentoRecibido>> {
+/** Documento recibido tal como lo entrega GET /api/recepcion. */
+interface RecepcionApi {
+  id: string
+  titulo: string
+  referencia: string
+  fecha_documento: string
+  eps_id: string
+  registrado_por: string
+  procesamiento_pdf?: DocumentoRecibido['procesamiento_pdf']
+}
+
+interface DestinoApi {
+  id: string
+  titulo: string
+  eps_id: string
+  eps: string
+  version: number
+}
+
+/** «2026-11-25» → «25 nov 2026». */
+function fechaLegible(iso: string) {
+  const [anio, mes, dia] = iso.split('-').map(Number)
+  if (!anio || !mes || !dia) return iso
+  return new Date(anio, mes - 1, dia).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/** Expedientes abiertos que admiten documentos, con su EPS y versión vigente. */
+export async function listarDestinos(signal?: AbortSignal): Promise<DestinoApi[]> {
+  if (usarEjemplos) {
+    return ejemplo(TRAMITES.map((t) => ({ id: t.id, titulo: t.id, eps_id: t.eps, eps: t.eps, version: 1 })), signal)
+  }
+  return (await pedirJson<{ items: DestinoApi[] }>('/api/recepcion/destinos', { signal })).items
+}
+
+export async function listarDocumentosRecibidos(signal?: AbortSignal): Promise<ListaPaginada<DocumentoRecibido>> {
   if (usarEjemplos) return ejemplo({ items: documentosPendientes, total: documentosPendientes.length }, signal)
-  return pedirJson('/api/recepcion', { signal })
+  const [recibidos, destinos] = await Promise.all([
+    pedirJson<ListaPaginada<RecepcionApi>>('/api/recepcion', { signal }),
+    listarDestinos(signal).catch(() => [] as DestinoApi[]),
+  ])
+  const nombres = new Map(destinos.map((d) => [d.eps_id, d.eps]))
+  const items: DocumentoRecibido[] = recibidos.items.map((r) => ({
+    id: r.id,
+    titulo: r.titulo,
+    eps: nombres.get(r.eps_id) ?? r.eps_id,
+    eps_id: r.eps_id,
+    fecha_texto: fechaLegible(r.fecha_documento),
+    hoja: r.referencia,
+    // Todo lo que registra el backend entra por Mesa de Partes: es canal oficial.
+    canal_oficial: true,
+    detalle: null,
+    procesamiento_pdf: r.procesamiento_pdf ?? null,
+    propuesta: null,
+  }))
+  return { items, total: recibidos.total }
+}
+
+/**
+ * Carga un PDF recibido por Mesa de Partes (POST /api/recepcion/pdf). El backend lo guarda en el bucket
+ * privado y el worker extrae el texto y aplica OCR; el estado se ve en la lista de recepción.
+ */
+export async function cargarPdf(datos: FormData): Promise<void> {
+  if (usarEjemplos) {
+    throw new ErrorApi(503, 'En el modo de ejemplos no se cargan archivos.')
+  }
+  await pedir('/api/recepcion/pdf', { method: 'POST', body: datos })
+  avisarCambio()
 }
 
 /** Expedientes, personas asignables y tipos de actuación para incorporar un documento. */
@@ -258,12 +322,9 @@ export async function obtenerCatalogosRecepcion(signal?: AbortSignal): Promise<C
   }
   // El backend entrega los expedientes abiertos con su versión. No tiene catálogo de personas
   // asignables (la asignación se hace en el expediente) y el tipo de actuación es texto libre.
-  const destinos = await pedirJson<{ items: { id: string; eps: string; version: number }[] }>(
-    '/api/recepcion/destinos',
-    { signal },
-  )
+  const destinos = await listarDestinos(signal)
   return {
-    expedientes: destinos.items.map((t) => ({ id: t.id, eps: t.eps, version: t.version })),
+    expedientes: destinos.map((t) => ({ id: t.id, eps: t.eps, version: t.version, eps_id: t.eps_id })),
     asignables: [],
     tipos_actuacion: TIPOS_ACTUACION,
   }
@@ -449,4 +510,45 @@ export async function obtenerContadores(signal?: AbortSignal): Promise<Contadore
     recepcion: recibidos.items.filter((d) => d.canal_oficial).length,
     alertas: alertas.total,
   }
+}
+
+// ─── Propuestas del agente ───────────────────────────────────────────────────────
+// Al incorporar un PDF, el worker del backend pide al agente un análisis con citas (propuesta_agente).
+// SUNASS lo acepta o rechaza con un motivo; la revisión no cambia el estado del expediente.
+
+export interface PropuestaAgente {
+  documento_id: string
+  /** pendiente, procesando, lista, aceptada, rechazada o error. */
+  estado: string
+  propuesta: string | null
+  fuentes: { titulo: string; pagina_pdf: number | null; documento_id: string }[] | null
+  advertencias: string[] | null
+  error: string | null
+  revision_motivo: string | null
+}
+
+export async function listarPropuestas(tramiteId: string, signal?: AbortSignal): Promise<PropuestaAgente[]> {
+  if (usarEjemplos) return ejemplo([], signal)
+  const datos = await pedirJson<{ items: PropuestaAgente[] }>(
+    `/api/tramites/${encodeURIComponent(tramiteId)}/propuestas`,
+    { signal },
+  )
+  return datos.items
+}
+
+export async function revisarPropuesta(
+  tramiteId: string,
+  documentoId: string,
+  decision: 'aceptada' | 'rechazada',
+  motivo: string,
+): Promise<void> {
+  await pedirJson(
+    `/api/tramites/${encodeURIComponent(tramiteId)}/propuestas/${encodeURIComponent(documentoId)}/revision`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, motivo }),
+    },
+  )
+  avisarCambio()
 }

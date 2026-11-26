@@ -34,13 +34,15 @@ interface Props {
   rutaAlertas?: string
   /** Perfil y ámbito que se muestran arriba del menú (vistas SUNASS). */
   ambito?: { cargo: string; detalle: string }
+  /** false si la cuenta no tiene el permiso agente.consultar: no se muestra el botón del agente. */
+  conAgente?: boolean
 }
 
 /**
  * Estructura de las vistas con sesión (SUNASS y EPS): cabecera, menú lateral y contenido.
  * El cargo que se muestra sale de la sesión.
  */
-export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito }: Props) {
+export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito, conAgente = true }: Props) {
   const navegar = useNavigate()
   const { sesion, salir } = useSesion()
   const [saliendo, setSaliendo] = useState(false)
@@ -163,7 +165,7 @@ export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito }
           <Outlet />
         </main>
       </div>
-      <PanelAgente />
+      {conAgente && <PanelAgente />}
     </>
   )
 }
