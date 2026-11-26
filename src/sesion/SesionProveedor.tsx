@@ -35,11 +35,14 @@ export function SesionProveedor({ children }: { children: ReactNode }) {
   }, [])
 
   const salir = useCallback(async () => {
+    let cierreInstitucional: string | null = null
     try {
-      await cerrarSesion()
+      cierreInstitucional = await cerrarSesion()
     } finally {
       setSesion(null)
     }
+    // Con Keycloak, también se cierra la sesión del proveedor; vuelve al portal al terminar.
+    if (cierreInstitucional) window.location.assign(cierreInstitucional)
   }, [])
 
   const valor = useMemo(() => ({ estado, sesion, ingresar, salir }), [estado, sesion, ingresar, salir])

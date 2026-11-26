@@ -3,7 +3,7 @@ import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
 import { IconoAlerta, IconoChispa, IconoDocumento, IconoFlecha, IconoOjo } from '../../components/Iconos'
-import { Contenido, SinResultados } from '../../components/Mensajes'
+import { Contenido, MensajeError, SinResultados } from '../../components/Mensajes'
 import {
   incorporarDocumento,
   listarDocumentosRecibidos,
@@ -12,6 +12,7 @@ import {
 } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
 import type { DocumentoRecibido } from '../../types/tramite'
+import { CargarPdf } from './recepcion/CargarPdf'
 import { IncorporarDialogo } from './recepcion/IncorporarDialogo'
 
 const CONFIANZA = {
@@ -19,6 +20,19 @@ const CONFIANZA = {
   media: { tono: 'aviso', texto: 'Confianza media' },
   baja: { tono: 'peligro', texto: 'Confianza baja' },
 } as const
+
+/** Estado del PDF que procesa el worker del backend. */
+const ESTADO_PDF: Record<string, { tono: 'ok' | 'aviso' | 'peligro' | 'info'; texto: string }> = {
+  pendiente: { tono: 'info', texto: 'PDF en cola' },
+  procesando: { tono: 'info', texto: 'Extrayendo texto' },
+  listo: { tono: 'ok', texto: 'PDF listo' },
+  error: { tono: 'peligro', texto: 'Error en el PDF' },
+}
+
+/** El documento se puede incorporar si no tiene PDF o si su PDF ya terminó de procesarse. */
+function listoParaIncorporar(doc: DocumentoRecibido) {
+  return !doc.procesamiento_pdf || doc.procesamiento_pdf.estado === 'listo'
+}
 
 export function Recepcion() {
   const versionDatos = useVersionTramites()
@@ -72,6 +86,13 @@ export function Recepcion() {
         </p>
       )}
 
+      <CargarPdf
+        alCargar={(titulo) => {
+          setMensaje(`${titulo}: PDF recibido. El texto se extrae en segundo plano; usa «Actualizar estado» para ver si ya está listo.`)
+          reintentar()
+        }}
+      />
+
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando documentos recibidos…">
         {({ items }) =>
           items.length === 0 ? (
@@ -96,8 +117,16 @@ export function Recepcion() {
                           {doc.hoja && ` · Hoja ${doc.hoja}`}
                         </p>
                       </div>
-                      <Chip tono="info">Nuevo</Chip>
+                      {doc.procesamiento_pdf ? (
+                        <Chip tono={ESTADO_PDF[doc.procesamiento_pdf.estado]?.tono ?? 'info'}>
+                          {ESTADO_PDF[doc.procesamiento_pdf.estado]?.texto ?? doc.procesamiento_pdf.estado}
+                          {doc.procesamiento_pdf.paginas ? ` · ${doc.procesamiento_pdf.paginas} págs.` : ''}
+                        </Chip>
+                      ) : (
+                        <Chip tono="info">Nuevo</Chip>
+                      )}
                     </div>
+                    {doc.procesamiento_pdf?.error && <MensajeError mensaje={doc.procesamiento_pdf.error} />}
                     {doc.propuesta && (
                       <div className="propuesta">
                         <IconoChispa tamano={18} />
@@ -119,10 +148,16 @@ export function Recepcion() {
                         Ver documento
                         <IconoOjo tamano={16} />
                       </button>
-                      <button type="button" className="boton boton--primario" onClick={() => setIncorporando(doc)}>
-                        Incorporar y asignar
-                        <IconoFlecha tamano={16} />
-                      </button>
+                      {listoParaIncorporar(doc) ? (
+                        <button type="button" className="boton boton--primario" onClick={() => setIncorporando(doc)}>
+                          Incorporar y asignar
+                          <IconoFlecha tamano={16} />
+                        </button>
+                      ) : (
+                        <button type="button" className="boton boton--secundario" onClick={reintentar}>
+                          Actualizar estado
+                        </button>
+                      )}
                     </div>
                   </article>
                 ) : (
@@ -179,12 +214,12 @@ export function Recepcion() {
                 <dd>{viendo.fecha_texto}</dd>
               </div>
               <div>
-                <dt>Hoja de trámite</dt>
+                <dt>Referencia u hoja de trámite</dt>
                 <dd>{viendo.hoja ?? '—'}</dd>
               </div>
             </dl>
             <p className="texto-suave texto-pequeno">
-              La vista del PDF se mostrará cuando el backend entregue el archivo desde SIGED.
+              El texto del documento se podrá consultar en el expediente después de incorporarlo.
             </p>
           </div>
         )}

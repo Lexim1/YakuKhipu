@@ -23,7 +23,7 @@ const MENSAJES: Record<number, string> = {
 
 /** Dirección completa de una ruta de la API, para enlaces que se abren en otra pestaña (por ejemplo, un PDF). */
 export function urlApi(ruta: string): string {
-  return `${import.meta.env.VITE_API_URL ?? ''}${ruta}`
+  return `${baseUrl}${ruta}`
 }
 
 // Cuando el servidor responde 401, la sesión se perdió: el portal vuelve al ingreso.
@@ -38,12 +38,17 @@ export function escucharSesionPerdida(fn: () => void): () => void {
 /** true cuando el equipo elige explícitamente los ejemplos simulados (solo desarrollo). */
 export const usarEjemplos = import.meta.env.VITE_USAR_EJEMPLOS === 'true'
 
-export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
-  const baseUrl = import.meta.env.VITE_API_URL
-  if (!baseUrl) {
-    throw new ErrorApi(0, 'Falta configurar la URL de la API (VITE_API_URL).')
-  }
+/**
+ * Origen de la API. Vacío (lo recomendado) = mismo origen: en desarrollo Vite reenvía /api al backend y en la
+ * nube lo hace el proxy del portal. Así la cookie de sesión y el ingreso institucional (OIDC) funcionan igual.
+ */
+export const baseUrl: string = import.meta.env.VITE_API_URL ?? ''
 
+/** Estados en los que el mensaje del servidor explica mejor qué pasó (conflictos, validaciones, servicios). */
+const DETALLE_DEL_SERVIDOR = new Set([409, 411, 413, 422, 429, 503])
+
+/** Hace la consulta y devuelve la respuesta cruda (para leer cabeceras). Lanza ErrorApi si no es 2xx. */
+export async function pedir(ruta: string, opciones: RequestInit = {}): Promise<Response> {
   let respuesta: Response
   try {
     respuesta = await fetch(`${baseUrl}${ruta}`, {
@@ -59,8 +64,18 @@ export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Pr
   if (!respuesta.ok) {
     // El ingreso y la consulta de la sesión manejan su propio 401.
     if (respuesta.status === 401 && !ruta.startsWith('/api/sesion')) alPerderSesion.forEach((fn) => fn())
-    throw new ErrorApi(respuesta.status, MENSAJES[respuesta.status] ?? 'Ocurrió un error inesperado.')
+    let detalle: string | null = null
+    if (DETALLE_DEL_SERVIDOR.has(respuesta.status)) {
+      const cuerpo = (await respuesta.json().catch(() => null)) as { detail?: unknown } | null
+      if (typeof cuerpo?.detail === 'string') detalle = cuerpo.detail
+    }
+    throw new ErrorApi(respuesta.status, detalle ?? MENSAJES[respuesta.status] ?? 'Ocurrió un error inesperado.')
   }
+  return respuesta
+}
+
+export async function pedirJson<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+  const respuesta = await pedir(ruta, opciones)
   if (respuesta.status === 204) return undefined as T
   return (await respuesta.json()) as T
 }
