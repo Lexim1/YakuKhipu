@@ -4,8 +4,8 @@ import type { Flujograma as TipoFlujograma, Situacion } from '../../../types/tra
 interface Props {
   flujo: TipoFlujograma
   situacion: Situacion
-  usado: number
-  total: number
+  usado: number | null
+  total: number | null
 }
 
 const TONO_CHIP: Record<Situacion, string> = {
@@ -13,6 +13,7 @@ const TONO_CHIP: Record<Situacion, string> = {
   por_vencer: 'aviso',
   vencido: 'peligro',
   concluido: 'neutro',
+  pendiente_de_validacion: 'neutro',
 }
 
 /** Flujograma del procedimiento: pasos en orden, el paso actual resaltado y el avance del plazo. */

@@ -34,10 +34,18 @@ export function buscarDecisiones(
   return pedirJson(`/api/publico/decisiones?${parametros}`, { signal, credentials: 'omit' })
 }
 
-/** Cifras generales del sector. Ruta por acordar con el backend. */
-export function obtenerCifrasSector(signal?: AbortSignal): Promise<CifraSector[]> {
+/** Cifras generales del sector. El backend responde { concepto, valor, fuente }. */
+export async function obtenerCifrasSector(signal?: AbortSignal): Promise<CifraSector[]> {
   if (usarEjemplos) return ejemplo(CIFRAS_SECTOR, signal)
-  return pedirJson('/api/publico/cifras', { signal, credentials: 'omit' })
+  const cifras = await pedirJson<{ concepto: string; valor: number | string; fuente: string }[]>(
+    '/api/publico/cifras',
+    { signal, credentials: 'omit' },
+  )
+  return cifras.map((c) => ({
+    valor: typeof c.valor === 'number' ? c.valor.toLocaleString('es-PE') : c.valor,
+    texto: c.concepto,
+    fuente: c.fuente,
+  }))
 }
 
 /** Ficha pública de una decisión. Solo existe si el caso está habilitado para publicación. */

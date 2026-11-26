@@ -8,9 +8,9 @@ import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarExpedientes } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
 import { NOMBRE_PROCEDIMIENTO, type Procedimiento, type Situacion, type TramiteResumen } from '../../types/tramite'
-import { SEMAFORO } from './semaforo'
+import { SEMAFORO, textoDias } from './semaforo'
 
-const ORDEN: Record<Situacion, number> = { vencido: 0, por_vencer: 1, en_plazo: 2, concluido: 3 }
+const ORDEN: Record<Situacion, number> = { vencido: 0, por_vencer: 1, en_plazo: 2, pendiente_de_validacion: 3, concluido: 4 }
 
 function normalizar(texto: string) {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -166,7 +166,7 @@ export function Expedientes() {
                             </td>
                             <td>
                               <span className={`celda__plazo celda__plazo--${t.plazo.situacion}`}>
-                                {t.plazo.dias_usados} de {t.plazo.dias_totales}
+                                {textoDias(t.plazo)}
                               </span>
                               <Barra
                                 usado={t.plazo.dias_usados}

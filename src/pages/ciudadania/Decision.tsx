@@ -265,6 +265,7 @@ export function Decision() {
   useContextoAgente(
     d && {
       espacio: `Consulta ciudadana · ${d.titulo}`,
+      consulta: { tipo: 'publico', caso_id: d.id },
       preguntas: [
         ...(!d.autorizado
           ? [

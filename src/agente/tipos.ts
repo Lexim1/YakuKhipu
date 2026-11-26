@@ -7,8 +7,13 @@ export interface PreguntaAgente {
   palabras?: string[]
 }
 
+/** Caso sobre el que pregunta la pantalla. Con la API real, el agente busca en sus documentos. */
+export type ConsultaAgente = { tipo: 'tramite'; tramite_id: string } | { tipo: 'publico'; caso_id: string }
+
 export interface ContextoAgente {
   /** Texto del chip, por ejemplo «Espacio SUNASS · CPI-2026-0007». */
   espacio: string
+  /** Respuestas de ejemplo. Con la API real solo se usan sus preguntas como sugerencias. */
   preguntas: PreguntaAgente[]
+  consulta?: ConsultaAgente
 }

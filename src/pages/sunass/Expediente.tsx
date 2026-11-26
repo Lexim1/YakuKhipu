@@ -17,7 +17,7 @@ import { PanelPlazos } from './expediente/PanelPlazos'
 import { RutasDialogo } from './expediente/RutasDialogo'
 import { SiguienteAccion } from './expediente/SiguienteAccion'
 import { ValidarVinculo } from './expediente/ValidarVinculo'
-import { SEMAFORO } from './semaforo'
+import { SEMAFORO, textoDias } from './semaforo'
 
 const PESTANAS = [
   { id: 'linea', texto: 'Línea de tiempo' },
@@ -33,7 +33,7 @@ function preguntasDe(e: TipoExpediente): PreguntaAgente[] {
   const base: PreguntaAgente[] = [
     {
       pregunta: '¿En qué etapa está este expediente?',
-      respuesta: `${e.id} está en «${e.etapa}». Lo tiene ${e.responsable}. Lleva ${e.plazo.dias_usados} de ${e.plazo.dias_totales} días hábiles.`,
+      respuesta: `${e.id} está en «${e.etapa}». Lo tiene ${e.responsable}. Plazo: ${textoDias(e.plazo)}${e.plazo.dias_usados == null ? '' : ' días hábiles'}.`,
       fuentes: ['Bitácora del expediente'],
       palabras: ['etapa', 'donde esta', 'quien lo tiene'],
     },
@@ -81,7 +81,13 @@ export function Expediente() {
   const pestana: IdPestana = (PESTANAS.find((p) => p.id === parametros.get('pestana'))?.id ?? 'linea') as IdPestana
 
   useContextoAgente(
-    expediente ? { espacio: `Espacio SUNASS · ${expediente.id}`, preguntas: preguntasDe(expediente) } : null,
+    expediente
+      ? {
+          espacio: `Espacio SUNASS · ${expediente.id}`,
+          preguntas: preguntasDe(expediente),
+          consulta: { tipo: 'tramite', tramite_id: expediente.id },
+        }
+      : null,
   )
 
   function cambiarPestana(nueva: IdPestana) {
@@ -99,14 +105,14 @@ export function Expediente() {
 
   async function confirmar() {
     if (!expediente?.vinculo) return
-    const nuevo = await confirmarVinculo(expediente.id, expediente.vinculo.documento)
+    const nuevo = await confirmarVinculo(expediente.id, expediente.vinculo.documento, expediente.version)
     setActualizado(nuevo)
     setMensaje(`Vínculo confirmado: ${expediente.vinculo.documento} responde al ${expediente.vinculo.responde_a}.`)
   }
 
   async function rechazar() {
     if (!expediente?.vinculo) return
-    const nuevo = await rechazarVinculo(expediente.id, expediente.vinculo.documento)
+    const nuevo = await rechazarVinculo(expediente.id, expediente.vinculo.documento, expediente.version)
     setActualizado(nuevo)
     setMensaje(
       `Vínculo rechazado: el ${expediente.vinculo.documento} queda por asociar en Recepción de documentos.`,
@@ -224,7 +230,11 @@ export function Expediente() {
                         ))}
                       </ol>
                     ) : (
-                      <p className="texto-suave">Este caso simulado todavía no tiene documentos cargados.</p>
+                      <p className="texto-suave">
+                        {expediente.simulado
+                          ? 'Este caso simulado todavía no tiene documentos cargados.'
+                          : 'Todavía no hay actuaciones registradas en este expediente.'}
+                      </p>
                     )}
                   </section>
                   <SiguienteAccion accion={expediente.siguiente} alValidar={() => setValidarAbierto(true)} />

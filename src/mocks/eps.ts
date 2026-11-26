@@ -15,6 +15,7 @@ export const FICHAS_EPS: TramiteEps[] = [
     estado_texto: 'Necesitamos tu respuesta',
     resumen: 'Sunass necesita estos 8 puntos para evaluar tu solicitud.',
     simulado: true,
+    version: 1,
     siguiente_accion: {
       tipo: 'informar_presentacion',
       etiqueta: 'Respuesta',
@@ -71,6 +72,7 @@ export const FICHAS_EPS: TramiteEps[] = [
     estado_texto: 'Autorizado',
     resumen: 'Sunass autorizó el uso del fondo. No tienes tareas pendientes en este trámite.',
     simulado: true,
+    version: 1,
     siguiente_accion: null,
     documentos: [{ id: 'resolucion-ufi-0003', titulo: 'Resolución de autorización', pagina: 1 }],
     seguimiento: [
@@ -90,6 +92,7 @@ export const FICHAS_EPS: TramiteEps[] = [
     estado_texto: 'En evaluación',
     resumen: 'Sunass está evaluando tu propuesta. Por ahora no tienes ninguna tarea pendiente.',
     simulado: true,
+    version: 1,
     siguiente_accion: null,
     documentos: [],
     seguimiento: [
@@ -117,6 +120,7 @@ export const FICHAS_EPS_OTROS_ESTADOS: TramiteEps[] = [
     estado_texto: 'Completa tu solicitud',
     resumen: 'Sunass observó un requisito de tu solicitud.',
     simulado: true,
+    version: 1,
     siguiente_accion: {
       tipo: 'informar_presentacion',
       etiqueta: 'Subsanación',
@@ -151,6 +155,7 @@ export const FICHAS_EPS_OTROS_ESTADOS: TramiteEps[] = [
     estado_texto: 'En difusión pública',
     resumen: 'El proyecto de tarifas está publicado. Por ahora no tienes ninguna tarea obligatoria.',
     simulado: true,
+    version: 1,
     siguiente_accion: null,
     aviso: {
       tipo: 'participacion',
@@ -178,6 +183,7 @@ export const FICHAS_EPS_OTROS_ESTADOS: TramiteEps[] = [
     estado_texto: 'Solicitud improcedente',
     resumen: 'Este trámite terminó. No tienes tareas pendientes.',
     simulado: true,
+    version: 1,
     siguiente_accion: null,
     aviso: {
       tipo: 'concluido',

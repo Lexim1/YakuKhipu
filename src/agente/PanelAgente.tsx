@@ -2,13 +2,54 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
 import { IconoChispa, IconoCerrar, IconoEnviar } from '../components/Iconos'
+import { usarEjemplos } from '../services/api'
+import { preguntarAgente, urlFuente } from '../services/agente'
 import { useAgente } from './useAgente'
-import type { PreguntaAgente } from './tipos'
+import type { ConsultaAgente, PreguntaAgente } from './tipos'
+
+interface FuenteMensaje {
+  texto: string
+  url?: string | null
+}
 
 interface Mensaje {
   pregunta: string
   respuesta: string
-  fuentes: string[]
+  fuentes: FuenteMensaje[]
+  advertencias?: string[]
+  cargando?: boolean
+}
+
+/** Respuesta de la API real, con la cita de cada página. */
+async function consultarApi(
+  consulta: ConsultaAgente,
+  pregunta: string,
+  conversacion: { current: string | null },
+): Promise<Mensaje> {
+  try {
+    const r = await preguntarAgente(consulta, pregunta, conversacion.current)
+    conversacion.current = r.conversacion_id
+    return {
+      pregunta,
+      respuesta: r.respuesta,
+      fuentes: r.fuentes.map((f) => ({
+        texto: f.pagina_pdf ? `${f.titulo} · p. ${f.pagina_pdf}` : f.titulo,
+        url: urlFuente(f.enlace),
+      })),
+      advertencias: r.advertencias,
+    }
+  } catch (error) {
+    const estado = error instanceof Error && 'estado' in error ? (error as { estado: number }).estado : 0
+    const respuesta =
+      estado === 503
+        ? 'El agente no está disponible en este momento. El resto del portal sigue funcionando.'
+        : estado === 429
+          ? 'Se alcanzó el límite de preguntas por hora. Inténtalo más tarde.'
+          : error instanceof Error
+            ? error.message
+            : 'No pudimos consultar al agente.'
+    return { pregunta, respuesta, fuentes: [] }
+  }
 }
 
 function normalizar(texto: string) {
@@ -20,7 +61,7 @@ function buscarRespuesta(texto: string, preguntas: PreguntaAgente[]): Mensaje {
   const elegida = preguntas.find(
     (p) => normalizar(p.pregunta) === t || (p.palabras ?? []).some((palabra) => t.includes(normalizar(palabra))),
   )
-  if (elegida) return { pregunta: texto, respuesta: elegida.respuesta, fuentes: elegida.fuentes }
+  if (elegida) return { pregunta: texto, respuesta: elegida.respuesta, fuentes: elegida.fuentes.map((f) => ({ texto: f })) }
   return {
     pregunta: texto,
     respuesta:
@@ -35,23 +76,41 @@ export function PanelAgente() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
   const final = useRef<HTMLDivElement>(null)
-  const preguntas = contexto?.preguntas ?? []
+  const conversacion = useRef<string | null>(null)
+  // Con la API real el agente responde sobre un caso concreto; sin caso no hay a quién preguntar.
+  const consulta = usarEjemplos ? undefined : contexto?.consulta
+  const preguntas = usarEjemplos || consulta ? (contexto?.preguntas ?? []) : []
+  const esperando = mensajes.some((m) => m.cargando)
 
   // Al cambiar de pantalla, la conversación empieza de nuevo.
-  useEffect(() => setMensajes([]), [contexto?.espacio])
+  useEffect(() => {
+    setMensajes([])
+    conversacion.current = null
+  }, [contexto?.espacio])
 
   useEffect(() => {
-    if (abierto && preguntaInicial) setMensajes((m) => [...m, buscarRespuesta(preguntaInicial, preguntas)])
+    if (abierto && preguntaInicial) preguntar(preguntaInicial)
     // Solo cuando se abre con una pregunta concreta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto, preguntaInicial])
 
-  useEffect(() => final.current?.scrollIntoView({ block: 'end' }), [mensajes])
+  // Con llaves: algunos navegadores devuelven una promesa desde scrollIntoView y React la tomaría como limpieza.
+  useEffect(() => {
+    final.current?.scrollIntoView({ block: 'end' })
+  }, [mensajes])
 
-  function preguntar(pregunta: string) {
-    if (!pregunta.trim()) return
-    setMensajes((m) => [...m, buscarRespuesta(pregunta.trim(), preguntas)])
+  function preguntar(entrada: string) {
+    const pregunta = entrada.trim()
+    if (!pregunta || esperando) return
     setTexto('')
+    if (!consulta) {
+      setMensajes((m) => [...m, buscarRespuesta(pregunta, preguntas)])
+      return
+    }
+    setMensajes((m) => [...m, { pregunta, respuesta: 'Buscando en los documentos del caso…', fuentes: [], cargando: true }])
+    void consultarApi(consulta, pregunta, conversacion).then((respuesta) =>
+      setMensajes((m) => m.map((x) => (x.cargando && x.pregunta === pregunta ? respuesta : x))),
+    )
   }
 
   function enviar(e: FormEvent) {
@@ -105,12 +164,23 @@ export function PanelAgente() {
                   <p>{m.respuesta}</p>
                   {m.fuentes.length > 0 && (
                     <div className="fila-chips">
-                      {m.fuentes.map((f) => (
-                        <Fuente key={f}>{f}</Fuente>
-                      ))}
+                      {m.fuentes.map((f) =>
+                        f.url ? (
+                          <a key={f.texto} href={f.url} target="_blank" rel="noreferrer">
+                            <Fuente>{f.texto}</Fuente>
+                          </a>
+                        ) : (
+                          <Fuente key={f.texto}>{f.texto}</Fuente>
+                        ),
+                      )}
                     </div>
                   )}
-                  <p className="nota">Propuesta del agente · una persona la valida.</p>
+                  {m.advertencias?.map((a) => (
+                    <p key={a} className="nota">
+                      ⚠ {a}
+                    </p>
+                  ))}
+                  {!m.cargando && <p className="nota">Propuesta del agente · una persona la valida.</p>}
                 </div>
               </div>
             ))}
@@ -138,7 +208,7 @@ export function PanelAgente() {
                 placeholder="Escribe tu pregunta sobre el caso"
                 autoComplete="off"
               />
-              <button type="submit" className="boton boton--primario" aria-label="Enviar pregunta">
+              <button type="submit" className="boton boton--primario" aria-label="Enviar pregunta" disabled={esperando}>
                 <IconoEnviar tamano={18} />
               </button>
             </form>
