@@ -17,11 +17,6 @@ export interface Sesion {
   permisos?: string[]
 }
 
-export interface Credenciales {
-  usuario: string
-  clave: string
-}
-
 /** Pantalla inicial de cada perfil después de ingresar. */
 export const INICIO_PERFIL: Record<PerfilSesion, string> = {
   sunass: '/sunass/te-toca',
