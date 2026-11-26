@@ -15,6 +15,11 @@ const URGENCIA: Record<UrgenciaTarea, { tono: Tono; texto: string; orden: number
 }
 
 const AVISO: Record<AvisoAgente['tipo'], { tono: Tono; texto: string }> = {
+  reporte_faltante: { tono: 'aviso', texto: 'Reporte faltante' },
+  avance_inconsistente: { tono: 'aviso', texto: 'Avance por verificar' },
+  dato_duplicado: { tono: 'aviso', texto: 'Dato duplicado' },
+  saldo_inconsistente: { tono: 'aviso', texto: 'Saldo por conciliar' },
+  deposito_insuficiente: { tono: 'aviso', texto: 'Depósito insuficiente' },
   cifra_sin_documento: { tono: 'aviso', texto: 'Cifra sin documento' },
   vinculo_propuesto: { tono: 'agente', texto: 'Vínculo propuesto' },
   por_vencer: { tono: 'info', texto: 'Plazo próximo' },
@@ -97,6 +102,7 @@ export function TeToca() {
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Te toca actuar',
+    cartera: true,
     preguntas: [
       {
         pregunta: '¿Por dónde empiezo hoy?',

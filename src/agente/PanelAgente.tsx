@@ -40,7 +40,7 @@ export function PanelAgente() {
   const publico = contexto?.publico ?? contexto?.caso?.tipo === 'publico'
   const claveCaso = `${contexto?.espacio ?? ''}|${contexto?.caso?.id ?? ''}`
   const esperando = mensajes.some((m) => m.estado === 'cargando')
-  const puedePreguntar = usarEjemplos || Boolean(contexto?.caso)
+  const puedePreguntar = usarEjemplos || Boolean(contexto?.caso || contexto?.cartera)
 
   // Al cambiar de caso, la conversación empieza de nuevo y se cancela la pregunta pendiente.
   useEffect(() => {
@@ -78,10 +78,10 @@ export function PanelAgente() {
     control.current = nuevo
     try {
       const respuesta = await preguntarAlAgente(
-        { caso: contexto?.caso, pregunta: limpia, preguntas, conversacionId: conversacion.current },
+        { caso: contexto?.caso, cartera: contexto?.cartera, pregunta: limpia, preguntas, conversacionId: conversacion.current },
         nuevo.signal,
       )
-      if (respuesta.conversacion_id !== 'ejemplo') conversacion.current = respuesta.conversacion_id
+      if (contexto?.caso && !usarEjemplos) conversacion.current = respuesta.conversacion_id
       actualizar({ id, pregunta: limpia, estado: 'listo', respuesta })
     } catch (error) {
       if (nuevo.signal.aborted) return
@@ -143,7 +143,9 @@ export function PanelAgente() {
                 <p className="texto-suave">
                   {contexto?.caso
                     ? 'Pregunta lo que quieras sobre este caso. Responderé citando la página de cada documento.'
-                    : puedePreguntar
+                    : contexto?.cartera
+                      ? 'Consulta qué expedientes de tu cartera ya vencieron o están por vencer.'
+                      : puedePreguntar
                       ? 'Elige una pregunta sugerida o escribe la tuya.'
                       : 'Abre un expediente o una decisión para consultar documentos con el agente. Para próximos vencimientos, revisa Alertas.'}
                 </p>
@@ -205,7 +207,7 @@ export function PanelAgente() {
                           {a}
                         </p>
                       ))}
-                      <p className="nota">Propuesta del agente · una persona la valida.</p>
+                      {m.respuesta.conversacion_id !== 'cartera' && <p className="nota">Consulta de fuentes · una persona revisa el resultado.</p>}
                     </div>
                   )}
                 </div>

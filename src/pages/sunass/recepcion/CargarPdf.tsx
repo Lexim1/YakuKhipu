@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { IconoDocumento } from '../../../components/Iconos'
 import { MensajeError } from '../../../components/Mensajes'
-import { cargarPdf, listarDestinos } from '../../../services/tramites'
+import { cargarPdf, consultarCatalogoRecepcion } from '../../../services/tramites'
 import { obtenerEstadoServidor } from '../../../services/sesion'
 
 /** Fecha de hoy en formato del campo date: no se aceptan documentos con fecha futura. */
@@ -24,18 +24,20 @@ export function CargarPdf({ alCargar }: { alCargar: (titulo: string) => void }) 
 
   useEffect(() => {
     const control = new AbortController()
-    void obtenerEstadoServidor().then((e) => !control.signal.aborted && setHabilitada(e.carga_pdf))
-    listarDestinos(control.signal)
-      .then((destinos) =>
-        setEmpresas([...new Map(destinos.map((d) => [d.eps_id, d.eps])).entries()].map(([id, nombre]) => ({ id, nombre }))),
-      )
+    void obtenerEstadoServidor()
+      .then((e) => !control.signal.aborted && setHabilitada(e.carga_pdf))
       .catch(() => {
-        // Sin destinos no se puede elegir la EPS; el formulario lo indica.
+        if (!control.signal.aborted) setError('No se pudo comprobar la carga de PDF. Recarga la página.')
+      })
+    consultarCatalogoRecepcion(control.signal)
+      .then(({ empresas }) => setEmpresas(empresas))
+      .catch(() => {
+        if (!control.signal.aborted) setError('No se pudo cargar el catálogo de EPS. Recarga la página.')
       })
     return () => control.abort()
   }, [])
 
-  if (habilitada === null) return null
+  if (habilitada === null) return error ? <MensajeError mensaje={error} /> : null
 
   if (!habilitada) {
     return (
@@ -69,6 +71,7 @@ export function CargarPdf({ alCargar }: { alCargar: (titulo: string) => void }) 
   if (!abierto) {
     return (
       <div>
+        {error && <MensajeError mensaje={error} />}
         <button type="button" className="boton boton--secundario" onClick={() => setAbierto(true)}>
           Cargar PDF recibido
           <IconoDocumento tamano={16} />
@@ -100,7 +103,7 @@ export function CargarPdf({ alCargar }: { alCargar: (titulo: string) => void }) 
           EPS
           <select name="eps_id" required defaultValue="">
             <option value="" disabled>
-              {empresas.length ? 'Elige la EPS' : 'No hay expedientes abiertos'}
+              {empresas.length ? 'Elige la EPS' : 'No hay EPS disponibles'}
             </option>
             {empresas.map((e) => (
               <option key={e.id} value={e.id}>
@@ -116,7 +119,7 @@ export function CargarPdf({ alCargar }: { alCargar: (titulo: string) => void }) 
       </label>
       {error && <MensajeError mensaje={error} />}
       <div className="dialogo__acciones">
-        <button type="button" className="boton boton--secundario" onClick={() => setAbierto(false)}>
+        <button type="button" className="boton boton--secundario" disabled={enviando} onClick={() => setAbierto(false)}>
           Cancelar
         </button>
         <button type="submit" className="boton boton--primario" disabled={enviando}>

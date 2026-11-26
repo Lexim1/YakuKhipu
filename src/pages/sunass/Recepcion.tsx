@@ -26,7 +26,7 @@ const ESTADO_PDF: Record<string, { tono: 'ok' | 'aviso' | 'peligro' | 'info'; te
   pendiente: { tono: 'info', texto: 'PDF en cola' },
   procesando: { tono: 'info', texto: 'Extrayendo texto' },
   listo: { tono: 'ok', texto: 'PDF listo' },
-  error: { tono: 'peligro', texto: 'Error en el PDF' },
+  fallido: { tono: 'peligro', texto: 'Error en el PDF' },
 }
 
 /** El documento se puede incorporar si no tiene PDF o si su PDF ya terminó de procesarse. */
@@ -67,7 +67,7 @@ export function Recepcion() {
     const lista = resultado.estado === 'listo' ? resultado.datos.items : []
     const doc = lista.find((d) => d.id === datos.documento_id) ?? incorporando
     setIncorporando(null)
-    setMensaje(`${doc?.titulo ?? 'Documento'} incorporado a ${datos.tramite_id} y asignado a ${persona}.`)
+    setMensaje(`${doc?.titulo ?? 'Documento'} incorporado a ${datos.tramite_id}${persona ? ` y asignado a ${persona}` : ''}.`)
   }
 
   return (
@@ -76,7 +76,7 @@ export function Recepcion() {
         <p className="antetitulo">Coordinación DRE</p>
         <h1>Recepción de documentos</h1>
         <p className="subtitulo">
-          Llegaron por Mesa de Partes Virtual. El agente propone a qué expediente pertenecen; tú decides.
+          Registra aquí documentos que ya recibiste por Mesa de Partes. Vincúlalos o registra un expediente nuevo y derívalo.
         </p>
       </div>
 
@@ -150,7 +150,7 @@ export function Recepcion() {
                       </button>
                       {listoParaIncorporar(doc) ? (
                         <button type="button" className="boton boton--primario" onClick={() => setIncorporando(doc)}>
-                          Incorporar y asignar
+                          Vincular o registrar expediente
                           <IconoFlecha tamano={16} />
                         </button>
                       ) : (
@@ -194,6 +194,10 @@ export function Recepcion() {
                   documentos={items}
                   alCerrar={() => setIncorporando(null)}
                   alIncorporar={incorporar}
+                  alRegistrar={(id, persona) => {
+                    setIncorporando(null)
+                    setMensaje(`Expediente ${id} registrado y asignado a ${persona}.`)
+                  }}
                 />
               )}
             </>
