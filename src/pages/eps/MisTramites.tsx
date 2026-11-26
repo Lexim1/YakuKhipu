@@ -1,13 +1,38 @@
 import { Link } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
-import { IconoAlerta, IconoCheck, IconoFlecha } from '../../components/Iconos'
+import { Anillo, Burbuja, ContadorAnimado, Saludo, TituloIcono } from '../../components/Graficos'
+import { Gotita } from '../../components/Gotita'
+import { IconoCheck, IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarMisTramites } from '../../services/eps'
 import { useConsulta } from '../../services/useConsulta'
-import type { TramiteEpsResumen } from '../../types/eps'
+import type { EstadoEps, TramiteEpsResumen } from '../../types/eps'
 import { ChipEstadoEps, NavegacionEps } from './comun'
 import { textoPlazo, tonoPlazo } from './plazos'
+
+/** En qué paso está cada trámite: presentado → evaluación → respuesta → decisión. */
+const PASO: Record<EstadoEps, number> = {
+  en_evaluacion: 1,
+  en_consulta: 1,
+  requiere_respuesta: 2,
+  requiere_subsanacion: 2,
+  autorizado: 3,
+  no_autorizado: 3,
+  concluido: 3,
+}
+const NOMBRE_PASO = ['Presentado', 'En evaluación', 'Te toca responder', 'Decisión tomada']
+
+function PasosMini({ estado }: { estado: EstadoEps }) {
+  const paso = PASO[estado] ?? 0
+  return (
+    <span className="pasos-mini" role="img" aria-label={`Paso ${paso + 1} de ${NOMBRE_PASO.length}: ${NOMBRE_PASO[paso]}`}>
+      {NOMBRE_PASO.map((n, i) => (
+        <span key={n} className={i < paso || paso === 3 ? 'hecho' : i === paso ? 'actual' : ''} />
+      ))}
+    </span>
+  )
+}
 
 function rutaTramite(id: string) {
   return `/eps/tramites/${encodeURIComponent(id)}`
@@ -23,14 +48,32 @@ function AvisoPendiente({ tramite }: { tramite: TramiteEpsResumen }) {
   ].filter(Boolean)
   return (
     <section className={`eps-franja eps-franja--${tonoPlazo(p.dias_restantes)}`} aria-label="Tarea pendiente">
-      <span className="eps-franja__icono">
-        <IconoAlerta tamano={22} />
-      </span>
+      {p.total > 0 ? (
+        <Anillo
+          porcentaje={(p.listos / p.total) * 100}
+          tono="aviso"
+          tamano={68}
+          grosor={8}
+          etiqueta={`Llevas ${p.listos} de ${p.total} puntos`}
+        >
+          <strong>
+            {p.listos}/{p.total}
+          </strong>
+        </Anillo>
+      ) : null}
       <div className="eps-franja__texto">
-        <h2>{p.titulo}</h2>
+        <h2>{p.titulo} ✍️</h2>
         <p>{partes.join(' · ')}</p>
+        {p.total > 0 && p.listos < p.total && (
+          <p className="texto-pequeno">💪 ¡Vas bien! Te faltan {p.total - p.listos} puntos.</p>
+        )}
         <p className="solo-lectores">Trámite {tramite.id}</p>
       </div>
+      <Gotita
+        pose={tonoPlazo(p.dias_restantes) === 'peligro' ? 'plazo-rojo' : 'plazo-naranja'}
+        alto={96}
+        className="eps-franja__gotita"
+      />
       <Link className="boton boton--primario" to={`${rutaTramite(tramite.id)}/respuesta`}>
         Preparar respuesta
         <span className="solo-lectores"> de {tramite.id}</span>
@@ -101,14 +144,18 @@ export function MisTramites() {
       <div>
         {datos?.items[0] && <p className="antetitulo">{datos.items[0].eps}</p>}
         <h1>Mis trámites</h1>
-        {datos && (
-          <p className="subtitulo">
-            {pendientes.length === 0
-              ? 'No tienes respuestas pendientes.'
-              : `Tienes ${pendientes.length} ${pendientes.length === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} con Sunass.`}
-          </p>
-        )}
       </div>
+      {datos && (
+        <Saludo
+          pose={pendientes.length === 0 ? 'al-dia' : 'hola'}
+          titulo={`¡Hola${datos.items[0] ? `, ${datos.items[0].eps}` : ''}! 👋`}
+          texto={
+            pendientes.length === 0
+              ? '🌤️ ¡Estás al día! No tienes respuestas pendientes con Sunass.'
+              : `Tienes ${pendientes.length} ${pendientes.length === 1 ? 'respuesta pendiente' : 'respuestas pendientes'} con Sunass. ¡Tú puedes!`
+          }
+        />
+      )}
 
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando tus trámites…">
         {({ items }) => {
@@ -121,6 +168,36 @@ export function MisTramites() {
           }
           return (
             <>
+              <ul className="tres-columnas resumen-bandeja">
+                {[
+                  { n: pendientes.length, t: 'Por responder', d: 'Sunass espera tu respuesta', tono: 'aviso', e: '✍️', c: 'durazno' },
+                  {
+                    n: items.filter((t) => PASO[t.estado] === 1 || (t.respuesta && !t.pendiente)).length,
+                    t: 'En evaluación',
+                    d: 'Sunass los está revisando',
+                    tono: '',
+                    e: '🔍',
+                    c: 'cielo',
+                  },
+                  {
+                    n: items.filter((t) => PASO[t.estado] === 3).length,
+                    t: 'Resueltos',
+                    d: 'Con decisión de Sunass',
+                    tono: 'ok',
+                    e: '🎉',
+                    c: 'menta',
+                  },
+                ].map((k) => (
+                  <li key={k.t} className={`tarjeta resumen-bandeja__tarjeta indicador-vivo${k.tono ? ` indicador-vivo--${k.tono}` : ''}`}>
+                    <Burbuja emoji={k.e} color={k.c as 'menta'} />
+                    <span className="texto-pequeno">{k.t}</span>
+                    <strong className={`indicador-grande${k.tono ? ` indicador-grande--${k.tono}` : ''}`}>
+                      <ContadorAnimado valor={k.n} />
+                    </strong>
+                    <span className="texto-pequeno texto-suave">{k.d}</span>
+                  </li>
+                ))}
+              </ul>
               {pendientes.map((t) => (
                 <AvisoPendiente key={t.id} tramite={t} />
               ))}
@@ -129,16 +206,21 @@ export function MisTramites() {
               ))}
 
               <section className="columna" aria-labelledby="titulo-mis-tramites">
-                <h2 id="titulo-mis-tramites">Mis trámites ante Sunass</h2>
+                <TituloIcono id="titulo-mis-tramites" emoji="📋" color="cielo">Mis trámites ante Sunass</TituloIcono>
                 <ul className="eps-lista">
                   {items.map((t) => (
                     <li key={t.id}>
                       <Link className="tarjeta eps-fila" to={rutaTramite(t.id)}>
+                        <Burbuja
+                          emoji={t.id.startsWith('UFI') ? '🛟' : t.id.startsWith('RP') ? '🧾' : '🛠️'}
+                          color={t.id.startsWith('UFI') ? 'rosa' : t.id.startsWith('RP') ? 'limon' : 'cielo'}
+                        />
                         <span className="eps-fila__texto">
                           <span className="eps-fila__titulo">{t.titulo}</span>
                           <span className="eps-fila__detalle">
                             {t.id} · {t.detalle}
                           </span>
+                          <PasosMini estado={t.estado} />
                         </span>
                         <ChipEstadoEps estado={t.estado} texto={t.estado_texto} />
                         <IconoFlecha tamano={18} />

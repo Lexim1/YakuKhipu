@@ -2,7 +2,8 @@ import { Link, Navigate, useSearchParams } from 'react-router'
 import { IconoEdificio, IconoFlecha, IconoOjo, IconoPersonas } from '../components/Iconos'
 import { MensajeError } from '../components/Mensajes'
 import { Accesibilidad } from '../components/PanelAccesibilidad'
-import { URL_INGRESO_INSTITUCIONAL } from '../services/sesion'
+import { usarEjemplos } from '../services/api'
+import { URL_INGRESO_INSTITUCIONAL, entrarConEjemplo } from '../services/sesion'
 import { useSesion } from '../sesion/useSesion'
 import { INICIO_PERFIL, type Sesion } from '../types/sesion'
 
@@ -109,6 +110,29 @@ export function Ingreso() {
                   <IconoFlecha tamano={16} />
                 </a>
               </div>
+
+              {usarEjemplos && (
+                <div className="acceso__ejemplo">
+                  <p className="texto-pequeno texto-suave">
+                    Modo de ejemplos (solo en tu computadora): entra sin cuenta para probar las vistas.
+                  </p>
+                  <div className="fila-chips">
+                    {(['sunass', 'eps'] as const).map((perfil) => (
+                      <button
+                        key={perfil}
+                        type="button"
+                        className="boton boton--secundario"
+                        onClick={() => {
+                          entrarConEjemplo(perfil)
+                          window.location.assign(perfil === 'sunass' ? '/sunass/te-toca' : '/eps/tramites')
+                        }}
+                      >
+                        Probar como {perfil === 'sunass' ? 'SUNASS' : 'EPS'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <p className="acceso__alterno">
                 ¿Eres ciudadana o ciudadano?{' '}
