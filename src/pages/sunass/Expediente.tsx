@@ -10,6 +10,7 @@ import { confirmarVinculo, obtenerExpediente, rechazarVinculo } from '../../serv
 import { usarEjemplos } from '../../services/api'
 import { useConsulta } from '../../services/useConsulta'
 import { useSesion } from '../../sesion/useSesion'
+import { AsignarExpediente } from './expediente/AsignarExpediente'
 import { NOMBRE_COMPLETO, type Expediente as TipoExpediente } from '../../types/tramite'
 import { Comparador } from './expediente/Comparador'
 import { Flujograma } from './expediente/Flujograma'
@@ -77,6 +78,7 @@ export function Expediente() {
   const [resultado, reintentar] = useConsulta((signal) => obtenerExpediente(id, signal), [id])
   const [actualizado, setActualizado] = useState<TipoExpediente | null>(null)
   const [rutasAbiertas, setRutasAbiertas] = useState(false)
+  const [asignacionAbierta, setAsignacionAbierta] = useState(false)
   // «Te toca actuar» abre el expediente con ?accion=validar para mostrar el diálogo directamente.
   const [validarAbierto, setValidarAbierto] = useState(parametros.get('accion') === 'validar')
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -158,6 +160,16 @@ export function Expediente() {
               </div>
 
               <div>
+                {!usarEjemplos && sesion?.permisos?.includes('asignacion.gestionar') && (
+                  <button
+                    type="button"
+                    className="boton boton--secundario"
+                    onClick={() => setAsignacionAbierta(true)}
+                    aria-haspopup="dialog"
+                  >
+                    Asignar expediente
+                  </button>
+                )}
                 <button
                   type="button"
                   className="boton boton--secundario"
@@ -169,6 +181,25 @@ export function Expediente() {
               </div>
 
               {expediente.simulado && <AvisoSimulado />}
+
+              {asignacionAbierta && (
+                <AsignarExpediente
+                  key={expediente.id}
+                  expediente={expediente}
+                  alCerrar={() => setAsignacionAbierta(false)}
+                  alRecargar={() => {
+                    setAsignacionAbierta(false)
+                    setActualizado(null)
+                    reintentar()
+                  }}
+                  alAsignar={(nombre) => {
+                    setAsignacionAbierta(false)
+                    setActualizado(null)
+                    setMensaje(`Expediente asignado a ${nombre}.`)
+                    reintentar()
+                  }}
+                />
+              )}
 
               {mensaje && (
                 <p className="mensaje mensaje--exito" role="status">

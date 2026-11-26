@@ -7,6 +7,8 @@ import { IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarExpedientes } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
+import { ROLES_SUNASS, rolSunass } from '../../sesion/roles'
+import { useSesion } from '../../sesion/useSesion'
 import { NOMBRE_PROCEDIMIENTO, type Procedimiento, type Situacion, type TramiteResumen } from '../../types/tramite'
 import { SEMAFORO, textoDias } from './semaforo'
 
@@ -22,6 +24,8 @@ function ordenarPorUrgencia(items: TramiteResumen[]) {
 }
 
 export function Expedientes() {
+  const { sesion } = useSesion()
+  const rol = rolSunass(sesion)
   const [resultado, reintentar] = useConsulta((signal) => listarExpedientes(signal), [])
   const [parametros, setParametros] = useSearchParams()
   const procedimiento = parametros.get('procedimiento') ?? ''
@@ -51,7 +55,7 @@ export function Expedientes() {
   return (
     <div className="pagina">
       <div>
-        <p className="antetitulo">Coordinación DRE</p>
+        <p className="antetitulo">{ROLES_SUNASS[rol].cargo}</p>
         <h1>Expedientes</h1>
         {resultado.estado === 'listo' && (
           <p className="subtitulo">
@@ -120,7 +124,15 @@ export function Expedientes() {
 
               {items.some((t) => t.simulado) && <AvisoSimulado />}
 
-              {visibles.length === 0 ? (
+              {items.length === 0 ? (
+                rol === 'analista_srt' ? (
+                  <SinResultados titulo="Aún no tienes expedientes asignados">
+                    <p>Coordinación DRE o Jefatura DRE puede asignarte un expediente. Luego podrás abrirlo y consultar sus documentos con el agente.</p>
+                  </SinResultados>
+                ) : (
+                  <SinResultados titulo="No hay expedientes disponibles" />
+                )
+              ) : visibles.length === 0 ? (
                 <SinResultados titulo="No hay expedientes con estos filtros">
                   <button
                     type="button"
