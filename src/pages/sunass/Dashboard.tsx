@@ -1,14 +1,14 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip, type Tono } from '../../components/Chip'
-import { Anillo, Burbuja, ContadorAnimado, LineaArea, PildorasBarras, Saludo, TituloIcono } from '../../components/Graficos'
+import { Burbuja, ContadorAnimado, Saludo, TituloIcono } from '../../components/Graficos'
 import { IconoArchivo, IconoFlecha } from '../../components/Iconos'
 import { Contenido } from '../../components/Mensajes'
 import { Gotita } from '../../components/Gotita'
-import { FINANCIERO, MOVIMIENTOS } from '../../mocks/financiero'
-import { DASHBOARD_SIMULADO } from '../../mocks/seguimiento'
+import { consultarFinanzas, soles, type ResumenFinanzas } from '../../services/finanzas'
+import { FinanzasPanel } from './FinanzasPanel'
 import { ROLES_SUNASS, rolSunass } from '../../sesion/roles'
 import { useSesion } from '../../sesion/useSesion'
 import { listarAlertas, listarExpedientes } from '../../services/tramites'
@@ -77,8 +77,8 @@ function BoletoUrgente({ tramite }: { tramite: TramiteResumen }) {
         alto={104}
         className="boleto__gotita"
       />
-      <p className="boleto__antetitulo" id="titulo-urgente">🔥 Lo más urgente hoy</p>
-      <p className="boleto__id">#{tramite.id}</p>
+      <p className="boleto__antetitulo" id="titulo-urgente">{['vencido', 'por_vencer'].includes(tramite.plazo.situacion) ? '🔥 Prioridad por plazo' : '📂 Expediente por revisar'}</p>
+      <p className="boleto__id">{tramite.referencia ?? tramite.id}</p>
       <div className="boleto__pildoras">
         <span className="boleto__pildora">{TEXTO_SITUACION[tramite.plazo.situacion]}</span>
         <span className="boleto__pildora boleto__pildora--suave">{NOMBRE_PROCEDIMIENTO[tramite.procedimiento]}</span>
@@ -114,13 +114,14 @@ function contar(items: TramiteResumen[], s: Situacion) {
 /** Panel de la cartera DRE: lo que está en trámite, dónde se demora y qué alertas hay. */
 export function Dashboard() {
   const { sesion } = useSesion()
+  const [corte, setCorte] = useState('')
   const perfil = ROLES_SUNASS[rolSunass(sesion)]
   const [resultado, reintentar] = useConsulta(
     async (signal) => {
-      const [expedientes, alertas] = await Promise.all([listarExpedientes(signal), listarAlertas(signal)])
-      return { expedientes: expedientes.items, alertas: alertas.items }
+      const [expedientes, alertas, finanzas] = await Promise.all([listarExpedientes(signal), listarAlertas(signal), consultarFinanzas(signal, corte)])
+      return { expedientes: expedientes.items, alertas: alertas.items, finanzas }
     },
-    [],
+    [corte],
   )
 
   useContextoAgente({
@@ -153,7 +154,7 @@ export function Dashboard() {
 
 
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando la cartera…">
-        {({ expedientes, alertas }) => {
+        {({ expedientes, alertas, finanzas }) => {
           const enTramite = expedientes.filter((t) => t.plazo.situacion !== 'concluido')
           const eps = new Set(enTramite.map((t) => t.eps)).size
           const urgente = [...enTramite].sort(
@@ -187,28 +188,30 @@ export function Dashboard() {
                   icono={<Burbuja tamano="sm" emoji="⏳" color="durazno" />}
                 />
                 <Indicador
-                  etiqueta="Resueltos en 2026"
-                  valor={DASHBOARD_SIMULADO.resueltos.valor}
-                  detalle={`${DASHBOARD_SIMULADO.resueltos.detalle} · simulado`}
+                  etiqueta={`Resueltos en ${finanzas.corte.slice(0, 4)}`}
+                  valor={finanzas.resueltos}
+                  detalle={`Con fecha de conclusión hasta ${finanzas.corte}`}
                   tono="ok"
                   icono={<Gotita pose="logrado" alto={52} className="indicador-vivo__gotita" />}
                 />
                 <Indicador
                   etiqueta="Monto en evaluación"
-                  valor={DASHBOARD_SIMULADO.monto_evaluacion.valor}
-                  detalle={`${DASHBOARD_SIMULADO.monto_evaluacion.detalle} · simulado`}
+                  valor={soles(finanzas.monto_solicitado_en_evaluacion)}
+                  detalle="Monto solicitado; no equivale a autorizado ni ejecutado"
                   tono="ok"
                   icono={<Burbuja tamano="sm" emoji="💰" color="limon" />}
                 />
               </ul>
 
               <Semaforo
-                enPlazo={contar(enTramite, 'en_plazo') + contar(enTramite, 'pendiente_de_validacion')}
+                enPlazo={contar(enTramite, 'en_plazo')}
+                porValidar={contar(enTramite, 'pendiente_de_validacion')}
                 porVencer={contar(enTramite, 'por_vencer')}
                 vencidos={contar(enTramite, 'vencido')}
               />
 
-              <GestionFinanciera />
+              <label className="campo">Corte de los datos financieros<input aria-label="Corte financiero" type="date" value={corte} onChange={(e) => setCorte(e.target.value)} /><span className="nota">Corte efectivo: {finanzas.corte}</span></label>
+              <FinanzasPanel datos={finanzas} />
 
               <div className="dos-mitades">
                 <section className="tarjeta" aria-labelledby="titulo-proceso">
@@ -251,18 +254,18 @@ export function Dashboard() {
                 <section className="tarjeta" aria-labelledby="titulo-demora">
                   <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
                     <TituloIcono id="titulo-demora" emoji="🐢" color="durazno">¿Dónde se demora el trámite?</TituloIcono>
-                    <Chip tono="agente">Simulado</Chip>
+                    <Chip tono="info">Datos D3 importados</Chip>
                   </div>
-                  <p className="texto-pequeno texto-suave">Promedio de días hábiles por etapa · 2026</p>
-                  <DemoraPorEtapa />
+                  <p className="texto-pequeno texto-suave">Promedio de días calendario entre hitos con fechas registradas; no es plazo legal</p>
+                  <DemoraPorEtapa etapas={finanzas.demora_por_etapa} />
                 </section>
 
                 <section className="tarjeta" aria-labelledby="titulo-mes">
                   <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
                     <TituloIcono id="titulo-mes" emoji="📅" color="lila">Trámites resueltos por mes</TituloIcono>
-                    <Chip tono="agente">Simulado</Chip>
+                    <Chip tono="info">Datos D3 importados</Chip>
                   </div>
-                  <ResueltosPorMes />
+                  <ResueltosPorMes meses={finanzas.resueltos_por_mes} />
                 </section>
 
                 <section className="tarjeta" aria-labelledby="titulo-alertas">
@@ -305,7 +308,7 @@ export function Dashboard() {
               </div>
 
               <ul className="tres-columnas resumen-bandeja">
-                {DASHBOARD_SIMULADO.impacto.map((i, n) => (
+                {[{ etiqueta: 'EPS visibles', valor: finanzas.cobertura.eps, detalle: 'Ámbito de tu cartera' }, { etiqueta: 'Proyectos programados', valor: finanzas.cobertura.proyectos_programados, detalle: 'Programa vigente hasta el año de corte' }, { etiqueta: 'Proyectos con ejecución', valor: finanzas.cobertura.proyectos_con_ejecucion, detalle: 'Último reporte disponible por proyecto' }].map((i, n) => (
                   <li key={i.etiqueta} className="tarjeta tarjeta--menta resumen-bandeja__tarjeta impacto-amable">
                     <Burbuja emoji={EMOJI_IMPACTO[n] ?? '🌱'} color="menta" tamano="lg" />
                     <span className="texto-pequeno">{i.etiqueta}</span>
@@ -314,7 +317,7 @@ export function Dashboard() {
                   </li>
                 ))}
               </ul>
-              <AvisoSimulado texto=" Los conteos de expedientes y alertas vienen del portal; los tiempos, montos e impacto son simulados." />
+              <AvisoSimulado texto=" Datos del sprint y su actualización importados en PostgreSQL; los registros ficticios siguen identificados como muestra. No acreditan beneficios ejecutados." />
             </>
           )
         }}
@@ -352,9 +355,9 @@ function Indicador({
   )
 }
 
-function DemoraPorEtapa() {
-  const etapas = DASHBOARD_SIMULADO.demora_por_etapa
-  const maximo = Math.max(...etapas.map((e) => e.dias))
+function DemoraPorEtapa({ etapas }: { etapas: ResumenFinanzas['demora_por_etapa'] }) {
+  if (!etapas.length) return <p>No hay hitos con ambas fechas para calcular duración.</p>
+  const maximo = Math.max(1, ...etapas.map((e) => e.dias))
   const total = etapas.reduce((s, e) => s + e.dias, 0)
   const mayor = etapas.find((e) => e.dias === maximo)!
   return (
@@ -374,24 +377,23 @@ function DemoraPorEtapa() {
         ))}
       </ul>
       <p className="texto-pequeno texto-aviso">
-        La {mayor.etapa.toLowerCase()} concentra el {Math.round((mayor.dias / total) * 100)} % del tiempo.
+        La {mayor.etapa.toLowerCase()} concentra el {Math.round(total ? (mayor.dias / total) * 100 : 0)} % del tiempo.
       </p>
     </>
   )
 }
 
-function ResueltosPorMes() {
-  const meses = DASHBOARD_SIMULADO.resueltos_por_mes
-  const maximo = Math.max(...meses.map((m) => m.dentro + m.fuera))
+function ResueltosPorMes({ meses }: { meses: ResumenFinanzas['resueltos_por_mes'] }) {
+  if (!meses.length) return <p>No hay conclusiones registradas en este periodo.</p>
+  const maximo = Math.max(...meses.map((m) => m.total))
   return (
     <>
       <ul className="columnas-mes">
         {meses.map((m) => (
-          <li key={m.mes} aria-label={`${m.mes}: ${m.dentro} dentro del plazo, ${m.fuera} fuera del plazo`}>
-            <strong>{m.dentro + m.fuera}</strong>
-            <span className="columnas-mes__pila" style={{ height: `${((m.dentro + m.fuera) / maximo) * 120}px` }}>
-              {m.fuera > 0 && <span className="columnas-mes__fuera" style={{ flexGrow: m.fuera }} />}
-              <span className="columnas-mes__dentro" style={{ flexGrow: m.dentro }} />
+          <li key={m.mes} aria-label={`${m.mes}: ${m.total} concluidos`}>
+            <strong>{m.total}</strong>
+            <span className="columnas-mes__pila" style={{ height: `${((m.total) / maximo) * 120}px` }}>
+              <span className="columnas-mes__dentro" style={{ flexGrow: m.total }} />
             </span>
             <span className="texto-pequeno">{m.mes}</span>
           </li>
@@ -400,176 +402,20 @@ function ResueltosPorMes() {
       <ul className="leyenda">
         <li>
           <span className="leyenda__punto leyenda__punto--marca" aria-hidden="true" />
-          Dentro del plazo
+          Conclusiones registradas
         </li>
         <li>
           <span className="leyenda__punto leyenda__punto--aviso" aria-hidden="true" />
-          Fuera del plazo
+          No se determina cumplimiento normativo
         </li>
       </ul>
     </>
   )
 }
 
-/** «S/ 1 145,8 M»: coma decimal y espacio de miles, como el resto del portal. */
-const soles = (n: number) => {
-  const [entero, decimal] = n.toFixed(1).split('.')
-  return `S/ ${entero.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')},${decimal} M`
-}
-
-/** Gestión financiera de las EPS: avance del programa, ejecución por trimestre, fondo y EPS rezagadas. */
-function GestionFinanciera() {
-  const { total, ejecucion_trimestral, fondo_2026, menor_avance, fuente } = FINANCIERO
-  const avance = (total.ejecutado / total.programado) * 100
-  const tramo = fondo_2026.slice(3)
-  const cumplimiento =
-    (tramo.reduce((s, m) => s + m.efectuado, 0) / tramo.reduce((s, m) => s + m.programado, 0)) * 100
-  const ultimo = ejecucion_trimestral.at(-1)!.y
-  const anterior = ejecucion_trimestral.at(-2)!.y
-  const crecimiento = ((ultimo - anterior) / anterior) * 100
-  return (
-    <section className="columna" aria-labelledby="titulo-financiero">
-      <div className="panel-financiero__cabecera">
-        <div>
-          <TituloIcono id="titulo-financiero" emoji="💰" color="limon">¿Cómo van las inversiones de las EPS?</TituloIcono>
-          <p className="texto-pequeno texto-suave">Cuánto planearon invertir, cuánto ya gastaron y cuánto ahorran en su fondo · 20 EPS</p>
-        </div>
-        <Chip tono="info">Dataset de muestra Sunass</Chip>
-      </div>
-
-      <div className="panel-financiero">
-        <section className="tarjeta" aria-labelledby="titulo-ejecucion">
-          <div className="panel-financiero__resumen">
-            <Anillo
-              porcentaje={avance}
-              tono="marca"
-              tamano={104}
-              etiqueta={`Avance financiero del programa: ${Math.round(avance)} %`}
-            >
-              <span>
-                <strong className="panel-financiero__cifra">{Math.round(avance)}%</strong>
-                <br />
-                <span className="texto-pequeno texto-suave">avance</span>
-              </span>
-            </Anillo>
-            <div>
-              <h3 id="titulo-ejecucion" className="titular-dato">Ya se invirtió 🚧</h3>
-              <p className="panel-financiero__cifra">{soles(total.ejecutado)}</p>
-              <p className="texto-pequeno texto-suave">de {soles(total.programado)} programados</p>
-              <p className="titular-dato titular-dato--ok">
-                🚀 {Math.round(crecimiento)} % más que el trimestre anterior
-              </p>
-              <p className="texto-pequeno texto-suave">
-                Casi {Math.round(avance / 10)} de cada 10 soles planeados ya se invirtieron
-              </p>
-            </div>
-          </div>
-          <LineaArea
-            puntos={ejecucion_trimestral}
-            formato={soles}
-            etiqueta={`Ejecución financiera por trimestre, de ${soles(ejecucion_trimestral[0].y)} a ${soles(ultimo)}`}
-          />
-          <p className="texto-pequeno texto-suave">📈 Lo invertido en cada trimestre · {fuente}</p>
-        </section>
-
-        <section className="tarjeta" aria-labelledby="titulo-fondo">
-          <TituloIcono id="titulo-fondo" emoji="🐷" color="rosa" nivel={3}>¿Están ahorrando en su fondo?</TituloIcono>
-          <p className={`titular-dato titular-dato--${cumplimiento < 75 ? 'aviso' : 'ok'}`}>
-            ⚠️ Desde abril guardan solo {Math.round(cumplimiento)} de cada 100 soles que deberían
-          </p>
-          <p className="texto-pequeno texto-suave">Cuánto depositaron de lo que debían, mes a mes</p>
-          <PildorasBarras
-            datos={fondo_2026.map((m) => {
-              const pct = (m.efectuado / m.programado) * 100
-              return { x: m.x, pct, destacado: pct >= 75 }
-            })}
-            bajo={75}
-            etiqueta={`Depósitos mensuales 2026. De abril a agosto se depositó el ${Math.round(cumplimiento)} % de lo programado.`}
-          />
-          <ul className="leyenda">
-            <li>
-              <span className="leyenda__punto" style={{ background: 'var(--azul-vivo)' }} aria-hidden="true" />
-              👍 Al día (75 % o más)
-            </li>
-            <li>
-              <span className="leyenda__punto" style={{ background: '#f4a259' }} aria-hidden="true" />
-              👀 Se quedaron cortos
-            </li>
-          </ul>
-          <Link className="boton boton--secundario" to="/sunass/alertas">
-            Ver alertas de depósito
-            <IconoFlecha tamano={16} />
-          </Link>
-        </section>
-      </div>
-
-      <div className="bento-dos">
-      <section className="tarjeta" aria-labelledby="titulo-ranking">
-        <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
-          <TituloIcono id="titulo-ranking" emoji="🐌" color="durazno" nivel={3}>Las EPS que van más lento</TituloIcono>
-          <span className="texto-pequeno texto-suave">🏁 La línea negra es la meta (100 %)</span>
-        </div>
-        <ul className="ranking">
-          {menor_avance.map((e, i) => {
-            const pct = (e.ejecutado / e.programado) * 100
-            const tono = pct < 55 ? 'peligro' : pct < 75 ? 'aviso' : 'ok'
-            return (
-              <li key={e.eps} className="ranking__fila">
-                <span>{e.eps}</span>
-                <span
-                  className="ranking__pista"
-                  role="img"
-                  aria-label={`${e.eps}: ${Math.round(pct)} % ejecutado, ${soles(e.ejecutado)} de ${soles(e.programado)}`}
-                >
-                  <span
-                    className={`ranking__barra ranking__barra--${tono}`}
-                    style={{ width: `${Math.min(pct, 100) * 0.8}%`, animationDelay: `${i * 80}ms` }}
-                  />
-                  <span className="ranking__meta" style={{ left: '80%' }} />
-                </span>
-                <strong>{Math.round(pct)} %</strong>
-              </li>
-            )
-          })}
-        </ul>
-        <div className="consejo-yaku">
-          <Gotita pose="pensando" alto={92} />
-          <p>
-            <strong>Yaku sugiere:</strong> empieza por {menor_avance[0].eps} y {menor_avance[1].eps}, que todavía
-            no llegan a la mitad de lo que planearon invertir.
-          </p>
-        </div>
-      </section>
-      <section className="tarjeta" aria-labelledby="titulo-movimientos">
-        <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
-          <TituloIcono id="titulo-movimientos" emoji="📝" color="lila" nivel={3}>Lo último que pasó</TituloIcono>
-          <Gotita pose="verificando" alto={64} />
-        </div>
-        <ul className="movimientos">
-          {MOVIMIENTOS.map((m) => (
-            <li key={`${m.exp}-${m.que}`} style={{ ['--color-dot' as string]: m.punto }}>
-              <span className="movimientos__avatar" style={{ background: m.color }} aria-hidden="true">
-                {m.avatar}
-              </span>
-              <span>
-                <span className="movimientos__quien">{m.quien}</span>
-                <span className="movimientos__que">
-                  {m.que} · {m.exp}
-                </span>
-              </span>
-              <span className="movimientos__fecha">{m.fecha}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      </div>
-    </section>
-  )
-}
-
 /** Semáforo de plazos con Yaku: azul en plazo, naranja por vencer y rojo vencido. */
-function Semaforo({ enPlazo, porVencer, vencidos }: { enPlazo: number; porVencer: number; vencidos: number }) {
-  const total = Math.max(1, enPlazo + porVencer + vencidos)
+function Semaforo({ enPlazo, porVencer, vencidos, porValidar }: { enPlazo: number; porVencer: number; vencidos: number; porValidar: number }) {
+  const total = enPlazo + porVencer + vencidos
   const columnas = [
     { pose: 'plazo-azul' as const, n: enPlazo, titulo: 'En plazo', frase: 'Tiempo a favor', clase: 'azul', ruta: '/sunass/expedientes' },
     { pose: 'plazo-naranja' as const, n: porVencer, titulo: 'Por vencer', frase: '¡Atención! Ya usaron el 75 %', clase: 'naranja', ruta: '/sunass/alertas' },
@@ -577,6 +423,7 @@ function Semaforo({ enPlazo, porVencer, vencidos }: { enPlazo: number; porVencer
   ]
   return (
     <section className="tarjeta semaforo" aria-labelledby="titulo-semaforo">
+      <p className="nota">{porValidar} expedientes tienen plazo pendiente de validación y no se clasifican como «en plazo».</p>
       <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
         <TituloIcono id="titulo-semaforo" emoji="🚦" color="cielo">Semáforo de plazos</TituloIcono>
         <span className="texto-pequeno texto-suave">Así está el tiempo de tus {total} expedientes en trámite</span>

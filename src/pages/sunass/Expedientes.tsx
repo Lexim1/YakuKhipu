@@ -166,7 +166,7 @@ export function Expedientes() {
                         return (
                           <tr key={t.id}>
                             <td>
-                              <strong>{t.id}</strong>
+                              <strong>{t.referencia ?? t.id}</strong>
                               <span className="celda__detalle">{NOMBRE_PROCEDIMIENTO[t.procedimiento]}</span>
                             </td>
                             <td>

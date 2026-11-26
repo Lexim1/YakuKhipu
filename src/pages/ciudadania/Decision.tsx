@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
@@ -5,6 +6,7 @@ import { Barra } from '../../components/Barra'
 import { Chip, Fuente } from '../../components/Chip'
 import { IconoAtras, IconoEnlace } from '../../components/Iconos'
 import { Contenido } from '../../components/Mensajes'
+import { LectorDocumento } from '../../components/LectorDocumento'
 import { obtenerDecision } from '../../services/publico'
 import { useConsulta } from '../../services/useConsulta'
 import {
@@ -36,6 +38,7 @@ const CONDICION = {
 
 /** «28 ago 2026» a partir de «2026-08-28». */
 function fechaLarga(iso: string) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'Fecha no publicada'
   const [anio, mes, dia] = iso.split('-').map(Number)
   return new Date(anio, mes - 1, dia)
     .toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -102,7 +105,8 @@ function TarjetaCantidad({ etiqueta, cantidad, vacio, explicacion, destacada = f
   )
 }
 
-function FichaDecision({ d }: { d: DecisionPublica }) {
+export function FichaDecision({ d }: { d: DecisionPublica }) {
+  const [documentoAbierto, setDocumentoAbierto] = useState<string | null>(null)
   const fuentes = new Map(d.fuentes.map((f) => [f.id, f]))
   const avance =
     d.ejecutado && d.autorizado && d.autorizado.valor > 0 && d.ejecutado.unidad === d.autorizado.unidad
@@ -153,7 +157,7 @@ function FichaDecision({ d }: { d: DecisionPublica }) {
           <TarjetaCantidad
             etiqueta="Autorizado"
             cantidad={d.autorizado}
-            vacio="Todavía no hay decisión"
+            vacio={d.estado_publico === 'decision_publicada' ? 'Cantidad no publicada' : 'Todavía no hay decisión'}
             explicacion={SIN_DECISION[d.estado_publico]}
             destacada
           />
@@ -163,8 +167,8 @@ function FichaDecision({ d }: { d: DecisionPublica }) {
             vacio="Sin dato de ejecución"
             explicacion={
               d.autorizado
-                ? 'La EPS todavía no informa avance.'
-                : 'La ejecución empieza después de una autorización.'
+                ? 'La publicación no incluye un reporte de avance.'
+                : 'La ficha publicada no incluye un dato de ejecución.'
             }
             avance={avance}
           />
@@ -227,7 +231,9 @@ function FichaDecision({ d }: { d: DecisionPublica }) {
                   {titulo}
                   {ubicaciones.length > 0 && <span className="texto-suave"> · {ubicaciones.join(', ')}</span>}
                 </span>
-                {enlace ? (
+                {enlace?.match(/^\/api\/publico\/documentos\/([^/]+)\/contenido(?:\?|$)/) ? (
+                  <button className="boton boton--secundario" type="button" onClick={() => setDocumentoAbierto(decodeURIComponent(enlace.match(/^\/api\/publico\/documentos\/([^/]+)\/contenido/)![1]))}>Abrir documento</button>
+                ) : enlace ? (
                   <a href={enlace} target="_blank" rel="noreferrer">
                     Abrir documento
                     <span className="solo-lectores"> {titulo} (se abre en otra pestaña)</span>
@@ -242,6 +248,8 @@ function FichaDecision({ d }: { d: DecisionPublica }) {
           <p className="nota">Actualizado el {fechaLarga(d.fecha_actualizacion)}.</p>
         </section>
       )}
+
+      {documentoAbierto && <LectorDocumento id={documentoAbierto} publico alCerrar={() => setDocumentoAbierto(null)} />}
 
       {haySimulados && (
         <AvisoSimulado
@@ -272,7 +280,7 @@ export function Decision() {
           ? [
               {
                 pregunta: '¿Ya se decidió?',
-                respuesta: `Todavía no. Estado: ${TEXTO_ESTADO_PUBLICO[d.estado_publico].toLowerCase()} (${d.nota_estado}). ${d.resumen_ciudadano}${d.consulta ? ` Puedes opinar hasta el ${d.consulta.fecha_limite_texto}.` : ''}`,
+                respuesta: `${d.estado_publico === 'decision_publicada' ? 'La decisión está publicada; la ficha no incluye una cantidad autorizada.' : 'La decisión todavía no está publicada.'} Estado: ${TEXTO_ESTADO_PUBLICO[d.estado_publico].toLowerCase()} (${d.nota_estado}). ${d.resumen_ciudadano}${d.consulta ? ` Puedes opinar hasta el ${d.consulta.fecha_limite_texto}.` : ''}`,
                 fuentes: d.fuentes.map(citaFuente),
                 palabras: ['decid', 'aprob', 'autoriz', 'estado'],
               },
@@ -292,7 +300,7 @@ export function Decision() {
           pregunta: '¿Cuánto se ha hecho?',
           respuesta: d.ejecutado
             ? `La EPS informa ${d.ejecutado.texto} al ${fechaLarga(d.ejecutado.fecha)}.${d.ejecutado.simulado ? ' Este dato es simulado para la demostración.' : ''}`
-            : 'Todavía no hay avance informado para esta decisión.',
+            : 'La ficha publicada no incluye un dato de avance de ejecución.',
           fuentes: d.ejecutado ? [d.ejecutado.origen] : [],
           palabras: ['hecho', 'avance', 'ejecut', 'instal'],
         },

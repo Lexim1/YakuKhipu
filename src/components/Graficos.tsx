@@ -84,7 +84,7 @@ export function LineaArea({
 }) {
   const ancho = 520
   const margen = { arriba: 28, abajo: 26, izq: 26, der: 26 }
-  const maximo = Math.max(...puntos.map((p) => p.y)) * 1.15
+  const maximo = Math.max(1, ...puntos.map((p) => p.y)) * 1.15
   const paso = (ancho - margen.izq - margen.der) / Math.max(1, puntos.length - 1)
   const xy = puntos.map((p, i) => ({
     ...p,

@@ -51,5 +51,10 @@ export async function obtenerCifrasSector(signal?: AbortSignal): Promise<CifraSe
 /** Ficha pública de una decisión. Solo existe si el caso está habilitado para publicación. */
 export async function obtenerDecision(id: string, signal?: AbortSignal): Promise<DecisionPublica> {
   if (usarEjemplos) return ejemplo(FICHAS_PUBLICAS.find((f) => f.id === id) ?? noEncontrado(), signal)
-  return pedirJson(`/api/publico/decisiones/${encodeURIComponent(id)}`, { signal, credentials: 'omit' })
+  const d = await pedirJson<Partial<DecisionPublica>>(`/api/publico/decisiones/${encodeURIComponent(id)}`, { signal, credentials: 'omit' })
+  // Los montos ausentes no son cero ni se completan con cifras de demostración.
+  return { ...d, cifra: d.cifra ?? 'Cantidad no publicada', nota_estado: d.nota_estado ?? 'Sin nota publicada',
+    fecha_actualizacion: d.fecha_actualizacion ?? '', solicitado: d.solicitado ?? null, autorizado: d.autorizado ?? null,
+    ejecutado: d.ejecutado ?? null, impacto: Array.isArray(d.impacto) ? d.impacto : [],
+    fuentes: Array.isArray(d.fuentes) ? d.fuentes : [], consulta: d.consulta ?? null } as DecisionPublica
 }

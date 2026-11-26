@@ -1,0 +1,63 @@
+/* Contenido dinámico: tablas, títulos y controles deben adaptarse a 320 px y zoom. */
+.revela { opacity: 1; transform: none; }
+.indicador-grande { display: block; max-width: 100%; overflow-wrap: anywhere; }
+.pagina, .principal, .panel-financiero > *, .bento-dos > *, .dos-mitades > * { min-width: 0; }
+.pagina h1, .pagina h2, .pagina p, .pagina td, .pagina dd, .pagina summary { overflow-wrap: anywhere; }
+.tabla-contenedor, .tabla-expedientes { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.tabla-contenedor table { width: 100%; border-collapse: collapse; text-align: left; }
+.tabla-contenedor th, .tabla-contenedor td { padding: 10px; border-bottom: 1px solid var(--color-borde); vertical-align: top; }
+.tabla-contenedor td details p { max-width: 28ch; }
+.tabla-fondos th, .tabla-fondos td { white-space: nowrap; padding: 9px 6px; font-size: .8rem; }
+.tabla-datos table { min-width: 760px; }
+.panel-financiero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.bento-dos { align-items: start; }
+.pagina > *, .tarjeta { min-width: 0; }
+.pagina .fuente, .pagina .chip { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+.fuente svg { flex-shrink: 0; }
+.lista-actuaciones > li { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.lista-actuaciones > li > .boton { align-self: flex-start; }
+.pagina .campo select, .pagina .campo input, .dialogo input, .dialogo textarea { max-width: 100%; min-width: 0; }
+.pagina button, .dialogo button { white-space: normal; }
+.pagina details > summary { cursor: pointer; padding-block: 8px; }
+.dialogo fieldset { min-width: 0; }
+.dialogo { max-height: 92dvh; max-width: calc(100vw - 24px); overflow-y: auto; }
+.dialogo__cuerpo > * { flex-shrink: 0; }
+.documento-publicable { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: start; gap: 10px; padding: 10px 0; }
+.documento-publicable input { width: 20px; height: 20px; min-height: 20px; margin: 2px 0; }
+.campo input:not([type='checkbox']):not([type='radio']):not([type='file']), .campo select, .campo textarea {
+  width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--color-borde); border-radius: var(--radio);
+  font: inherit; font-size: 16px; font-weight: 400; color: var(--color-texto); background: var(--color-superficie);
+}
+.campo textarea { min-height: 96px; resize: vertical; }
+:focus-visible { outline: 3px solid var(--color-primario, #2453e6); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .alerta { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; }
+  .alerta > .boton { grid-column: 1 / -1; justify-self: start; }
+  body:has(dialog[open]) { overflow: hidden; }
+  .dialogo { position: fixed; inset: 0; margin: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; padding: 20px; overscroll-behavior: contain; }
+  .panel-financiero, .bento-dos, .bento-arriba, .dos-mitades, .dos-columnas, .dos-columnas-iguales { grid-template-columns: minmax(0, 1fr); }
+  .panel-financiero__resumen { flex-wrap: wrap; }
+  .panel-financiero__cifra { font-size: clamp(1.15rem, 5vw, 1.75rem); }
+  .ranking__fila { grid-template-columns: minmax(0, 1fr) minmax(50px, 1fr) 55px; gap: 8px; }
+  .pagina__cabecera { flex-wrap: wrap; }
+  .pagina .boton, .dialogo .boton, .pagina select, .pagina input:not([type='checkbox']):not([type='radio']) { min-height: 44px; }
+  .resumen-bandeja.cinco-columnas > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .panel-financiero { grid-template-columns: minmax(0, 1fr); }
+  .lateral__ambito, .lateral__nota { display: none; }
+  .lateral { align-items: center; }
+  .lateral nav { flex: 0 0 auto; }
+}
+@media (min-width: 1100px) {
+  .resumen-bandeja.cinco-columnas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .resumen-bandeja.cinco-columnas > :last-child { grid-column: span 2; }
+}
+@media (prefers-reduced-motion: reduce) { .revela { opacity: 1; transform: none; transition: none; } }
+@media (max-width: 380px) {
+  .cabecera { gap: 8px; }
+  .marca { gap: 8px; }
+  .marca > span, .marca > div { min-width: 0; }
+  .marca__nombre { font-size: 1rem; }
+  .marca__vista { white-space: normal; font-size: .65rem; line-height: 1.2; }
+}

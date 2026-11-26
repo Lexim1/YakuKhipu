@@ -11,6 +11,10 @@ import { usarEjemplos } from '../../services/api'
 import { useConsulta } from '../../services/useConsulta'
 import { useSesion } from '../../sesion/useSesion'
 import { AsignarExpediente } from './expediente/AsignarExpediente'
+import { PublicarDecision } from './expediente/PublicarDecision'
+import { RegistrarActuacion } from './expediente/RegistrarActuacion'
+import { DocumentosExpediente } from './expediente/DocumentosExpediente'
+import { ContextoDatos } from './expediente/ContextoDatos'
 import { NOMBRE_COMPLETO, type Expediente as TipoExpediente } from '../../types/tramite'
 import { Comparador } from './expediente/Comparador'
 import { Flujograma } from './expediente/Flujograma'
@@ -79,6 +83,8 @@ export function Expediente() {
   const [actualizado, setActualizado] = useState<TipoExpediente | null>(null)
   const [rutasAbiertas, setRutasAbiertas] = useState(false)
   const [asignacionAbierta, setAsignacionAbierta] = useState(false)
+  const [publicacionAbierta, setPublicacionAbierta] = useState(false)
+  const [actuacionAbierta, setActuacionAbierta] = useState(false)
   // «Te toca actuar» abre el expediente con ?accion=validar para mostrar el diálogo directamente.
   const [validarAbierto, setValidarAbierto] = useState(parametros.get('accion') === 'validar')
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -144,7 +150,7 @@ export function Expediente() {
                 <div>
                   <div className="expediente__titulo">
                     <h1>
-                      {expediente.id} · {expediente.eps}
+                      {expediente.referencia ?? expediente.id} · {expediente.eps}
                     </h1>
                     <Chip tono={SEMAFORO[expediente.plazo.situacion].tono}>{expediente.chip_plazo}</Chip>
                   </div>
@@ -160,6 +166,12 @@ export function Expediente() {
               </div>
 
               <div>
+                {!usarEjemplos && ['evaluacion.validar', 'acto_externo.registrar', 'requerimiento.registrar', 'respuesta.verificar'].some(puede) && <button className="boton boton--secundario" type="button" onClick={() => setActuacionAbierta(true)}>Registrar actuación con sustento</button>}
+                {actuacionAbierta && <RegistrarActuacion expediente={expediente} alCerrar={() => setActuacionAbierta(false)} alGuardar={() => { setActuacionAbierta(false); reintentar() }} />}
+                {!usarEjemplos && puede('publicacion.gestionar') && ['concluido', 'autorizado', 'no_autorizado'].includes(expediente.estado ?? '') && (
+                  <button className="boton boton--secundario" type="button" onClick={() => setPublicacionAbierta(true)}>Publicar decisión revisada</button>
+                )}
+                {publicacionAbierta && <PublicarDecision expediente={expediente} alCerrar={() => { setPublicacionAbierta(false); reintentar() }} />}
                 {!usarEjemplos && sesion?.permisos?.includes('asignacion.gestionar') && (
                   <button
                     type="button"
@@ -278,6 +290,8 @@ export function Expediente() {
                 </div>
               )}
 
+              {!usarEjemplos && <DocumentosExpediente expediente={expediente} />}
+              {!usarEjemplos && <ContextoDatos id={expediente.id} />}
               {!usarEjemplos && puede('agente.consultar') && (
                 <PropuestasAgente tramiteId={expediente.id} puedeRevisar={puede('evaluacion.validar')} />
               )}

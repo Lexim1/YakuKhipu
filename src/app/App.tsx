@@ -15,10 +15,8 @@ import { Alertas } from '../pages/sunass/Alertas'
 import { TeToca } from '../pages/sunass/TeToca'
 import { Dashboard } from '../pages/sunass/Dashboard'
 import { FichaEps } from '../pages/sunass/FichaEps'
-import { ActosExternos, ResumenActo } from '../pages/sunass/ActosExternos'
-import { Encargos } from '../pages/sunass/Encargos'
+import { ActosDatos, EncargosDatos, ConfiguracionDatos } from '../pages/sunass/SeguimientoDatos'
 import { Reportes } from '../pages/sunass/Reportes'
-import { Configuracion } from '../pages/sunass/Configuracion'
 import { MisTramites } from '../pages/eps/MisTramites'
 import { DetalleTramite } from '../pages/eps/DetalleTramite'
 import { Respuesta } from '../pages/eps/Respuesta'
@@ -48,11 +46,11 @@ export function App() {
               <Route path="te-toca" element={<TeToca />} />
               <Route path="dashboard" element={<SoloPerfil ruta="dashboard"><Dashboard /></SoloPerfil>} />
               <Route path="ficha-eps" element={<FichaEps />} />
-              <Route path="actos" element={<SoloPerfil ruta="actos"><ActosExternos /></SoloPerfil>} />
-              <Route path="actos/:id" element={<SoloPerfil ruta="actos"><ResumenActo /></SoloPerfil>} />
-              <Route path="encargos" element={<Encargos />} />
+              <Route path="actos" element={<SoloPerfil ruta="actos"><ActosDatos /></SoloPerfil>} />
+              <Route path="actos/:id" element={<SoloPerfil ruta="actos"><ActosDatos detalle /></SoloPerfil>} />
+              <Route path="encargos" element={<EncargosDatos />} />
               <Route path="reportes" element={<SoloPerfil ruta="reportes"><Reportes /></SoloPerfil>} />
-              <Route path="configuracion" element={<SoloPerfil ruta="configuracion"><Configuracion /></SoloPerfil>} />
+              <Route path="configuracion" element={<SoloPerfil ruta="configuracion"><ConfiguracionDatos /></SoloPerfil>} />
               <Route path="recepcion" element={<SoloPerfil ruta="recepcion"><Recepcion /></SoloPerfil>} />
             </Route>
 
