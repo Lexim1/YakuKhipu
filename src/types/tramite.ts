@@ -90,7 +90,7 @@ export interface ItemHistorial {
   actual: boolean
 }
 
-export type AccionSiguiente = 'validar' | 'alertas' | 'recepcion'
+export type AccionSiguiente = 'validar' | 'alertas' | 'recepcion' | 'registrar' | 'verificar_respuesta'
 
 export interface SiguienteAccion {
   titulo: string

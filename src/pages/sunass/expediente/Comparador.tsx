@@ -4,7 +4,7 @@ import { IconoChispa, IconoFlecha } from '../../../components/Iconos'
 import type { Comparador as Tipo } from '../../../types/tramite'
 
 /** Pestaña «Comparador de cifras»: cada versión con su fuente; la que no tiene documento se marca. */
-export function Comparador({ datos, verImpacto }: { datos: Tipo; verImpacto: () => void }) {
+export function Comparador({ datos, verImpacto }: { datos: Tipo; verImpacto?: () => void }) {
   const { abrir } = useAgente()
   return (
     <div className="dos-columnas">
@@ -52,10 +52,10 @@ export function Comparador({ datos, verImpacto }: { datos: Tipo; verImpacto: () 
             </div>
           ))}
         </dl>
-        <button type="button" className="boton boton--secundario boton--bloque" onClick={verImpacto}>
+        {verImpacto && <button type="button" className="boton boton--secundario boton--bloque" onClick={verImpacto}>
           Ver impacto social
           <IconoFlecha tamano={16} />
-        </button>
+        </button>}
       </section>
     </div>
   )
