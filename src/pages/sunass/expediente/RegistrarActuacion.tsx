@@ -83,7 +83,7 @@ export function RegistrarActuacion({ expediente, alCerrar, alGuardar, accionInic
             <input required={items.find((a) => a.tipo === tipo)?.requiere_documento} type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </label>
           <label className="campo">Detalle de la evidencia
-            <textarea maxLength={2000} value={detalle} onChange={(e) => setDetalle(e.target.value)} />
+            <textarea required={tipo === 'cerrar_expediente'} maxLength={2000} value={detalle} onChange={(e) => setDetalle(e.target.value)} />
           </label>
           {['requerir_informacion', 'requerir_subsanacion'].includes(tipo) && <>
             <label className="campo">Días señalados expresamente en el oficio
