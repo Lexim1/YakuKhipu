@@ -184,6 +184,7 @@ export interface Expediente extends TramiteResumen {
 }
 
 export interface DocumentoRecibido {
+  clasificacion?: { procedimiento: Procedimiento; evidencia: string; requiere_confirmacion: boolean } | null
   id: string
   titulo: string
   eps: string
