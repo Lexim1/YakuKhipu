@@ -69,6 +69,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
+    const ventana = (e.currentTarget as HTMLFormElement).closest('dialog')
     if (guardando) return
     if (!nuevo && !tramiteId) {
       setError('Elige el expediente al que pertenece el documento.')
@@ -91,6 +92,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
         const creado = await registrarExpedienteRecepcion({
           documento_id: documentoId, procedimiento, fecha_ingreso: fechaIngreso, asignado_a: asignado || null,
         })
+        ventana?.close()
         alRegistrar(creado.tramite_id, persona)
         return
       }
@@ -105,6 +107,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
         },
         persona,
       )
+      ventana?.close()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos incorporar el documento.')
       setGuardando(false)
