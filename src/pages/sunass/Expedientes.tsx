@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
-import { useContextoAgente } from '../../agente/useAgente'
+import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Barra } from '../../components/Barra'
 import { Chip } from '../../components/Chip'
@@ -8,6 +8,7 @@ import { Gotita, type PoseGotita } from '../../components/Gotita'
 import { CifrasSaludo, Dona, Saludo } from '../../components/Graficos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarExpedientes } from '../../services/tramites'
+import { buscarExpedientes } from '../../services/busqueda'
 import { useConsulta } from '../../services/useConsulta'
 import { ROLES_SUNASS, rolSunass } from '../../sesion/roles'
 import { useSesion } from '../../sesion/useSesion'
@@ -27,10 +28,6 @@ const GOTA_SITUACION: Record<Situacion, PoseGotita> = {
 
 const EMOJI_PROCEDIMIENTO: Record<string, string> = { RP: '🧾', CPI: '🏗️', UFI: '💧', FI: '💧' }
 
-function normalizar(texto: string) {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
 /** Más urgentes primero: vencidos, por vencer y en plazo. Dentro de cada grupo se respeta el orden de la API. */
 function ordenarPorUrgencia(items: TramiteResumen[]) {
   return [...items].sort((a, b) => ORDEN[a.plazo.situacion] - ORDEN[b.plazo.situacion])
@@ -39,11 +36,15 @@ function ordenarPorUrgencia(items: TramiteResumen[]) {
 export function Expedientes() {
   const { sesion } = useSesion()
   const rol = rolSunass(sesion)
-  const [resultado, reintentar] = useConsulta((signal) => listarExpedientes(signal), [])
   const [parametros, setParametros] = useSearchParams()
   const procedimiento = parametros.get('procedimiento') ?? ''
   const situacion = parametros.get('situacion') ?? ''
   const q = parametros.get('q') ?? ''
+  const { abrir } = useAgente()
+  const [resultado, reintentar] = useConsulta(async (signal) => {
+    const [lista, coincidencias] = await Promise.all([listarExpedientes(signal), q.trim() ? buscarExpedientes(q,signal,20) : Promise.resolve(null)])
+    return { ...lista, coincidencias }
+  }, [q])
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Expedientes',
@@ -80,15 +81,15 @@ export function Expedientes() {
       </div>
 
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando expedientes…">
-        {({ items }) => {
+        {({ items, coincidencias }) => {
           const contar = (s: Situacion) => items.filter((t) => t.plazo.situacion === s).length
-          const busqueda = normalizar(q.trim())
+          const ids = coincidencias ? new Set(coincidencias.items.map((t) => t.tramite_id)) : null
           const visibles = ordenarPorUrgencia(
             items.filter(
               (t) =>
                 (!procedimiento || t.procedimiento === procedimiento) &&
                 (!situacion || t.plazo.situacion === situacion) &&
-                (!busqueda || normalizar(`${t.id} ${t.eps} ${t.etapa}`).includes(busqueda)),
+                (!ids || ids.has(t.id)),
             ),
           )
           const vencidos = contar('vencido')
@@ -166,6 +167,8 @@ export function Expedientes() {
               {q && (
                 <p className="texto-suave" aria-live="polite">
                   Resultados para «{q}».{' '}
+                  <button type="button" className="enlace-boton" onClick={() => abrir(q)}>Ver fuentes con el agente</button>{' '}
+                  {coincidencias?.parcial && <span>Se muestran coincidencias limitadas; precisa el número o asunto. </span>}
                   <button type="button" className="enlace-boton" onClick={() => cambiar('q', '')}>
                     Quitar búsqueda
                   </button>

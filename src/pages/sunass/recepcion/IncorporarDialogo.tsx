@@ -178,11 +178,12 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
             <option value="">{nuevo ? 'Selecciona un analista' : 'Conservar la asignación actual'}</option>
             {catalogos.asignables.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.texto}
+                {a.texto}{a.carga_activa != null ? ` · ${a.carga_activa} activos` : ' · carga no disponible'}{a.recomendado ? ' · menor carga' : ''}
               </option>
             ))}
           </select>
         </label>}
+        {catalogos.asignables.length > 0 && <p className="nota">Carga de expedientes abiertos al consultar el formulario; no incluye concluidos. {catalogos.asignables.length === 1 ? 'Solo hay un analista activo.' : 'La recomendación no asigna automáticamente: puedes elegir según disponibilidad y especialidad.'}</p>}
         {error && <MensajeError mensaje={error} />}
         <div className="dialogo__acciones">
           <button type="button" className="boton boton--secundario" onClick={alCerrar}>
