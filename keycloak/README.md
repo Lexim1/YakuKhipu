@@ -27,12 +27,22 @@ por el flujo de PR del frontend → PR automático del backend → Railway ya ex
 Este cambio no edita dicho workflow, el Dockerfile, variables, API ni OIDC.
 
 El tema de Keycloak NO se instala automáticamente con el frontend. Keycloak es
-otro servicio y su imagen actual no contiene esta carpeta. Activarlo requiere
-incluir `themes/yakukhipu` en `/opt/keycloak/themes/yakukhipu` del servicio Keycloak
-y seleccionar `yakukhipu` como Login theme del realm. Ambos son cambios de
-despliegue/configuración que la restricción de este encargo no autoriza.
-Por ello se entrega listo para instalar y NO se cambia el tema activo en nube.
-No basta con aprobar el PR frontend para personalizar el servicio Keycloak.
+otro servicio. La autorización posterior del usuario permite exclusivamente
+empaquetar estos recursos y seleccionar `yakukhipu` como Login theme.
+`Dockerfile` conserva la imagen 26.8.2 y su digest previo; su única instrucción
+adicional copia el tema a `/opt/keycloak/themes/yakukhipu`.
+
+La raíz de construcción de este servicio debe ser `/keycloak`; el Dockerfile
+principal del frontend construye React y NO debe utilizarse para Keycloak.
+Se conserva `/opt/keycloak/bin/kc.sh start`, las variables de entorno existentes,
+la base KeycloakDB y la configuración de red. Para seguir cambios de temas desde
+GitHub, conectar el servicio a frontend/master con esa raíz después de aprobar
+el PR del empaquetado. No seleccionar una rama que carezca de este Dockerfile.
+
+En el realm se cambia únicamente `loginTheme`. No importar otro realm, ni cambiar
+clientes OIDC, callbacks, flujos, usuarios, contraseñas o roles. Comparar las
+huellas de esos valores antes y después del despliegue; verificar ingreso,
+recursos de tema, mensajes y cierre de sesión desde el portal.
 
 ## Verificación visual
 
