@@ -3,7 +3,7 @@ import { IconoEnlace } from '../../../components/Iconos'
 import type { SiguienteAccion as Tipo } from '../../../types/tramite'
 
 /** Tarjeta «Siguiente acción»: qué hacer, quién lo hace y el botón para hacerlo. */
-export function SiguienteAccion({ accion, alValidar }: { accion: Tipo; alValidar: () => void }) {
+export function SiguienteAccion({ accion, alValidar, alRegistrar }: { accion: Tipo; alValidar: () => void; alRegistrar?: () => void }) {
   return (
     <section className={`siguiente${accion.urgente ? ' siguiente--urgente' : ''}`} aria-labelledby="titulo-siguiente">
       <p className="siguiente__antetitulo">Siguiente acción</p>
@@ -14,8 +14,9 @@ export function SiguienteAccion({ accion, alValidar }: { accion: Tipo; alValidar
         <p style={{ fontWeight: 700, color: 'var(--color-primario-texto)' }}>Responsable: {accion.responsable}</p>
       )}
       <p className="texto-suave">{accion.detalle}</p>
-      {accion.accion === 'validar' ? (
-        <button type="button" className="boton boton--primario boton--bloque" onClick={alValidar}>
+      {['validar', 'registrar', 'verificar_respuesta'].includes(accion.accion) ? (
+        <button type="button" className="boton boton--primario boton--bloque"
+          onClick={accion.accion === 'validar' ? alValidar : alRegistrar} disabled={!alRegistrar && accion.accion !== 'validar'}>
           {accion.boton}
           <IconoEnlace tamano={16} />
         </button>
