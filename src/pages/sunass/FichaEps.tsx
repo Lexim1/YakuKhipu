@@ -5,6 +5,7 @@ import { Chip } from '../../components/Chip'
 import { Saludo, TituloIcono } from '../../components/Graficos'
 import { consultarFinanzas, consultarFichaEps } from '../../services/finanzas'
 import { useConsulta } from '../../services/useConsulta'
+import { ImpactoSocialEps } from './ImpactoSocialEps'
 
 const CAMPOS: Record<string, string[]> = {
   programa_inversion: ['cod_proyecto', 'nombre_proyecto', 'anio', 'monto_programado_vigente', 'poblacion_beneficiaria'],
@@ -28,5 +29,5 @@ export function FichaEps() {
 }
 function Detalle({ id }: { id: string }) {
   const [r, retry] = useConsulta((s) => consultarFichaEps(id, s), [id])
-  return <Contenido resultado={r} reintentar={retry} textoCarga="Cargando la ficha con sus fuentes…">{(f) => <><Chip tono="info">{f.simulado ? 'Dataset de muestra' : 'Información documental'} · corte {f.corte}</Chip><p className="nota">{f.nota} La población beneficiaria es potencial: no se suma sin verificar solapamientos.</p><section className="tarjeta" aria-labelledby="titulo-tramites-eps"><TituloIcono id="titulo-tramites-eps" emoji="📂" color="cielo">Expedientes visibles de {f.eps.nombre}</TituloIcono><ul className="lista-simple">{f.tramites.map((t) => <li key={t.id}><Link to={`/sunass/expedientes/${encodeURIComponent(t.id)}`}>{t.titulo}</Link><p>{t.procedimiento} · {t.etapa} · {t.estado}</p></li>)}</ul></section>{Object.entries(CAMPOS).map(([tabla, campos]) => <section className="tarjeta" key={tabla} aria-labelledby={`titulo-${tabla}`}><TituloIcono id={`titulo-${tabla}`} emoji={ICONO_TABLA[tabla].emoji} color={ICONO_TABLA[tabla].color}>{TABLAS[tabla]}</TituloIcono><Datos filas={f.datos[tabla] ?? []} campos={campos} /></section>)}</>}</Contenido>
+  return <Contenido resultado={r} reintentar={retry} textoCarga="Cargando la ficha con sus fuentes…">{(f) => <><ImpactoSocialEps eps={f.eps.nombre} /><Chip tono="info">{f.simulado ? 'Dataset de muestra' : 'Información documental'} · corte {f.corte}</Chip><p className="nota">{f.nota} La población beneficiaria es potencial: no se suma sin verificar solapamientos.</p><section className="tarjeta" aria-labelledby="titulo-tramites-eps"><TituloIcono id="titulo-tramites-eps" emoji="📂" color="cielo">Expedientes visibles de {f.eps.nombre}</TituloIcono><ul className="lista-simple">{f.tramites.map((t) => <li key={t.id}><Link to={`/sunass/expedientes/${encodeURIComponent(t.id)}`}>{t.titulo}</Link><p>{t.procedimiento} · {t.etapa} · {t.estado}</p></li>)}</ul></section>{Object.entries(CAMPOS).map(([tabla, campos]) => <section className="tarjeta" key={tabla} aria-labelledby={`titulo-${tabla}`}><TituloIcono id={`titulo-${tabla}`} emoji={ICONO_TABLA[tabla].emoji} color={ICONO_TABLA[tabla].color}>{TABLAS[tabla]}</TituloIcono><Datos filas={f.datos[tabla] ?? []} campos={campos} /></section>)}</>}</Contenido>
 }

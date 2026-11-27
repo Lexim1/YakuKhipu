@@ -1,0 +1,88 @@
+.impacto-eps { --impacto-acento: #b36612; padding: 28px; background: var(--color-superficie); color: var(--color-texto); border-radius: 28px; box-shadow: 0 10px 30px #254f3e0a; }
+.impacto-eps--manejable { --impacto-acento: #2d7b42; }
+.impacto-eps--critico { --impacto-acento: #b42318; }
+.impacto-eps__cabecera { display: flex; align-items: start; gap: 16px; }
+.impacto-eps__icono { display: inline-flex; flex: 0 0 50px; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 16px; font-size: 26px; background: #fff9; }
+.impacto-eps__cabecera > .impacto-eps__icono { background: #fce3ed; }
+.impacto-eps__titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.impacto-eps__titulo h2 { margin: 0; font-size: clamp(1.3rem, 2.5vw, 1.7rem); line-height: 1.3; }
+.impacto-eps p { line-height: 1.55; color: var(--color-texto-suave); }
+.impacto-eps__cabecera p { margin: 4px 0 0; }
+.impacto-eps__contexto { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.impacto-eps__contexto p { font-size: .8rem; flex: 1 1 300px; margin: 0; }
+.impacto-eps__contexto > span { border: 2px solid #edc68b; background: #fff5e5; color: #945413; padding: 8px 14px; border-radius: 30px; font-size: .8rem; font-weight: 650; }
+.impacto-eps__control { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 35px; padding: 24px 28px; border: 1px solid #dcecf5; border-radius: 24px; background: linear-gradient(#f3faff, #fcfefe); align-items: center; }
+.impacto-eps__deslizador { min-width: 0; }
+.impacto-eps__deslizador label { font-weight: 750; font-size: 1.05rem; }
+.impacto-eps__deslizador > p { font-size: .8rem; margin: 4px 0; }
+.impacto-eps__rango { position: relative; padding-top: 55px; margin-top: 16px; }
+.impacto-eps__dia { position: absolute; top: 0; left: clamp(35px, var(--posicion-impacto), calc(100% - 40px)); transform: translateX(-50%); background: var(--impacto-acento); color: white; border-radius: 14px; padding: 5px 12px; font-weight: 750; white-space: nowrap; }
+.impacto-eps__dia::after { content: ''; position: absolute; bottom: -7px; left: calc(50% - 7px); border-top: 8px solid var(--impacto-acento); border-inline: 7px solid transparent; }
+.impacto-eps__rango input { display: block; width: 100%; margin: 0; height: 24px; border: 0; padding: 0; border-radius: 12px; appearance: none; -webkit-appearance: none; cursor: pointer; background: linear-gradient(to right, #a9e7c0 0 20.7%, #fff1ad 20.7% 48.3%, #fbdce0 48.3%); }
+.impacto-eps__rango input::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; height: 44px; width: 44px; border-radius: 50%; border: 4px solid var(--impacto-acento); box-shadow: 0 3px 12px #8f5b1233; background: #fff url('../assets/gota/avatar-naranja.png') center / contain no-repeat; }
+.impacto-eps__rango input::-moz-range-thumb { height: 36px; width: 36px; border: 4px solid var(--impacto-acento); border-radius: 50%; background: #fff url('../assets/gota/avatar-naranja.png') center / contain no-repeat; }
+.impacto-eps__rango input:focus-visible { outline: 3px solid var(--color-foco); outline-offset: 9px; }
+.impacto-eps__marcas { display: flex; justify-content: space-between; font-size: .7rem; margin-top: 17px; }
+.impacto-eps__marcas span:first-child, .impacto-eps__marcas span:last-child { font-weight: 700; }
+.impacto-eps__leyenda { display: flex; flex-wrap: wrap; gap: 12px; font-size: .7rem; margin-top: 14px; }
+.impacto-eps__nivel { text-align: center; border: 2px solid #eddbbb; background: #fffffff0; border-radius: 22px; padding: 14px; }
+.impacto-eps__nivel .gotita { display: block; margin: auto; }
+.impacto-eps__nivel strong { color: var(--impacto-acento); display: block; font-size: 1.1rem; margin-top: 8px; }
+.impacto-eps__nivel p { font-size: .75rem; margin: 5px 0 0; }
+.impacto-eps__tarjetas { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 18px; margin-top: 22px; }
+.impacto-eps__tarjetas article { border: 2px solid #efccdc; border-radius: 24px; padding: 22px; min-width: 0; position: relative; }
+.impacto-eps__tarjetas h3 { margin: 14px 0 8px; font-size: .95rem; }
+.impacto-eps__tarjetas p { font-size: .85rem; }
+.impacto-eps__hogares { background: #fff0f6; }
+.impacto-eps__hogares > .gotita { position: absolute; right: 15px; top: 18px; }
+.impacto-eps__cifra { display: block; font-size: clamp(2rem, 3vw, 3rem); letter-spacing: -.04em; line-height: 1.15; }
+.impacto-eps__tarjetas .impacto-eps__acarreo { border-color: #f1dbb6; background: #fff6e9; }
+.impacto-eps__tarjetas .impacto-eps__higiene { border-color: #b5d9ed; background: #eef8ff; }
+.impacto-eps__casas { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; font-size: 18px; margin: 16px 0; }
+.impacto-eps__casas .sin-impacto { filter: grayscale(1); opacity: .3; }
+.impacto-eps__hogares small { display: inline-block; font-size: .65rem; background: white; border-radius: 7px; padding: 5px 8px; }
+.impacto-eps__tiempo { display: flex; align-items: center; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+.impacto-eps__tiempo .impacto-eps__cifra { font-size: 2.1rem; }
+.impacto-eps__tiempo > div > span { font-size: .8rem; }
+.impacto-eps__etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.impacto-eps__etiquetas > span { font-size: .72rem; font-weight: 600; padding: 5px 9px; border-radius: 20px; background: white; }
+.impacto-eps__deficit { display: inline-block; color: white; background: var(--impacto-acento); border-radius: 20px; padding: 7px 11px; font-size: .9rem; }
+.impacto-eps__semaforo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 18px; }
+.impacto-eps__semaforo i { height: 16px; border-radius: 5px; background: #6dc87d; }
+.impacto-eps__semaforo i:nth-child(2) { background: #f2d448; }
+.impacto-eps__semaforo i:nth-child(3) { background: #f7aa27; }
+.impacto-eps__semaforo i:nth-child(4) { background: #ee813b; }
+.impacto-eps__semaforo i:nth-child(5) { background: #ed565e; }
+.impacto-eps__semaforo i.inactivo { opacity: .2; }
+.impacto-eps__extremos { display: flex; justify-content: space-between; font-size: .65rem; margin-top: 5px; }
+.impacto-eps__prevencion { display: flex; align-items: center; gap: 20px; border-radius: 24px; padding: 22px; margin-top: 22px; background: linear-gradient(110deg, #d9f9dc, #e3f7ff); }
+.impacto-eps__prevencion h3 { font-size: 1.2rem; margin: 0 0 5px; }
+.impacto-eps__prevencion p { margin: 0; font-size: .85rem; }
+.impacto-eps__poblacion { display: flex; flex-direction: column; text-align: center; padding: 16px; background: #fffd; border-radius: 22px; margin-left: auto; flex: 0 0 170px; }
+.impacto-eps__poblacion strong { font-size: 2rem; color: #31814b; }
+.impacto-eps__poblacion span { font-size: .7rem; }
+.impacto-eps__nota { text-align: center; font-size: .75rem; margin: 18px 0 8px; }
+.impacto-eps__supuestos { font-size: .75rem; color: var(--color-texto-suave); }
+.impacto-eps__supuestos summary { cursor: pointer; padding-block: 8px; }
+@media (max-width: 1100px) {
+  .impacto-eps__tarjetas { grid-template-columns: 1fr 1fr; }
+  .impacto-eps__hogares { grid-column: span 2; }
+  .impacto-eps__casas { max-width: 350px; }
+  .impacto-eps__prevencion { flex-wrap: wrap; }
+}
+@media (max-width: 700px) {
+  .impacto-eps { padding: 18px; border-radius: 22px; }
+  .impacto-eps__control { grid-template-columns: 1fr; padding: 20px 16px; gap: 22px; }
+  .impacto-eps__nivel { display: grid; grid-template-columns: 75px 1fr; column-gap: 12px; align-items: center; text-align: left; }
+  .impacto-eps__nivel .gotita { grid-row: span 2; height: 80px !important; }
+  .impacto-eps__nivel strong { margin: 0; }
+  .impacto-eps__tarjetas { grid-template-columns: 1fr; }
+  .impacto-eps__hogares { grid-column: auto; }
+  .impacto-eps__cabecera { gap: 10px; }
+  .impacto-eps__cabecera > .impacto-eps__icono { display: none; }
+  .impacto-eps__leyenda { gap: 8px; }
+  .impacto-eps__prevencion { gap: 12px; padding: 18px; }
+  .impacto-eps__prevencion > .gotita { height: 75px !important; }
+  .impacto-eps__prevencion > div:first-of-type { flex: 1 1 150px; }
+  .impacto-eps__poblacion { flex: 1 1 100%; }
+}
