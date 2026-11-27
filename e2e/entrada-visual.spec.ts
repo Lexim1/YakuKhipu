@@ -1,16 +1,34 @@
 import { test, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 test('landing: diseño adaptable y enlaces existentes', async ({ page }, info) => {
+  // Permite revisar dist sin servidor local; no consulta ni modifica servicios en nube.
+  if (process.env.QA_LOCAL_DIST === 'true') {
+    await page.route('**/*', async (route) => {
+      const url = new URL(route.request().url())
+      if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 401, contentType: 'application/json', body: '{"detail":"Sin sesión"}' })
+      const archivo = url.pathname.startsWith('/assets/') || url.pathname === '/logo.png' ? url.pathname.slice(1) : 'index.html'
+      const tipos: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff' }
+      await route.fulfill({ contentType: tipos[path.extname(archivo)] ?? 'application/octet-stream', body: await readFile(path.join(process.cwd(), 'dist', archivo)) })
+    })
+  }
   await page.route('**/api/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{"detail":"Sin sesión"}' }))
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cada decisión sobre el agua, con un camino claro.')
-  await expect(page.getByRole('link', { name: 'Ingresar al Portal' })).toHaveAttribute('href', '/api/auth/login')
-  await expect(page.getByRole('link', { name: /Consultar decisiones sin iniciar/ })).toHaveAttribute('href', '/ciudadania/decisiones')
-  await expect(page.locator('.entrada__tarjetas article')).toHaveCount(3)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('¿En qué se invierte el agua de tu ciudad?')
+  await expect(page.getByRole('link', { name: /Iniciar sesión/ })).toHaveAttribute('href', '/api/auth/login')
+  await expect(page.locator('.inicio-procesos article')).toHaveCount(3)
+  await expect(page.locator('.inicio-khipu li')).toHaveCount(4)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.screenshot({ path: info.outputPath('landing.png'), fullPage: true })
+  await page.getByRole('searchbox').fill('Tacna')
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click()
+  await expect(page).toHaveURL(/\/ciudadania\/decisiones\?q=Tacna$/)
+  await expect(page.getByRole('link', { name: /Iniciar sesión/ })).toHaveAttribute('href', '/api/auth/login')
   await page.goto('/?acceso=fallido')
   await expect(page.getByText(/No se completó el ingreso/)).toBeVisible()
+  await page.goto('/?volver=%2Fsunass%2Fexpedientes')
+  await expect(page.getByRole('link', { name: 'Ingresar al Portal' })).toHaveAttribute('href', '/api/auth/login')
 })
 
 test('tema: vista previa con formulario nativo, sin cambiar Keycloak', async ({ page, request }, info) => {

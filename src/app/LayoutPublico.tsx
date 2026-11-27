@@ -5,6 +5,7 @@ import { Accesibilidad } from '../components/PanelAccesibilidad'
 import { useSesion } from '../sesion/useSesion'
 import { INICIO_PERFIL } from '../types/sesion'
 import { Marca } from './Marca'
+import { URL_INGRESO_INSTITUCIONAL } from '../services/sesion'
 
 /** Estructura de la consulta ciudadana: acceso público, sin sesión ni menú lateral. */
 export function LayoutPublico() {
@@ -27,7 +28,7 @@ export function LayoutPublico() {
             Ficha de la decisión
           </span>
         </nav>
-        <Link to={sesion ? INICIO_PERFIL[sesion.perfil] : '/'} className="pildora-perfil">
+        <Link to={sesion ? INICIO_PERFIL[sesion.perfil] : URL_INGRESO_INSTITUCIONAL} reloadDocument={!sesion} className="pildora-perfil" aria-label={sesion ? 'Ir a mi vista' : 'Iniciar sesión (personal de SUNASS o de una EPS)'}>
           <IconoPersonas tamano={16} />
           <span className="pildora-perfil__texto">{sesion ? 'Ir a mi vista' : 'Iniciar sesión'}</span>
           <span className="solo-lectores">{sesion ? ' (volver a tu vista)' : ' (personal de SUNASS o de una EPS)'}</span>

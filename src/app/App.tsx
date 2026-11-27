@@ -3,6 +3,7 @@ import { AgenteProveedor } from '../agente/AgenteContexto'
 import { RequiereSesion } from '../sesion/RequiereSesion'
 import { SesionProveedor } from '../sesion/SesionProveedor'
 import { Ingreso } from './Ingreso'
+import { InicioPublico } from './InicioPublico'
 import { LayoutInterno } from './LayoutInterno'
 import { LayoutSunass, SoloPerfil } from './LayoutSunass'
 import { LayoutPublico } from './LayoutPublico'
@@ -29,7 +30,8 @@ export function App() {
       <SesionProveedor>
         <AgenteProveedor>
           <Routes>
-            <Route index element={<Ingreso />} />
+            <Route index element={<InicioPublico />} />
+            <Route path="ingreso" element={<Ingreso />} />
 
             <Route
               path="sunass"
