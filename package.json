@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:contract": "node tests/contract.mjs",
+    "test:sync": "node --test tests/sincronizar-portal.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
