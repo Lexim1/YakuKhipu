@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
@@ -73,6 +74,7 @@ export function Recepcion() {
   const [incorporando, setIncorporando] = useState<DocumentoRecibido | null>(null)
   const [viendo, setViendo] = useState<DocumentoRecibido | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
+  const [destinoId, setDestinoId] = useState<string | null>(null)
   const { abrir } = useAgente()
 
   useContextoAgente({
@@ -100,13 +102,14 @@ export function Recepcion() {
     const lista = resultado.estado === 'listo' ? resultado.datos.items : []
     const doc = lista.find((d) => d.id === datos.documento_id) ?? incorporando
     setIncorporando(null)
+    setDestinoId(datos.tramite_id)
     setMensaje(`${doc?.titulo ?? 'Documento'} incorporado a ${datos.tramite_id}${persona ? ` y asignado a ${persona}` : ''}.`)
   }
 
   return (
     <div className="pagina">
       <div>
-        <p className="antetitulo">Coordinación DRE</p>
+        <p className="antetitulo">Recepción institucional</p>
         <h1>Recepción de documentos</h1>
         <p className="subtitulo">
           Registra aquí documentos que ya recibiste por Mesa de Partes. Vincúlalos o registra un expediente nuevo y derívalo.
@@ -116,11 +119,13 @@ export function Recepcion() {
       {mensaje && (
         <p className="mensaje mensaje--exito" role="status">
           {mensaje}
+          {destinoId && <> <Link to={`/sunass/expedientes/${encodeURIComponent(destinoId)}`}>Abrir expediente registrado</Link></>}
         </p>
       )}
 
       <CargarPdf
         alCargar={(titulo) => {
+          setDestinoId(null)
           setMensaje(`${titulo}: PDF recibido. El texto se extrae en segundo plano; usa «Actualizar estado» para ver si ya está listo.`)
           reintentar()
         }}
@@ -139,7 +144,7 @@ export function Recepcion() {
               texto={
                 items.length === 0
                   ? 'Todo lo recibido ya está asociado a un expediente.'
-                  : 'Yaku lee cada PDF y te sugiere a qué expediente pertenece. Tú confirmas.'
+                  : 'El texto de los PDF se extrae en segundo plano. Revisa la EPS y confirma el expediente o registra una solicitud nueva.'
               }
             >
               <CifrasSaludo
@@ -260,7 +265,8 @@ export function Recepcion() {
                   alIncorporar={incorporar}
                   alRegistrar={(id, persona) => {
                     setIncorporando(null)
-                    setMensaje(`Expediente ${id} registrado y asignado a ${persona}.`)
+                    setDestinoId(id)
+                    setMensaje(`Expediente ${id} registrado${persona ? ` y asignado a ${persona}` : '; pendiente de derivación y asignación por Coordinación'}.`)
                   }}
                 />
               )}

@@ -117,6 +117,7 @@ export function CargarPdf({ alCargar }: { alCargar: (titulo: string) => void }) 
         Archivo PDF
         <input name="archivo" type="file" accept=".pdf,application/pdf" required />
       </label>
+      <label className="check"><input name="simulado" type="checkbox" value="true" /> Material ficticio de práctica</label>
       {error && <MensajeError mensaje={error} />}
       <div className="dialogo__acciones">
         <button type="button" className="boton boton--secundario" disabled={enviando} onClick={() => setAbierto(false)}>

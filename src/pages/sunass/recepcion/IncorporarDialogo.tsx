@@ -73,8 +73,8 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
       setError('Elige el expediente al que pertenece el documento.')
       return
     }
-    if (nuevo && (!asignado || !fechaIngreso)) {
-      setError('Indica la fecha de ingreso y el analista que recibirá el expediente.')
+    if (nuevo && !fechaIngreso) {
+      setError('Indica la fecha de ingreso acreditada por Mesa de Partes.')
       return
     }
     const version = catalogos.expedientes.find((t) => t.id === tramiteId)?.version
@@ -88,7 +88,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
       const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? ''
       if (nuevo) {
         const creado = await registrarExpedienteRecepcion({
-          documento_id: documentoId, procedimiento, fecha_ingreso: fechaIngreso, asignado_a: asignado,
+          documento_id: documentoId, procedimiento, fecha_ingreso: fechaIngreso, asignado_a: asignado || null,
         })
         alRegistrar(creado.tramite_id, persona)
         return
@@ -174,8 +174,8 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
           <span className="etiqueta-campo">
             Asignar a{catalogos.asignables.find((a) => a.id === asignado)?.menor_carga && <Chip tono="agente">Menor carga</Chip>}
           </span>
-          <select value={asignado} required={nuevo} onChange={(e) => setAsignado(e.target.value)}>
-            <option value="">{nuevo ? 'Selecciona un analista' : 'Conservar la asignación actual'}</option>
+          <select value={asignado} onChange={(e) => setAsignado(e.target.value)}>
+            <option value="">{nuevo ? 'Sin asignar; Coordinación lo deriva después' : 'Conservar la asignación actual'}</option>
             {catalogos.asignables.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.texto}{a.carga_activa != null ? ` · ${a.carga_activa} activos` : ' · carga no disponible'}{a.recomendado ? ' · menor carga' : ''}
@@ -190,7 +190,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
             Cancelar
           </button>
           <button type="submit" className="boton boton--primario" disabled={guardando}>
-            {guardando ? 'Guardando…' : nuevo ? 'Registrar y derivar' : asignado ? 'Incorporar y asignar' : 'Incorporar documento'}
+            {guardando ? 'Guardando…' : nuevo ? (asignado ? 'Registrar y derivar' : 'Registrar solicitud') : asignado ? 'Incorporar y asignar' : 'Incorporar documento'}
             <IconoCheck tamano={16} />
           </button>
         </div>

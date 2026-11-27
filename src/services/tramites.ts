@@ -336,7 +336,7 @@ export async function cargarPdf(datos: FormData): Promise<void> {
   if (usarEjemplos) {
     throw new ErrorApi(503, 'En el modo de ejemplos no se cargan archivos.')
   }
-  await pedir('/api/recepcion/pdf', { method: 'POST', body: datos })
+  await pedirJson('/api/recepcion/pdf', { method: 'POST', body: datos })
   avisarCambio()
 }
 
@@ -351,7 +351,7 @@ export interface NuevoExpedienteRecepcion {
   documento_id: string
   procedimiento: 'CPI' | 'UFI' | 'RP'
   fecha_ingreso: string
-  asignado_a: string
+  asignado_a?: string | null
 }
 
 export async function registrarExpedienteRecepcion(datos: NuevoExpedienteRecepcion) {

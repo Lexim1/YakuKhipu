@@ -63,3 +63,5 @@
   .marca__nombre { font-size: 1rem; }
   .marca__vista { white-space: normal; font-size: .65rem; line-height: 1.2; }
 }
+.lista-simple .documentos-expediente__fila { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.documentos-expediente__fila > span { flex: 1 1 18rem; min-width: 0; overflow-wrap: anywhere; }
