@@ -1,5 +1,6 @@
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip } from '../../components/Chip'
+import { Burbuja, Saludo, TituloIcono } from '../../components/Graficos'
 import { ACCESOS, REGLAS_PLAZO } from '../../mocks/seguimiento'
 
 /** Plazos, calendario y accesos por perfil (solo Jefatura DRE). Hoy es una consulta: no guarda cambios. */
@@ -14,8 +15,16 @@ export function Configuracion() {
 
       <AvisoSimulado texto=" Las reglas que usa el servidor para calcular plazos siguen pendientes de validación por la DRE." />
 
+      <Saludo
+        pose="verificando"
+        titulo="⚙️ Las reglas del juego"
+        texto="Así calcula el portal los plazos y así se reparte quién puede hacer qué."
+      />
+
       <section aria-labelledby="titulo-plazos-config" className="columna">
-        <h2 id="titulo-plazos-config">Plazos por procedimiento</h2>
+        <TituloIcono id="titulo-plazos-config" emoji="⏳" color="durazno">
+          Plazos por procedimiento
+        </TituloIcono>
         <div className="tabla-expedientes">
           <table>
             <thead>
@@ -41,7 +50,8 @@ export function Configuracion() {
           </table>
         </div>
         <div className="tarjeta fila-chips" style={{ justifyContent: 'space-between' }}>
-          <div>
+          <Burbuja emoji="📅" color="cielo" />
+          <div style={{ flex: 1 }}>
             <strong>Calendario del prototipo</strong>
             <p className="texto-pequeno texto-suave">Validar feriados y notificación para cada cómputo.</p>
           </div>
@@ -50,7 +60,9 @@ export function Configuracion() {
       </section>
 
       <section aria-labelledby="titulo-accesos" className="columna">
-        <h2 id="titulo-accesos">Quién accede a qué</h2>
+        <TituloIcono id="titulo-accesos" emoji="🔐" color="lila">
+          Quién accede a qué
+        </TituloIcono>
         <div className="tabla-expedientes">
           <table>
             <thead>
@@ -64,9 +76,14 @@ export function Configuracion() {
             </thead>
             <tbody>
               {ACCESOS.map((a) => (
-                <tr key={a.perfil}>
+                <tr key={a.perfil} className="fila-viva">
                   <td>
-                    <strong>{a.perfil}</strong>
+                    <span className="celda-gotita">
+                      <span className="burbuja burbuja--sm burbuja--lila" aria-hidden="true">
+                        👤
+                      </span>
+                      <strong>{a.perfil}</strong>
+                    </span>
                   </td>
                   <td>{a.ambito}</td>
                   <td>{a.trazabilidad}</td>

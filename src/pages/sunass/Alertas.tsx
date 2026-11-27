@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { Chip, Fuente, type Tono } from '../../components/Chip'
 import { IconoAlerta, IconoDocumento, IconoFlecha, IconoLista } from '../../components/Iconos'
+import { Gotita, type PoseGotita } from '../../components/Gotita'
+import { CifrasSaludo, Dona, Saludo, type TonoSegmento } from '../../components/Graficos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarAlertas } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
@@ -33,13 +35,24 @@ const TIPOS: Record<TipoAlerta, { tono: Tono; texto: string; icono: ReactNode; g
 
 type Grupo = 'plazos' | 'cifras' | 'documentos' | 'calidad'
 
-const GRUPOS: { id: Grupo | ''; texto: string }[] = [
-  { id: '', texto: 'Todas' },
-  { id: 'plazos', texto: 'Plazos' },
-  { id: 'cifras', texto: 'Cifras' },
-  { id: 'documentos', texto: 'Documentos' },
-  { id: 'calidad', texto: 'Calidad de datos' },
+const GRUPOS: { id: Grupo | ''; texto: string; emoji: string; tono: TonoSegmento }[] = [
+  { id: '', texto: 'Todas', emoji: '🔔', tono: 'marca' },
+  { id: 'plazos', texto: 'Plazos', emoji: '⏰', tono: 'peligro' },
+  { id: 'cifras', texto: 'Cifras', emoji: '🔢', tono: 'aviso' },
+  { id: 'documentos', texto: 'Documentos', emoji: '📄', tono: 'info' },
+  { id: 'calidad', texto: 'Calidad de datos', emoji: '🧪', tono: 'lila' },
 ]
+
+/** Gotita que acompaña cada alerta según su gravedad (decorativa: el chip dice el tipo). */
+const GOTA_TONO: Record<Tono, PoseGotita> = {
+  peligro: 'avatar-rojo',
+  aviso: 'avatar-naranja',
+  agente: 'avatar-azul',
+  info: 'avatar-azul',
+  ok: 'avatar',
+  neutro: 'avatar',
+  marca: 'avatar',
+}
 
 function destino(alerta: Alerta) {
   if (alerta.destino.tipo === 'recepcion') return '/sunass/recepcion'
@@ -76,11 +89,41 @@ export function Alertas() {
         <p className="subtitulo">Cada alerta dice qué regla la activó y de qué documento sale.</p>
       </div>
 
+
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando alertas…">
         {({ items }) => {
           const visibles = items.filter((a) => !grupo || TIPOS[a.tipo].grupo === grupo)
+          const contar = (g: Grupo) => items.filter((a) => TIPOS[a.tipo].grupo === g).length
+          const vencidas = items.filter((a) => a.tipo === 'vencido').length
+          const grupos = GRUPOS.filter((g) => g.id !== '') as { id: Grupo; texto: string; emoji: string; tono: TonoSegmento }[]
           return (
             <>
+              <div className="bento-arriba">
+                <Saludo
+                  pose={items.length === 0 ? 'al-dia' : vencidas > 0 ? 'atenta' : 'verificando'}
+                  titulo={items.length === 0 ? '🎉 ¡Todo en orden!' : `🔔 ${items.length} ${items.length === 1 ? 'alerta' : 'alertas'} para revisar`}
+                  texto={
+                    vencidas > 0
+                      ? `Empieza por ${vencidas === 1 ? 'la vencida' : `las ${vencidas} vencidas`}: Yaku las puso arriba en rojo.`
+                      : 'Yaku revisó plazos, cifras y documentos. Aquí está lo que encontró.'
+                  }
+                >
+                  <CifrasSaludo
+                    cifras={grupos.map((g) => ({ emoji: g.emoji, valor: contar(g.id), texto: g.texto, tono: g.tono }))}
+                  />
+                </Saludo>
+                <section className="tarjeta tarjeta-dona" aria-labelledby="titulo-dona-alertas">
+                  <h2 id="titulo-dona-alertas" className="titulo-icono">
+                    <span className="burbuja burbuja--durazno burbuja--sm" aria-hidden="true">🍩</span>
+                    <span>¿De qué tipo son?</span>
+                  </h2>
+                  <Dona
+                    etiqueta={`Alertas por tipo: ${grupos.map((g) => `${g.texto} ${contar(g.id)}`).join(', ')}`}
+                    segmentos={grupos.map((g) => ({ texto: g.texto, valor: contar(g.id), tono: g.tono }))}
+                  />
+                </section>
+              </div>
+
               <div className="pastillas" role="group" aria-label="Filtrar alertas">
                 {GRUPOS.map((g) => (
                   <button
@@ -90,7 +133,8 @@ export function Alertas() {
                     aria-pressed={grupo === g.id}
                     onClick={() => setParametros(g.id ? { tipo: g.id } : {}, { replace: true })}
                   >
-                    {g.texto} ({g.id ? items.filter((a) => TIPOS[a.tipo].grupo === g.id).length : items.length})
+                    <span aria-hidden="true">{g.emoji} </span>
+                    {g.texto} ({g.id ? contar(g.id) : items.length})
                   </button>
                 ))}
               </div>
@@ -102,12 +146,14 @@ export function Alertas() {
                 visibles.map((a) => {
                   const tipo = TIPOS[a.tipo]
                   return (
-                    <article key={a.id} className="tarjeta alerta" aria-labelledby={`alerta-${a.id}`}>
-                      <span
-                        className={`icono-cuadro icono-cuadro--${tipo.tono}`}
-                        style={{ width: 44, height: 44, borderRadius: 12 }}
-                      >
-                        {tipo.icono}
+                    <article
+                      key={a.id}
+                      className={`tarjeta alerta alerta--viva alerta--${tipo.tono}`}
+                      aria-labelledby={`alerta-${a.id}`}
+                    >
+                      <span className="alerta__avatar">
+                        <Gotita pose={GOTA_TONO[tipo.tono]} alto={54} />
+                        <span className={`alerta__mini icono-cuadro icono-cuadro--${tipo.tono}`}>{tipo.icono}</span>
                       </span>
                       <div className="alerta__cuerpo">
                         <div className="fila-chips">

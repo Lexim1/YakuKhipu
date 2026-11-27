@@ -414,8 +414,18 @@ function ResueltosPorMes({ meses }: { meses: ResumenFinanzas['resueltos_por_mes'
 }
 
 /** Semáforo de plazos con Yaku: azul en plazo, naranja por vencer y rojo vencido. */
-function Semaforo({ enPlazo, porVencer, vencidos, porValidar }: { enPlazo: number; porVencer: number; vencidos: number; porValidar: number }) {
-  const total = enPlazo + porVencer + vencidos
+function Semaforo({
+  enPlazo,
+  porVencer,
+  vencidos,
+  porValidar,
+}: {
+  enPlazo: number
+  porVencer: number
+  vencidos: number
+  porValidar: number
+}) {
+  const total = enPlazo + porVencer + vencidos + porValidar
   const columnas = [
     { pose: 'plazo-azul' as const, n: enPlazo, titulo: 'En plazo', frase: 'Tiempo a favor', clase: 'azul', ruta: '/sunass/expedientes' },
     { pose: 'plazo-naranja' as const, n: porVencer, titulo: 'Por vencer', frase: '¡Atención! Ya usaron el 75 %', clase: 'naranja', ruta: '/sunass/alertas' },
@@ -423,10 +433,12 @@ function Semaforo({ enPlazo, porVencer, vencidos, porValidar }: { enPlazo: numbe
   ]
   return (
     <section className="tarjeta semaforo" aria-labelledby="titulo-semaforo">
-      <p className="nota">{porValidar} expedientes tienen plazo pendiente de validación y no se clasifican como «en plazo».</p>
       <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
         <TituloIcono id="titulo-semaforo" emoji="🚦" color="cielo">Semáforo de plazos</TituloIcono>
-        <span className="texto-pequeno texto-suave">Así está el tiempo de tus {total} expedientes en trámite</span>
+        <span className="texto-pequeno texto-suave">
+          Así está el tiempo de tus {total} expedientes en trámite
+          {porValidar > 0 && ` · ${porValidar} con plazo por validar`}
+        </span>
       </div>
       <div className="semaforo__barra" role="img" aria-label={`${enPlazo} en plazo, ${porVencer} por vencer, ${vencidos} vencidos`}>
         {columnas.map((c) =>
