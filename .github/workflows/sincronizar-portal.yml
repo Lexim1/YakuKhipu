@@ -1,0 +1,54 @@
+name: Validar frontend y preparar despliegue
+
+on:
+  pull_request:
+    branches: [master, qa]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sincronizar-portal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:sync
+      - run: npm run lint
+      - run: npm run test:contract
+      - run: npm run build
+
+  preparar-pr-backend:
+    needs: validar
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # No instala ni ejecuta dependencias de la aplicación con el token del backend.
+      - name: Abrir PR con la versión validada
+        env:
+          BACKEND_PR_TOKEN: ${{ secrets.BACKEND_PR_TOKEN }}
+          FRONTEND_READ_TOKEN: ${{ github.token }}
+          FRONTEND_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/sincronizar-portal.mjs

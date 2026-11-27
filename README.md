@@ -56,6 +56,12 @@ El backend vive en [Lexim1/YakuKhipu-Backend](https://github.com/Lexim1/YakuKhip
 
 ## Despliegue en Railway
 
+El despliegue conjunto vigente compila React desde el Dockerfile del backend.
+La [sincronización mediante PR automático](docs/sincronizacion_railway.md) actualiza
+esa versión al fusionar cambios del frontend en master. Requiere configurar
+`BACKEND_PR_TOKEN` en GitHub Actions; Railway publica al aprobar el PR del backend.
+Las instrucciones siguientes describen la alternativa con frontend separado.
+
 El `Dockerfile` compila el portal y lo sirve con nginx (`deploy/nginx.conf.template`), que reenvía `/api` y `/health` al backend por la red privada.
 
 1. Crear un servicio desde este repositorio (rama conectada) con el `Dockerfile` de la raíz.
