@@ -1,4 +1,6 @@
 import { Gotita } from '../components/Gotita'
+import { Link, useLocation } from 'react-router'
+import { useSesion } from '../sesion/useSesion'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
@@ -24,11 +26,13 @@ const NOTA_SIN_FUENTES: Record<string, string> = {
 }
 
 function textoCita(f: FuenteCita) {
-  return f.pagina_pdf ? `${f.titulo} · pág. ${f.pagina_pdf}` : f.titulo
+  return f.pagina_pdf ? `${f.titulo} · pág. ${f.pagina_pdf}` : f.tipo === 'indice' ? `${f.titulo} · índice` : f.titulo
 }
 
 /** Botón flotante «Preguntar al agente» y su panel de conversación. */
 export function PanelAgente() {
+  const { sesion } = useSesion()
+  const location = useLocation()
   const { abierto, abrir, cerrar, contexto, preguntaInicial } = useAgente()
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
@@ -38,10 +42,12 @@ export function PanelAgente() {
   const final = useRef<HTMLDivElement>(null)
   const siguienteId = useRef(0)
   const preguntas = contexto?.preguntas ?? []
-  const publico = contexto?.publico ?? contexto?.caso?.tipo === 'publico'
-  const claveCaso = `${contexto?.espacio ?? ''}|${contexto?.caso?.id ?? ''}`
+  const publico = location.pathname.startsWith('/ciudadania') || (contexto?.publico ?? contexto?.caso?.tipo === 'publico')
+  const claveCaso = `${sesion?.usuario_id ?? ''}|${publico ? 'publico' : 'institucional'}|${contexto?.caso ? `${contexto.caso.tipo}:${contexto.caso.id}` : 'cartera'}`
   const esperando = mensajes.some((m) => m.estado === 'cargando')
-  const puedePreguntar = usarEjemplos || Boolean(contexto?.caso || contexto?.cartera)
+  const esDetalle = /^\/(sunass\/expedientes|eps\/tramites)\/[^/]+/.test(location.pathname)
+  const cartera = !publico && !esDetalle && !contexto?.caso && (Boolean(contexto?.cartera) || Boolean(sesion?.permisos?.includes('agente.consultar')))
+  const puedePreguntar = usarEjemplos || Boolean(contexto?.caso || cartera)
 
   // Al cambiar de caso, la conversación empieza de nuevo y se cancela la pregunta pendiente.
   useEffect(() => {
@@ -79,10 +85,10 @@ export function PanelAgente() {
     control.current = nuevo
     try {
       const respuesta = await preguntarAlAgente(
-        { caso: contexto?.caso, cartera: contexto?.cartera, pregunta: limpia, preguntas, conversacionId: conversacion.current },
+        { caso: contexto?.caso, cartera, pregunta: limpia, preguntas, conversacionId: conversacion.current },
         nuevo.signal,
       )
-      if (contexto?.caso && !usarEjemplos) conversacion.current = respuesta.conversacion_id
+      if (contexto?.caso && !usarEjemplos && respuesta.conversacion_id !== 'cartera') conversacion.current = respuesta.conversacion_id
       actualizar({ id, pregunta: limpia, estado: 'listo', respuesta })
     } catch (error) {
       if (nuevo.signal.aborted) return
@@ -140,8 +146,8 @@ export function PanelAgente() {
                 <p className="texto-suave">
                   {contexto?.caso
                     ? 'Pregunta lo que quieras sobre este caso. Responderé citando la página de cada documento.'
-                    : contexto?.cartera
-                      ? 'Consulta qué expedientes de tu cartera ya vencieron o están por vencer.'
+                    : cartera
+                      ? 'Busca un expediente, EPS, oficio o expresión del documento. Los resultados incluyen enlaces y fuentes autorizadas.'
                       : puedePreguntar
                       ? 'Elige una pregunta sugerida o escribe la tuya.'
                       : 'Abre un expediente o una decisión para consultar documentos con el agente. Para próximos vencimientos, revisa Alertas.'}
@@ -177,6 +183,12 @@ export function PanelAgente() {
                   {m.estado === 'listo' && (
                     <div className="agente__respuesta">
                       <p>{m.respuesta.respuesta}</p>
+                      {m.respuesta.expedientes?.map((t) => <article className="agente__hallazgo" key={t.tramite_id}>
+                        <strong>{t.referencia} · {t.eps}</strong>
+                        <p>{t.titulo}</p><p>Etapa: {t.etapa} · {t.estado.replaceAll('_',' ')}</p>
+                        {t.analista && <p>Analista asignado: {t.analista}</p>}
+                        <Link className="boton boton--secundario" to={t.enlace_expediente} onClick={cerrar}>Abrir expediente</Link>
+                      </article>)}
                       {m.respuesta.estado !== 'ok' && (
                         <p className="agente__aviso">{NOTA_SIN_FUENTES[m.respuesta.estado]}</p>
                       )}

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Dialogo } from '../../../components/Dialogo'
 import { Contenido, MensajeError, SinResultados } from '../../../components/Mensajes'
 import { ErrorApi } from '../../../services/api'
-import { asignarExpediente, listarCandidatosAsignacion } from '../../../services/tramites'
+import { asignarExpediente, listarCandidatosAsignacion, textoCandidato } from '../../../services/tramites'
 import { useConsulta } from '../../../services/useConsulta'
 import type { Expediente } from '../../../types/tramite'
 
@@ -46,11 +46,15 @@ export function AsignarExpediente({ expediente, alCerrar, alRecargar, alAsignar 
           <SinResultados titulo="No hay analistas activos para asignar" />
         ) : (
           <form className="columna" onSubmit={enviar}>
+            <p className="nota">Ordenados por expedientes abiertos asignados. Los concluidos no aumentan la carga. En empate aparece primero quien recibió una asignación hace más tiempo. La elección final es tuya.</p>
+            {candidatos.filter((p) => p.recomendado).length > 0 ? <p role="status">Menor carga: {candidatos.filter((p) => p.recomendado).map((p) => `${p.nombre} (${p.carga_activa} activos)`).join(', ')}.</p> : candidatos.some((p) => p.asignacion_actual && p.menor_carga) ? <p role="status">La asignación actual ya tiene la menor carga registrada.</p> : null}
+            {candidatos.length === 1 && <p className="nota">Solo hay un analista activo; no hay otras personas entre las que distribuir expedientes.</p>}
+            <button type="button" className="boton boton--secundario" disabled={guardando} onClick={() => { setUsuario(''); reintentar() }}>Actualizar carga</button>
             <label className="campo">
               Analista SRT
               <select value={usuario} onChange={(e) => setUsuario(e.target.value)} required disabled={guardando || conflicto}>
                 <option value="" disabled>Selecciona un analista</option>
-                {candidatos.map((persona) => <option key={persona.id} value={persona.id}>{persona.nombre}</option>)}
+                {candidatos.map((persona) => <option key={persona.id} value={persona.id} disabled={persona.asignacion_actual}>{textoCandidato(persona)}</option>)}
               </select>
             </label>
             <label className="campo">

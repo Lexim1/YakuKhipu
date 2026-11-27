@@ -5,9 +5,11 @@ import type { PreguntaAgente } from '../../agente/tipos'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip } from '../../components/Chip'
 import { IconoAtras, IconoChispa } from '../../components/Iconos'
+import { Gotita, type PoseGotita } from '../../components/Gotita'
+import { Anillo, OlaAnimada } from '../../components/Graficos'
 import { Contenido } from '../../components/Mensajes'
 import { confirmarVinculo, obtenerExpediente, rechazarVinculo } from '../../services/tramites'
-import { usarEjemplos } from '../../services/api'
+import { pedirJson, usarEjemplos } from '../../services/api'
 import { useConsulta } from '../../services/useConsulta'
 import { useSesion } from '../../sesion/useSesion'
 import { AsignarExpediente } from './expediente/AsignarExpediente'
@@ -35,6 +37,16 @@ const PESTANAS = [
 ] as const
 
 type IdPestana = (typeof PESTANAS)[number]['id']
+
+const EMOJI_PESTANA: Record<IdPestana, string> = { linea: '🕒', comparador: '🔢', plazos: '⏳', impacto: '🏘️' }
+
+const GOTA: Record<TipoExpediente['plazo']['situacion'], PoseGotita> = {
+  vencido: 'plazo-rojo',
+  por_vencer: 'plazo-naranja',
+  en_plazo: 'plazo-azul',
+  pendiente_de_validacion: 'pensando',
+  concluido: 'logrado',
+}
 
 /** Preguntas que el agente responde sobre este expediente, con sus fuentes. */
 function preguntasDe(e: TipoExpediente): PreguntaAgente[] {
@@ -85,6 +97,7 @@ export function Expediente() {
   const [asignacionAbierta, setAsignacionAbierta] = useState(false)
   const [publicacionAbierta, setPublicacionAbierta] = useState(false)
   const [actuacionAbierta, setActuacionAbierta] = useState(false)
+  const [accionInicial, setAccionInicial] = useState<string | undefined>()
   // «Te toca actuar» abre el expediente con ?accion=validar para mostrar el diálogo directamente.
   const [validarAbierto, setValidarAbierto] = useState(parametros.get('accion') === 'validar')
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -92,7 +105,22 @@ export function Expediente() {
 
   // Después de decidir sobre el vínculo se muestra el expediente que devolvió el servicio.
   const expediente = actualizado?.id === id ? actualizado : resultado.estado === 'listo' ? resultado.datos : null
-  const pestana: IdPestana = (PESTANAS.find((p) => p.id === parametros.get('pestana'))?.id ?? 'linea') as IdPestana
+  const [accionesDisponibles] = useConsulta(
+    (signal) => usarEjemplos
+      ? Promise.resolve({ items: [] as { tipo: string }[] })
+      : pedirJson<{ items: { tipo: string }[] }>(`/api/tramites/${encodeURIComponent(id)}/acciones`, { signal }),
+    [id, expediente?.version],
+  )
+  // Durante despliegues escalonados la API anterior puede enviar proyecciones crudas.
+  // Evita romper la ficha hasta que el backend publique el contrato visual completo.
+  const comparadorVisible = Array.isArray(expediente?.comparador?.versiones) ? expediente.comparador : null
+  const plazosVisibles = Array.isArray(expediente?.plazos?.tarjetas) ? expediente.plazos : null
+  const impactoVisible = Array.isArray(expediente?.impacto?.indicadores) ? expediente.impacto : null
+  const pestanasDisponibles = PESTANAS.filter((p) => p.id === 'linea' ||
+    (p.id === 'comparador' && !!comparadorVisible) ||
+    (p.id === 'plazos' && !!plazosVisibles) ||
+    (p.id === 'impacto' && !!impactoVisible))
+  const pestana: IdPestana = pestanasDisponibles.find((p) => p.id === parametros.get('pestana'))?.id ?? 'linea'
 
   useContextoAgente(
     expediente
@@ -146,8 +174,10 @@ export function Expediente() {
         {() =>
           expediente && (
             <>
-              <div className="expediente__cabecera">
-                <div>
+              <div className="expediente__cabecera expediente__cabecera--viva">
+                <OlaAnimada />
+                <Gotita pose={GOTA[expediente.plazo.situacion]} alto={110} className="expediente__gotita" />
+                <div className="expediente__textos">
                   <div className="expediente__titulo">
                     <h1>
                       {expediente.referencia ?? expediente.id} · {expediente.eps}
@@ -158,16 +188,30 @@ export function Expediente() {
                     {NOMBRE_COMPLETO[expediente.procedimiento]} · {expediente.tema} · Responsable actual:{' '}
                     {expediente.responsable}
                   </p>
+                  <button type="button" className="boton boton--secundario" onClick={() => abrir()}>
+                    Preguntar a Yaku
+                    <IconoChispa tamano={16} />
+                  </button>
                 </div>
-                <button type="button" className="boton boton--secundario" onClick={() => abrir()}>
-                  Preguntar al agente
-                  <IconoChispa tamano={16} />
-                </button>
+                {expediente.plazo.dias_usados != null && expediente.plazo.dias_totales ? (
+                  <Anillo
+                    porcentaje={(expediente.plazo.dias_usados / expediente.plazo.dias_totales) * 100}
+                    tono={SEMAFORO[expediente.plazo.situacion].barra}
+                    tamano={124}
+                    grosor={13}
+                    etiqueta={`Plazo usado: ${textoDias(expediente.plazo)} días hábiles`}
+                  >
+                    <span className="expediente__anillo">
+                      <strong>{expediente.plazo.dias_usados}</strong>
+                      <span>de {expediente.plazo.dias_totales} días</span>
+                    </span>
+                  </Anillo>
+                ) : null}
               </div>
 
               <div>
-                {!usarEjemplos && ['evaluacion.validar', 'acto_externo.registrar', 'requerimiento.registrar', 'respuesta.verificar'].some(puede) && <button className="boton boton--secundario" type="button" onClick={() => setActuacionAbierta(true)}>Registrar actuación con sustento</button>}
-                {actuacionAbierta && <RegistrarActuacion expediente={expediente} alCerrar={() => setActuacionAbierta(false)} alGuardar={() => { setActuacionAbierta(false); reintentar() }} />}
+                {!usarEjemplos && ['evaluacion.validar', 'acto_externo.registrar', 'requerimiento.registrar', 'respuesta.verificar'].some(puede) && <button className="boton boton--secundario" type="button" onClick={() => { setAccionInicial(undefined); setActuacionAbierta(true) }}>Registrar actuación con sustento</button>}
+                {actuacionAbierta && <RegistrarActuacion expediente={expediente} accionInicial={accionInicial} puedeRecepcion={puede('recepcion.gestionar')} alCerrar={() => setActuacionAbierta(false)} alGuardar={() => { setActuacionAbierta(false); setActualizado(null); reintentar() }} />}
                 {!usarEjemplos && puede('publicacion.gestionar') && ['concluido', 'autorizado', 'no_autorizado'].includes(expediente.estado ?? '') && (
                   <button className="boton boton--secundario" type="button" onClick={() => setPublicacionAbierta(true)}>Publicar decisión revisada</button>
                 )}
@@ -224,12 +268,13 @@ export function Expediente() {
                 situacion={expediente.plazo.situacion}
                 usado={expediente.plazo.dias_usados}
                 total={expediente.plazo.dias_totales}
+                alRegistrarPaso={accionesDisponibles.estado === 'listo' && accionesDisponibles.datos.items.some((a) => a.tipo === 'avanzar_paso') ? () => { setAccionInicial('avanzar_paso'); setActuacionAbierta(true) } : undefined}
               />
 
               {expediente.linea_tiempo ? (
                 <>
                   <div className="pestanas" role="tablist" aria-label="Información del expediente">
-                    {PESTANAS.map((p) => (
+                    {pestanasDisponibles.map((p) => (
                       <button
                         key={p.id}
                         type="button"
@@ -240,26 +285,30 @@ export function Expediente() {
                         className="pestana"
                         onClick={() => cambiarPestana(p.id)}
                       >
+                        <span aria-hidden="true">{EMOJI_PESTANA[p.id]} </span>
                         {p.texto}
                       </button>
                     ))}
                   </div>
                   <div id="panel-expediente" role="tabpanel" aria-labelledby={`pestana-${pestana}`} className="columna">
                     {pestana === 'linea' && (
-                      <LineaTiempo expediente={expediente} alValidar={() => setValidarAbierto(true)} />
+                      <LineaTiempo expediente={expediente} alValidar={() => setValidarAbierto(true)} alRegistrar={() => { setAccionInicial(expediente.siguiente.accion === 'verificar_respuesta' ? 'verificar_respuesta' : undefined); setActuacionAbierta(true) }} />
                     )}
-                    {pestana === 'comparador' && expediente.comparador && (
-                      <Comparador datos={expediente.comparador} verImpacto={() => cambiarPestana('impacto')} />
+                    {pestana === 'comparador' && comparadorVisible && (
+                      <Comparador datos={comparadorVisible} verImpacto={impactoVisible ? () => cambiarPestana('impacto') : undefined} />
                     )}
-                    {pestana === 'plazos' && expediente.plazos && <PanelPlazos datos={expediente.plazos} />}
-                    {pestana === 'impacto' && expediente.impacto && <PanelImpacto datos={expediente.impacto} />}
+                    {pestana === 'plazos' && plazosVisibles && <PanelPlazos datos={plazosVisibles} />}
+                    {pestana === 'impacto' && impactoVisible && <PanelImpacto datos={impactoVisible} />}
                   </div>
                 </>
               ) : (
                 <div className="dos-columnas">
                   <section className="tarjeta" aria-labelledby="titulo-historial">
                     <div className="fila-chips" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-                      <h2 id="titulo-historial">Historial del trámite</h2>
+                      <h2 id="titulo-historial" className="titulo-icono">
+                        <span className="burbuja burbuja--cielo burbuja--sm" aria-hidden="true">🕒</span>
+                        <span>Historial del trámite</span>
+                      </h2>
                       {expediente.simulado && <Chip tono="agente">Simulado</Chip>}
                     </div>
                     {expediente.historial && expediente.historial.length > 0 ? (
@@ -286,11 +335,11 @@ export function Expediente() {
                       </p>
                     )}
                   </section>
-                  <SiguienteAccion accion={expediente.siguiente} alValidar={() => setValidarAbierto(true)} />
+                  <SiguienteAccion accion={expediente.siguiente} alValidar={() => setValidarAbierto(true)} alRegistrar={() => { setAccionInicial(expediente.siguiente.accion === 'verificar_respuesta' ? 'verificar_respuesta' : undefined); setActuacionAbierta(true) }} />
                 </div>
               )}
 
-              {!usarEjemplos && <DocumentosExpediente expediente={expediente} />}
+              {!usarEjemplos && <DocumentosExpediente expediente={expediente} puedeRevisar={puede('recepcion.gestionar')} alActualizar={() => { setActualizado(null); reintentar() }} />}
               {!usarEjemplos && <ContextoDatos id={expediente.id} />}
               {!usarEjemplos && puede('agente.consultar') && (
                 <PropuestasAgente tramiteId={expediente.id} puedeRevisar={puede('evaluacion.validar')} />

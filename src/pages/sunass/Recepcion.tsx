@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
 import { IconoAlerta, IconoChispa, IconoDocumento, IconoFlecha, IconoOjo } from '../../components/Iconos'
+import { Gotita } from '../../components/Gotita'
+import { CifrasSaludo, Puntos, Saludo } from '../../components/Graficos'
 import { Contenido, MensajeError, SinResultados } from '../../components/Mensajes'
 import {
   incorporarDocumento,
@@ -16,10 +19,41 @@ import { CargarPdf } from './recepcion/CargarPdf'
 import { IncorporarDialogo } from './recepcion/IncorporarDialogo'
 
 const CONFIANZA = {
-  alta: { tono: 'ok', texto: 'Confianza alta' },
-  media: { tono: 'aviso', texto: 'Confianza media' },
-  baja: { tono: 'peligro', texto: 'Confianza baja' },
+  alta: { tono: 'ok', texto: 'Confianza alta', nivel: 3 },
+  media: { tono: 'aviso', texto: 'Confianza media', nivel: 2 },
+  baja: { tono: 'peligro', texto: 'Confianza baja', nivel: 1 },
 } as const
+
+/** En qué paso va el documento: recibido → leído → listo para vincular. */
+function pasoDocumento(doc: DocumentoRecibido) {
+  if (!doc.procesamiento_pdf) return 2
+  if (doc.procesamiento_pdf.estado === 'listo') return 2
+  if (doc.procesamiento_pdf.estado === 'fallido') return 0
+  return 1
+}
+
+function CintaDocumento({ doc }: { doc: DocumentoRecibido }) {
+  const paso = pasoDocumento(doc)
+  const pasos = [
+    { emoji: '📥', texto: 'Recibido' },
+    { emoji: '🔎', texto: 'Leído por Yaku' },
+    { emoji: '🔗', texto: 'Listo para vincular' },
+  ]
+  return (
+    <ol className="cinta-doc" aria-label={`Avance: ${pasos[paso].texto}`}>
+      {pasos.map((p, i) => (
+        <li
+          key={p.texto}
+          className={i < paso ? 'cinta-doc--hecho' : i === paso ? 'cinta-doc--actual' : undefined}
+          aria-current={i === paso ? 'step' : undefined}
+        >
+          <span aria-hidden="true">{p.emoji}</span>
+          {p.texto}
+        </li>
+      ))}
+    </ol>
+  )
+}
 
 /** Estado del PDF que procesa el worker del backend. */
 const ESTADO_PDF: Record<string, { tono: 'ok' | 'aviso' | 'peligro' | 'info'; texto: string }> = {
@@ -40,6 +74,7 @@ export function Recepcion() {
   const [incorporando, setIncorporando] = useState<DocumentoRecibido | null>(null)
   const [viendo, setViendo] = useState<DocumentoRecibido | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
+  const [destinoId, setDestinoId] = useState<string | null>(null)
   const { abrir } = useAgente()
 
   useContextoAgente({
@@ -67,13 +102,14 @@ export function Recepcion() {
     const lista = resultado.estado === 'listo' ? resultado.datos.items : []
     const doc = lista.find((d) => d.id === datos.documento_id) ?? incorporando
     setIncorporando(null)
+    setDestinoId(datos.tramite_id)
     setMensaje(`${doc?.titulo ?? 'Documento'} incorporado a ${datos.tramite_id}${persona ? ` y asignado a ${persona}` : ''}.`)
   }
 
   return (
     <div className="pagina">
       <div>
-        <p className="antetitulo">Coordinación DRE</p>
+        <p className="antetitulo">Recepción institucional</p>
         <h1>Recepción de documentos</h1>
         <p className="subtitulo">
           Registra aquí documentos que ya recibiste por Mesa de Partes. Vincúlalos o registra un expediente nuevo y derívalo.
@@ -83,19 +119,43 @@ export function Recepcion() {
       {mensaje && (
         <p className="mensaje mensaje--exito" role="status">
           {mensaje}
+          {destinoId && <> <Link to={`/sunass/expedientes/${encodeURIComponent(destinoId)}`}>Abrir expediente registrado</Link></>}
         </p>
       )}
 
       <CargarPdf
         alCargar={(titulo) => {
+          setDestinoId(null)
           setMensaje(`${titulo}: PDF recibido. El texto se extrae en segundo plano; usa «Actualizar estado» para ver si ya está listo.`)
           reintentar()
         }}
       />
 
       <Contenido resultado={resultado} reintentar={reintentar} textoCarga="Cargando documentos recibidos…">
-        {({ items }) =>
-          items.length === 0 ? (
+        {({ items }) => {
+          const oficiales = items.filter((d) => d.canal_oficial)
+          const conPropuesta = oficiales.filter((d) => d.propuesta).length
+          const fuera = items.length - oficiales.length
+          return (
+          <>
+            <Saludo
+              pose={items.length === 0 ? 'al-dia' : 'verificando'}
+              titulo={items.length === 0 ? '📭 Bandeja vacía, ¡bien!' : `📬 Llegaron ${items.length} ${items.length === 1 ? 'documento' : 'documentos'}`}
+              texto={
+                items.length === 0
+                  ? 'Todo lo recibido ya está asociado a un expediente.'
+                  : 'El texto de los PDF se extrae en segundo plano. Revisa la EPS y confirma el expediente o registra una solicitud nueva.'
+              }
+            >
+              <CifrasSaludo
+                cifras={[
+                  { emoji: '📄', valor: oficiales.length, texto: 'por incorporar', tono: 'info' },
+                  { emoji: '✨', valor: conPropuesta, texto: 'con sugerencia', tono: 'ok' },
+                  { emoji: '⚠️', valor: fuera, texto: 'fuera de canal oficial', tono: 'aviso' },
+                ]}
+              />
+            </Saludo>
+          {items.length === 0 ? (
             <SinResultados titulo="No hay documentos por incorporar">
               <p className="texto-suave">Todo lo recibido ya está asociado a un expediente.</p>
             </SinResultados>
@@ -103,10 +163,10 @@ export function Recepcion() {
             <>
               {items.map((doc) =>
                 doc.canal_oficial ? (
-                  <article key={doc.id} className="tarjeta documento" aria-labelledby={`doc-${doc.id}`}>
+                  <article key={doc.id} className="tarjeta documento documento--vivo" aria-labelledby={`doc-${doc.id}`}>
                     <div className="documento__cabecera">
-                      <span className="icono-cuadro">
-                        <IconoDocumento tamano={20} />
+                      <span className="burbuja burbuja--cielo burbuja--md documento__icono" aria-hidden="true">
+                        <IconoDocumento tamano={22} />
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h2 id={`doc-${doc.id}`} className="documento__titulo">
@@ -126,10 +186,11 @@ export function Recepcion() {
                         <Chip tono="info">Nuevo</Chip>
                       )}
                     </div>
+                    <CintaDocumento doc={doc} />
                     {doc.procesamiento_pdf?.error && <MensajeError mensaje={doc.procesamiento_pdf.error} />}
                     {doc.propuesta && (
-                      <div className="propuesta">
-                        <IconoChispa tamano={18} />
+                      <div className="propuesta propuesta--yaku">
+                        <Gotita pose="pensando" alto={48} />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           <p className="propuesta__texto">
                             El agente propone: {doc.propuesta.tramite_id} · {doc.propuesta.motivo}
@@ -138,6 +199,11 @@ export function Recepcion() {
                             <Chip tono={CONFIANZA[doc.propuesta.confianza].tono}>
                               {CONFIANZA[doc.propuesta.confianza].texto}
                             </Chip>
+                            <Puntos
+                              marcados={CONFIANZA[doc.propuesta.confianza].nivel}
+                              total={3}
+                              etiqueta={CONFIANZA[doc.propuesta.confianza].texto}
+                            />
                             <Fuente>{doc.propuesta.fuente}</Fuente>
                           </div>
                         </div>
@@ -161,10 +227,13 @@ export function Recepcion() {
                     </div>
                   </article>
                 ) : (
-                  <article key={doc.id} className="tarjeta documento" aria-labelledby={`doc-${doc.id}`}>
+                  <article key={doc.id} className="tarjeta documento documento--vivo documento--fuera" aria-labelledby={`doc-${doc.id}`}>
                     <div className="documento__cabecera">
-                      <span style={{ color: 'var(--color-aviso)' }}>
-                        <IconoAlerta tamano={22} />
+                      <span className="documento__avatar" title="Fuera del canal oficial">
+                        <Gotita pose="avatar-naranja" alto={46} />
+                        <span className="solo-lectores">
+                          <IconoAlerta tamano={22} />
+                        </span>
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h2 id={`doc-${doc.id}`} style={{ fontSize: 'var(--texto-lg)' }}>
@@ -196,13 +265,16 @@ export function Recepcion() {
                   alIncorporar={incorporar}
                   alRegistrar={(id, persona) => {
                     setIncorporando(null)
-                    setMensaje(`Expediente ${id} registrado y asignado a ${persona}.`)
+                    setDestinoId(id)
+                    setMensaje(`Expediente ${id} registrado${persona ? ` y asignado a ${persona}` : '; pendiente de derivación y asignación por Coordinación'}.`)
                   }}
                 />
               )}
             </>
+          )}
+          </>
           )
-        }
+        }}
       </Contenido>
 
       <Dialogo abierto={viendo != null} titulo={viendo?.titulo ?? 'Documento'} alCerrar={() => setViendo(null)}>

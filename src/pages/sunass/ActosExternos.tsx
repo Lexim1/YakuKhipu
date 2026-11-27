@@ -4,6 +4,8 @@ import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
+import { Gotita } from '../../components/Gotita'
+import { Burbuja, Saludo, TituloIcono } from '../../components/Graficos'
 import { IconoAtras, IconoCheck, IconoFlecha } from '../../components/Iconos'
 import { ACTOS_EXTERNOS } from '../../mocks/seguimiento'
 import type { ActoExterno } from '../../types/seguimiento'
@@ -35,9 +37,16 @@ export function ActosExternos() {
 
       <AvisoSimulado />
 
+      <Saludo
+        pose="pensando"
+        titulo="🏛️ Lo que se decide fuera del portal"
+        texto="Informes, vistos y resoluciones se firman afuera. Aquí guardas su evidencia para que nada se pierda."
+      />
+
       <ul className="lista-tareas">
-        {ACTOS_EXTERNOS.map((a) => (
-          <li key={a.id} className="tarjeta acto">
+        {ACTOS_EXTERNOS.map((a, i) => (
+          <li key={a.id} className="tarjeta acto acto--vivo">
+            <Burbuja emoji={['📜', '🖋️', '🏛️'][i % 3]} color={(['lila', 'cielo', 'durazno'] as const)[i % 3]} tamano="lg" />
             <div className="acto__cuerpo">
               <div className="fila-chips">
                 <Chip tono={a.plazo.tono}>{a.plazo.texto}</Chip>
@@ -108,7 +117,8 @@ export function ResumenActo() {
       <AvisoSimulado />
 
       <div className="tres-columnas">
-        <section className="tarjeta" aria-labelledby="titulo-sustento-acto">
+        <section className="tarjeta tarjeta--destacada-acto" aria-labelledby="titulo-sustento-acto">
+          <Gotita pose="logrado" alto={70} className="tarjeta__gotita" />
           <p id="titulo-sustento-acto" className="antetitulo">
             Sustento del acto externo
           </p>
@@ -132,7 +142,9 @@ export function ResumenActo() {
         </section>
 
         <section className="tarjeta" aria-labelledby="titulo-cambio-cifra">
-          <h2 id="titulo-cambio-cifra">Cómo cambió la cifra</h2>
+          <TituloIcono id="titulo-cambio-cifra" emoji="🔁" color="durazno">
+            Cómo cambió la cifra
+          </TituloIcono>
           <ol className="historial">
             {r.cambios.map((c, i) => (
               <li key={c.paso} className={i === r.cambios.length - 1 ? 'historial__actual' : undefined}>
@@ -147,7 +159,9 @@ export function ResumenActo() {
         </section>
 
         <section className="tarjeta" aria-labelledby="titulo-sustento">
-          <h2 id="titulo-sustento">Sustento</h2>
+          <TituloIcono id="titulo-sustento" emoji="📎" color="menta">
+            Sustento
+          </TituloIcono>
           <ul className="lista-simple">
             {r.sustento.map((s) => (
               <li key={s}>

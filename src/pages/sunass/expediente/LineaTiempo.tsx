@@ -4,7 +4,7 @@ import type { Expediente } from '../../../types/tramite'
 import { SiguienteAccion } from './SiguienteAccion'
 
 /** Pestaña «Línea de tiempo»: hitos con su documento, siguiente acción y resumen. */
-export function LineaTiempo({ expediente, alValidar }: { expediente: Expediente; alValidar: () => void }) {
+export function LineaTiempo({ expediente, alValidar, alRegistrar }: { expediente: Expediente; alValidar: () => void; alRegistrar?: () => void }) {
   return (
     <div className="dos-columnas">
       <section className="tarjeta" aria-label="Línea de tiempo">
@@ -38,8 +38,8 @@ export function LineaTiempo({ expediente, alValidar }: { expediente: Expediente;
         </ol>
       </section>
       <div className="columna">
-        <SiguienteAccion accion={expediente.siguiente} alValidar={alValidar} />
-        {expediente.resumen && (
+        <SiguienteAccion accion={expediente.siguiente} alValidar={alValidar} alRegistrar={alRegistrar} />
+        {Array.isArray(expediente.resumen) && (
           <section className="tarjeta" aria-labelledby="titulo-resumen">
             <h2 id="titulo-resumen" style={{ marginBottom: 8 }}>
               Resumen

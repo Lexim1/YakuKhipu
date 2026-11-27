@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { useAgente, useContextoAgente } from '../../agente/useAgente'
 import { Chip, type Tono } from '../../components/Chip'
-import { Anillo, Burbuja, ContadorAnimado, Saludo } from '../../components/Graficos'
+import { Burbuja, ContadorAnimado, Saludo } from '../../components/Graficos'
 import { Gotita, type PoseGotita } from '../../components/Gotita'
 import { IconoChispa, IconoEnlace, IconoFlecha } from '../../components/Iconos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
@@ -178,11 +178,11 @@ export function TeToca() {
               >
                 {tareas.length > 0 && (
                   <div className="saludo__progreso">
-                    <Anillo porcentaje={0} tono="marca" tamano={54} grosor={7} etiqueta={`0 de ${tareas.length} misiones hechas`}>
-                      <strong className="texto-pequeno">0/{tareas.length}</strong>
-                    </Anillo>
+                    <span className="saludo__urgentes">
+                      {tareas.filter((t) => t.urgencia === 'hoy').length}
+                    </span>
                     <span className="texto-pequeno">
-                      Misiones de hoy · {plural(tareas.filter((t) => t.urgencia === 'hoy').length, 'urgente', 'urgentes')} 🔥
+                      {tareas.filter((t) => t.urgencia === 'hoy').length === 1 ? 'urgente para hoy' : 'urgentes para hoy'} 🔥
                     </span>
                   </div>
                 )}
@@ -207,7 +207,7 @@ export function TeToca() {
                       ))}
                       <li className="ruta-misiones__meta" aria-hidden="true">
                         <span className="mision__numero">🏁</span>
-                        <span className="texto-pequeno texto-suave">¡Meta! Al terminar, Yaku celebra contigo 🎉</span>
+                        <span className="texto-pequeno texto-suave">¡Meta! Terminaste tu ruta de hoy 🎉</span>
                       </li>
                     </ol>
                   )}

@@ -66,7 +66,11 @@ test('OIDC, datos reales y recorrido PDF → expediente → analista → ciudada
   await dialog.getByRole('button', { name: 'Registrar y derivar' }).click()
   const response = await created; expect(response.status()).toBe(201)
   const newCase = (await response.json()).tramite_id
-  await coordinator.close()
+  const initialDocs = (await (await coordinator.request.get(base + '/api/tramites/' + encodeURIComponent(newCase) + '/documentos')).json()).items
+  let version = (await (await coordinator.request.get(base + '/api/tramites/' + encodeURIComponent(newCase))).json()).version
+  expect((await coordinator.request.put(base + '/api/tramites/' + encodeURIComponent(newCase) + '/documentos/' + encodeURIComponent(initialDocs[0].id) + '/visibilidad', {
+    headers: { Origin: base }, data: { visibilidad: 'partes', motivo: 'Fuente sintética revisada para EPS QA', version },
+  })).status()).toBe(200)
 
   const analyst = await browser.newContext({ ...info.project.use, ignoreHTTPSErrors: true }); await protect(analyst)
   const a = await analyst.newPage(); await login(a, 'analista_srt')
@@ -106,11 +110,23 @@ test('OIDC, datos reales y recorrido PDF → expediente → analista → ciudada
   await eps.screenshot({ path: `${process.env.QA_SCREENSHOTS ?? '../private'}/qa-eps-${info.project.name}.png`, fullPage: true, scale: 'css', animations: 'disabled' })
   expect((await company.request.get(base + '/api/finanzas/resumen')).status()).toBe(403)
   await company.close()
+  // Incorporar una recepción distinta como respuesta; el oficio inicial no puede verificarla.
+  const intake = await coordinator.request.post(base + '/api/recepcion/pdf', { headers: { Origin: base }, multipart: {
+    titulo: 'Respuesta sintética ' + ref, referencia: 'Oficio sintético QA ' + ref, fecha_documento: '2026-11-20',
+    eps_id: scenario.qa_eps_id, simulado: 'true', archivo: { name: 'respuesta-qa.pdf', mimeType: 'application/pdf', buffer: fs.readFileSync(process.env.QA_TEST_PDF!) },
+  } })
+  expect(intake.status()).toBe(202); const answerId = (await intake.json()).id
+  await expect.poll(async () => (await (await coordinator.request.get(base + '/api/recepcion')).json()).items.find((d: { id: string }) => d.id === answerId)?.procesamiento_pdf?.estado, { timeout: 90_000 }).toBe('listo')
+  version = (await (await coordinator.request.get(base + '/api/tramites/' + encodeURIComponent(newCase))).json()).version
+  expect((await coordinator.request.post(base + '/api/recepcion/incorporaciones', { headers: { Origin: base }, data: {
+    documento_id: answerId, tramite_id: newCase, tipo_actuacion: 'Respuesta EPS de práctica', version,
+  } })).status()).toBe(204)
+  await coordinator.close()
   await a.reload()
   await a.getByRole('button', { name: 'Registrar actuación con sustento', exact: true }).click()
   const verification = a.getByRole('dialog')
   await verification.getByRole('combobox', { name: 'Actuación', exact: true }).selectOption('verificar_respuesta')
-  await verification.getByRole('combobox', { name: 'Documento de sustento', exact: true }).selectOption({ index: 1 })
+  await verification.getByRole('combobox', { name: 'Documento de sustento', exact: true }).selectOption(answerId)
   await verification.getByLabel('Fecha acreditada', { exact: true }).fill('2026-11-20')
   const verified = a.waitForResponse((r) => r.url().endsWith('/eventos') && r.request().method() === 'POST')
   await verification.getByRole('button', { name: 'Confirmar actuación documentada' }).click()

@@ -64,6 +64,25 @@ try {
   mock('GET', '/api/recepcion/catalogos', { empresas: [{ id: 'eps-qa', nombre: 'EPS QA' }], analistas: [{ id: 'analista-qa', nombre: 'Analista QA' }] })
   mock('GET', '/api/recepcion/destinos', { items: [] })
   assert.equal((await cases.obtenerCatalogosRecepcion()).asignables[0].id, 'analista-qa')
+  assert.equal((await cases.obtenerCatalogosRecepcion()).asignables[0].carga_activa, undefined, 'La API antigua no debe convertirse en carga cero')
+  const candidates = [{ id: 'a', nombre: 'Ana', carga_activa: 0, menor_carga: true, recomendado: true, asignacion_actual: false, ultima_asignacion: null }, { id: 'b', nombre: 'Beto', carga_activa: 3, menor_carga: false, recomendado: false, asignacion_actual: false, ultima_asignacion: null }]
+  mock('GET', '/api/asignaciones/carga', candidates)
+  assert.match(cases.textoCandidato(candidates[0]), /0 expedientes activos.*menor carga/)
+  mock('GET', '/api/recepcion/catalogos', { empresas: [], analistas: candidates })
+  const catalog = await cases.obtenerCatalogosRecepcion()
+  assert.equal(catalog.asignables[0].menor_carga, true)
+  assert.equal(catalog.asignables[1].carga_activa, 3)
+  const assistant = await server.ssrLoadModule('/src/services/asistente.ts')
+  const loadReply = await assistant.preguntarAlAgente({ caso: { tipo: 'tramite', id: 'caso-qa' }, pregunta: '¿Qué analista tiene menos carga?', preguntas: [], conversacionId: null })
+  assert.match(loadReply.respuesta, /Ana: 0 expedientes abiertos/)
+  assert.equal(requests.at(-1).path, '/api/asignaciones/carga')
+  const searchQuery = 'Busca abrazaderas'
+  const found = { tramite_id: 'caso-qa', referencia: 'EXP-123', eps: 'EPS QA', titulo: 'Prueba', etapa: 'Evaluación', estado: 'en_evaluacion', enlace_expediente: '/sunass/expedientes/caso-qa', fuentes: [{ documento_id: 'doc-qa', fragmento_id: 'doc-qa-p2', pagina_pdf: 2, titulo: 'Oficio', extracto: 'Abrazaderas', enlace: '/api/documentos/doc-qa/contenido?pagina=2', tipo: 'texto' }] }
+  mock('GET', '/api/agente/buscar?' + new URLSearchParams({ q: searchQuery, limite: '5' }), { items: [found], limite: 5, parcial: false, sin_inferencia: true, nota: 'Fuentes autorizadas' })
+  const searchReply = await assistant.preguntarAlAgente({ cartera: true, pregunta: searchQuery, preguntas: [], conversacionId: null })
+  assert.equal(searchReply.expedientes[0].referencia, 'EXP-123')
+  assert.equal(searchReply.fuentes[0].pagina_pdf, 2)
+  assert.equal(searchReply.conversacion_id, 'cartera')
 
   mock('GET', '/api/conflicto', { detail: 'El expediente fue actualizado por otra persona.' }, 409)
   await assert.rejects(api.pedirJson('/api/conflicto'), /actualizado por otra persona/)

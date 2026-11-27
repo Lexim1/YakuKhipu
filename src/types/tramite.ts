@@ -90,7 +90,7 @@ export interface ItemHistorial {
   actual: boolean
 }
 
-export type AccionSiguiente = 'validar' | 'alertas' | 'recepcion'
+export type AccionSiguiente = 'validar' | 'alertas' | 'recepcion' | 'registrar' | 'verificar_respuesta'
 
 export interface SiguienteAccion {
   titulo: string
@@ -225,6 +225,8 @@ export interface Asignable {
   id: string
   texto: string
   menor_carga: boolean
+  carga_activa?: number
+  recomendado?: boolean
 }
 
 /** Opciones del diálogo «Incorporar documento». Vienen de servicios, no de los ejemplos. */

@@ -276,6 +276,20 @@ export async function listarDestinos(signal?: AbortSignal): Promise<DestinoApi[]
 export interface CandidatoAsignacion {
   id: string
   nombre: string
+  carga_activa?: number
+  menor_carga?: boolean
+  recomendado?: boolean
+  asignacion_actual?: boolean
+  ultima_asignacion?: string | null
+}
+
+export function textoCandidato(persona: CandidatoAsignacion) {
+  const carga = persona.carga_activa == null ? 'carga no disponible' : `${persona.carga_activa} expediente${persona.carga_activa === 1 ? '' : 's'} activo${persona.carga_activa === 1 ? '' : 's'}`
+  return `${persona.nombre} · ${carga}${persona.asignacion_actual ? ' · asignación actual' : persona.recomendado ? ' · menor carga' : ''}`
+}
+
+export function consultarCargaAnalistas(signal?: AbortSignal) {
+  return pedirJson<CandidatoAsignacion[]>('/api/asignaciones/carga', { signal })
 }
 
 export function listarCandidatosAsignacion(id: string, signal?: AbortSignal) {
@@ -322,7 +336,7 @@ export async function cargarPdf(datos: FormData): Promise<void> {
   if (usarEjemplos) {
     throw new ErrorApi(503, 'En el modo de ejemplos no se cargan archivos.')
   }
-  await pedir('/api/recepcion/pdf', { method: 'POST', body: datos })
+  await pedirJson('/api/recepcion/pdf', { method: 'POST', body: datos })
   avisarCambio()
 }
 
@@ -337,7 +351,7 @@ export interface NuevoExpedienteRecepcion {
   documento_id: string
   procedimiento: 'CPI' | 'UFI' | 'RP'
   fecha_ingreso: string
-  asignado_a: string
+  asignado_a?: string | null
 }
 
 export async function registrarExpedienteRecepcion(datos: NuevoExpedienteRecepcion) {
@@ -365,7 +379,7 @@ export async function obtenerCatalogosRecepcion(signal?: AbortSignal): Promise<C
   const [destinos, catalogo] = await Promise.all([listarDestinos(signal), consultarCatalogoRecepcion(signal)])
   return {
     expedientes: destinos.map((t) => ({ id: t.id, eps: t.eps, version: t.version, eps_id: t.eps_id })),
-    asignables: catalogo.analistas.map((persona) => ({ id: persona.id, texto: persona.nombre, menor_carga: false })),
+    asignables: catalogo.analistas.map((persona) => ({ id: persona.id, texto: persona.nombre, menor_carga: persona.menor_carga ?? false, carga_activa: persona.carga_activa, recomendado: persona.recomendado })),
     tipos_actuacion: TIPOS_ACTUACION,
   }
 }
