@@ -13,6 +13,7 @@ import './styles/seguimiento.css'
 import './styles/graficos.css'
 import './styles/estilo-amable.css'
 import './styles/integracion.css'
+import './styles/vistas-vivas.css'
 import { App } from './app/App'
 import { activarRevelado } from './app/revelar'
 

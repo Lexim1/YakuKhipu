@@ -4,6 +4,8 @@ import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Barra } from '../../components/Barra'
 import { Chip } from '../../components/Chip'
 import { IconoFlecha } from '../../components/Iconos'
+import { Gotita, type PoseGotita } from '../../components/Gotita'
+import { CifrasSaludo, Dona, Saludo } from '../../components/Graficos'
 import { Contenido, SinResultados } from '../../components/Mensajes'
 import { listarExpedientes } from '../../services/tramites'
 import { useConsulta } from '../../services/useConsulta'
@@ -13,6 +15,17 @@ import { NOMBRE_PROCEDIMIENTO, type Procedimiento, type Situacion, type TramiteR
 import { SEMAFORO, textoDias } from './semaforo'
 
 const ORDEN: Record<Situacion, number> = { vencido: 0, por_vencer: 1, en_plazo: 2, pendiente_de_validacion: 3, concluido: 4 }
+
+/** Gotita de cada fila según su semáforo (decorativa: el chip dice la situación). */
+const GOTA_SITUACION: Record<Situacion, PoseGotita> = {
+  vencido: 'avatar-rojo',
+  por_vencer: 'avatar-naranja',
+  en_plazo: 'avatar-azul',
+  pendiente_de_validacion: 'avatar',
+  concluido: 'avatar',
+}
+
+const EMOJI_PROCEDIMIENTO: Record<string, string> = { RP: '🧾', CPI: '🏗️', UFI: '💧', FI: '💧' }
 
 function normalizar(texto: string) {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -78,8 +91,43 @@ export function Expedientes() {
                 (!busqueda || normalizar(`${t.id} ${t.eps} ${t.etapa}`).includes(busqueda)),
             ),
           )
+          const vencidos = contar('vencido')
+          const porVencer = contar('por_vencer')
+          const enPlazo = contar('en_plazo')
+          const otros = items.length - vencidos - porVencer - enPlazo
           return (
             <>
+              <div className="bento-arriba">
+                <Saludo
+                  pose={vencidos > 0 ? 'atenta' : porVencer > 0 ? 'pensando' : 'al-dia'}
+                  titulo={vencidos > 0 ? `🚨 ${vencidos} ${vencidos === 1 ? 'expediente pasó' : 'expedientes pasaron'} su plazo` : '📂 Tus expedientes, de un vistazo'}
+                  texto="Los más urgentes van primero. Toca un color para ver solo esos."
+                >
+                  <CifrasSaludo
+                    cifras={[
+                      { emoji: '🔴', valor: vencidos, texto: 'vencidos', tono: 'peligro' },
+                      { emoji: '🟠', valor: porVencer, texto: 'por vencer', tono: 'aviso' },
+                      { emoji: '🟢', valor: enPlazo, texto: 'en plazo', tono: 'ok' },
+                    ]}
+                  />
+                </Saludo>
+                <section className="tarjeta tarjeta-dona" aria-labelledby="titulo-dona-exp">
+                  <h2 id="titulo-dona-exp" className="titulo-icono">
+                    <span className="burbuja burbuja--menta burbuja--sm" aria-hidden="true">🚦</span>
+                    <span>Semáforo de plazos</span>
+                  </h2>
+                  <Dona
+                    etiqueta={`Expedientes: ${vencidos} vencidos, ${porVencer} por vencer, ${enPlazo} en plazo, ${otros} otros`}
+                    segmentos={[
+                      { texto: 'Vencidos', valor: vencidos, tono: 'peligro' },
+                      { texto: 'Por vencer', valor: porVencer, tono: 'aviso' },
+                      { texto: 'En plazo', valor: enPlazo, tono: 'ok' },
+                      { texto: 'Otros', valor: otros, tono: 'neutro' },
+                    ]}
+                  />
+                </section>
+              </div>
+
               <div className="pastillas" role="group" aria-label="Filtrar expedientes">
                 <button
                   type="button"
@@ -97,6 +145,7 @@ export function Expedientes() {
                     aria-pressed={procedimiento === p}
                     onClick={() => cambiar('procedimiento', p)}
                   >
+                    <span aria-hidden="true">{EMOJI_PROCEDIMIENTO[p] ?? '📁'} </span>
                     {NOMBRE_PROCEDIMIENTO[p]}
                   </button>
                 ))}
@@ -164,10 +213,15 @@ export function Expedientes() {
                         const s = SEMAFORO[t.plazo.situacion]
                         const completo = t.id === 'CPI-2026-0007'
                         return (
-                          <tr key={t.id}>
+                          <tr key={t.id} className={`fila-viva fila-viva--${t.plazo.situacion}`}>
                             <td>
-                              <strong>{t.referencia ?? t.id}</strong>
-                              <span className="celda__detalle">{NOMBRE_PROCEDIMIENTO[t.procedimiento]}</span>
+                              <span className="celda-gotita">
+                                <Gotita pose={GOTA_SITUACION[t.plazo.situacion]} alto={40} />
+                                <span>
+                                  <strong>{t.referencia ?? t.id}</strong>
+                                  <span className="celda__detalle">{NOMBRE_PROCEDIMIENTO[t.procedimiento]}</span>
+                                </span>
+                              </span>
                             </td>
                             <td>
                               <strong>{t.eps}</strong>

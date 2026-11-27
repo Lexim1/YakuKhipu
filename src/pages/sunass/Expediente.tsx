@@ -5,6 +5,8 @@ import type { PreguntaAgente } from '../../agente/tipos'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip } from '../../components/Chip'
 import { IconoAtras, IconoChispa } from '../../components/Iconos'
+import { Gotita, type PoseGotita } from '../../components/Gotita'
+import { Anillo, OlaAnimada } from '../../components/Graficos'
 import { Contenido } from '../../components/Mensajes'
 import { confirmarVinculo, obtenerExpediente, rechazarVinculo } from '../../services/tramites'
 import { usarEjemplos } from '../../services/api'
@@ -35,6 +37,16 @@ const PESTANAS = [
 ] as const
 
 type IdPestana = (typeof PESTANAS)[number]['id']
+
+const EMOJI_PESTANA: Record<IdPestana, string> = { linea: '🕒', comparador: '🔢', plazos: '⏳', impacto: '🏘️' }
+
+const GOTA: Record<TipoExpediente['plazo']['situacion'], PoseGotita> = {
+  vencido: 'plazo-rojo',
+  por_vencer: 'plazo-naranja',
+  en_plazo: 'plazo-azul',
+  pendiente_de_validacion: 'pensando',
+  concluido: 'logrado',
+}
 
 /** Preguntas que el agente responde sobre este expediente, con sus fuentes. */
 function preguntasDe(e: TipoExpediente): PreguntaAgente[] {
@@ -146,8 +158,10 @@ export function Expediente() {
         {() =>
           expediente && (
             <>
-              <div className="expediente__cabecera">
-                <div>
+              <div className="expediente__cabecera expediente__cabecera--viva">
+                <OlaAnimada />
+                <Gotita pose={GOTA[expediente.plazo.situacion]} alto={110} className="expediente__gotita" />
+                <div className="expediente__textos">
                   <div className="expediente__titulo">
                     <h1>
                       {expediente.referencia ?? expediente.id} · {expediente.eps}
@@ -158,11 +172,25 @@ export function Expediente() {
                     {NOMBRE_COMPLETO[expediente.procedimiento]} · {expediente.tema} · Responsable actual:{' '}
                     {expediente.responsable}
                   </p>
+                  <button type="button" className="boton boton--secundario" onClick={() => abrir()}>
+                    Preguntar a Yaku
+                    <IconoChispa tamano={16} />
+                  </button>
                 </div>
-                <button type="button" className="boton boton--secundario" onClick={() => abrir()}>
-                  Preguntar al agente
-                  <IconoChispa tamano={16} />
-                </button>
+                {expediente.plazo.dias_usados != null && expediente.plazo.dias_totales ? (
+                  <Anillo
+                    porcentaje={(expediente.plazo.dias_usados / expediente.plazo.dias_totales) * 100}
+                    tono={SEMAFORO[expediente.plazo.situacion].barra}
+                    tamano={124}
+                    grosor={13}
+                    etiqueta={`Plazo usado: ${textoDias(expediente.plazo)} días hábiles`}
+                  >
+                    <span className="expediente__anillo">
+                      <strong>{expediente.plazo.dias_usados}</strong>
+                      <span>de {expediente.plazo.dias_totales} días</span>
+                    </span>
+                  </Anillo>
+                ) : null}
               </div>
 
               <div>
@@ -240,6 +268,7 @@ export function Expediente() {
                         className="pestana"
                         onClick={() => cambiarPestana(p.id)}
                       >
+                        <span aria-hidden="true">{EMOJI_PESTANA[p.id]} </span>
                         {p.texto}
                       </button>
                     ))}
@@ -259,7 +288,10 @@ export function Expediente() {
                 <div className="dos-columnas">
                   <section className="tarjeta" aria-labelledby="titulo-historial">
                     <div className="fila-chips" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-                      <h2 id="titulo-historial">Historial del trámite</h2>
+                      <h2 id="titulo-historial" className="titulo-icono">
+                        <span className="burbuja burbuja--cielo burbuja--sm" aria-hidden="true">🕒</span>
+                        <span>Historial del trámite</span>
+                      </h2>
                       {expediente.simulado && <Chip tono="agente">Simulado</Chip>}
                     </div>
                     {expediente.historial && expediente.historial.length > 0 ? (
