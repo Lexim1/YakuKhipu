@@ -30,6 +30,7 @@ export function RegistrarActuacion({ expediente, alCerrar, alGuardar, accionInic
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
+    const ventana = (e.currentTarget as HTMLFormElement).closest('dialog')
     if (enviando || consulta.estado !== 'listo') return
     const accion = consulta.datos.items.find((item) => item.tipo === tipo)
     if (!accion) return setError('Selecciona una actuación permitida para tu perfil y este paso.')
@@ -50,6 +51,7 @@ export function RegistrarActuacion({ expediente, alCerrar, alGuardar, accionInic
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': clave.current },
         body: JSON.stringify(body),
       })
+      ventana?.close()
       alGuardar()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo registrar. Actualiza el expediente y vuelve a intentarlo.')

@@ -17,6 +17,10 @@ export function useConsulta<T>(
 
   useEffect(() => {
     const control = new AbortController()
+    const limite = setTimeout(() => {
+      setResultado({ estado: 'error', codigo: 408, mensaje: 'La consulta está tardando demasiado. Puedes reintentar o cerrar esta ventana.' })
+      control.abort()
+    }, 30_000)
     setResultado({ estado: 'cargando' })
     servicio(control.signal)
       .then((datos) => { if (!control.signal.aborted) setResultado({ estado: 'listo', datos }) })
@@ -26,7 +30,8 @@ export function useConsulta<T>(
         const codigo = error instanceof ErrorApi ? error.estado : 0
         setResultado({ estado: 'error', mensaje, codigo })
       })
-    return () => control.abort()
+      .finally(() => clearTimeout(limite))
+    return () => { clearTimeout(limite); control.abort() }
     // El servicio cambia en cada render; las dependencias indican cuándo repetir la consulta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dependencias, intento])

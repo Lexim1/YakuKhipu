@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { IconoCerrar } from './Iconos'
 
 interface Props {
@@ -18,23 +19,26 @@ interface Props {
  */
 export function Dialogo({ abierto, titulo, alCerrar, children, lateral = false, sinCabecera = false }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
+  const cerrar = () => { ref.current?.close(); alCerrar() }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialogo = ref.current
     if (!dialogo) return
     if (abierto && !dialogo.open) dialogo.showModal()
     if (!abierto && dialogo.open) dialogo.close()
+    return () => { if (dialogo.open) dialogo.close() }
   }, [abierto])
 
-  return (
+  return createPortal(
     <dialog
       ref={ref}
       className={lateral ? 'panel-lateral' : 'dialogo'}
       aria-label={titulo}
-      onClose={alCerrar}
+      onClose={() => { if (!ref.current?.open) alCerrar() }}
+      onCancel={(e) => { e.preventDefault(); cerrar() }}
       onClick={(e) => {
         // Clic en el fondo oscuro: cerrar.
-        if (e.target === ref.current) alCerrar()
+        if (e.target === ref.current) cerrar()
       }}
     >
       {abierto && (
@@ -42,7 +46,7 @@ export function Dialogo({ abierto, titulo, alCerrar, children, lateral = false, 
           {!sinCabecera && (
             <div className="dialogo__cabecera">
               <h2>{titulo}</h2>
-              <button type="button" className="dialogo__cerrar" onClick={alCerrar} aria-label="Cerrar">
+              <button type="button" className="dialogo__cerrar" onClick={cerrar} aria-label="Cerrar">
                 <IconoCerrar tamano={16} />
               </button>
             </div>
@@ -50,6 +54,6 @@ export function Dialogo({ abierto, titulo, alCerrar, children, lateral = false, 
           {children}
         </>
       )}
-    </dialog>
+    </dialog>, document.body
   )
 }
