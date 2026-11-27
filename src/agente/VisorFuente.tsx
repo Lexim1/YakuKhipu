@@ -64,6 +64,7 @@ export function VisorFuente({ cita, alVolver }: { cita: FuenteCita; alVolver: ()
                 </div>
               </div>
               <div className="fila-chips">
+                {cita.tipo === 'indice' && <p className="nota">La coincidencia está en el título o número del documento; revisa su contenido antes de sacar conclusiones.</p>}
                 {cita.pagina_pdf && <Chip tono="info">Página {cita.pagina_pdf}</Chip>}
                 {doc.simulado && <Chip tono="agente">Simulado</Chip>}
                 {validacion && <Chip tono={validacion.tono}>{validacion.texto}</Chip>}

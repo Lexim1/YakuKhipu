@@ -339,7 +339,7 @@ export function Expediente() {
                 </div>
               )}
 
-              {!usarEjemplos && <DocumentosExpediente expediente={expediente} />}
+              {!usarEjemplos && <DocumentosExpediente expediente={expediente} puedeRevisar={puede('recepcion.gestionar')} alActualizar={() => { setActualizado(null); reintentar() }} />}
               {!usarEjemplos && <ContextoDatos id={expediente.id} />}
               {!usarEjemplos && puede('agente.consultar') && (
                 <PropuestasAgente tramiteId={expediente.id} puedeRevisar={puede('evaluacion.validar')} />

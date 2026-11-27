@@ -6,7 +6,8 @@
 
 import type { CasoAgente, PreguntaAgente } from '../agente/tipos'
 import { ErrorApi, ejemplo, pedirJson, urlApi, usarEjemplos } from './api'
-import { listarAlertas, listarExpedientes } from './tramites'
+import { listarAlertas, listarExpedientes, consultarCargaAnalistas } from './tramites'
+import { buscarExpedientes, type ExpedienteEncontrado } from './busqueda'
 
 export interface FuenteCita {
   documento_id: string
@@ -16,6 +17,7 @@ export interface FuenteCita {
   extracto: string
   /** Solo viene si la persona puede abrir el documento. En ciudadanía, solo fuentes publicadas. */
   enlace: string | null
+  tipo?: 'texto' | 'indice'
 }
 
 export interface RespuestaAgente {
@@ -25,6 +27,7 @@ export interface RespuestaAgente {
   advertencias: string[]
   conversacion_id: string
   desde_cache?: boolean
+  expedientes?: ExpedienteEncontrado[]
 }
 
 export interface PaginaFuente {
@@ -102,6 +105,12 @@ export async function preguntarAlAgente(
 ): Promise<RespuestaAgente> {
   const { caso, pregunta, preguntas, conversacionId } = datos
   if (usarEjemplos) return responderConEjemplos(pregunta, preguntas, signal)
+  if (caso?.tipo !== 'publico' && /analista/.test(normalizar(pregunta)) && /carga|asign|recom|satur|menos/.test(normalizar(pregunta))) {
+    const personas = await consultarCargaAnalistas(signal)
+    return { estado: 'ok', conversacion_id: 'cartera', fuentes: [],
+      respuesta: personas.length ? personas.map((p) => `${p.nombre}: ${p.carga_activa ?? 'sin dato de'} expedientes abiertos${p.menor_carga ? ' · menor carga' : ''}.`).join('\n') : 'No hay analistas activos registrados.',
+      advertencias: ['Fuente: asignaciones actuales del portal. Los expedientes concluidos no aumentan la carga. La recomendación no asigna automáticamente.', ...(personas.length === 1 ? ['Solo hay un analista activo; no hay otras personas entre las que distribuir la carga.'] : [])] }
+  }
   if (!caso && datos.cartera) return consultarCartera(pregunta, signal)
   if (!caso) throw new ErrorApi(400, 'Abre un expediente o una decisión para consultar sus documentos. Para próximos vencimientos, revisa Alertas.')
 
@@ -130,6 +139,7 @@ export async function preguntarAlAgente(
 
 async function consultarCartera(pregunta: string, signal?: AbortSignal): Promise<RespuestaAgente> {
   const texto = normalizar(pregunta)
+  if (/busca|ubica|donde|en que expediente|que expediente.*mencion|quien.*(lleva|atiende|tiene)|a cargo/.test(texto)) return localizar(pregunta,signal)
   if (/alerta|reporte|duplicad|saldo|deposito|avance/.test(texto)) {
     const { items } = await listarAlertas(signal)
     const filtro = /reporte/.test(texto) ? 'reporte_faltante' : /duplicad/.test(texto) ? 'dato_duplicado'
@@ -145,10 +155,7 @@ async function consultarCartera(pregunta: string, signal?: AbortSignal): Promise
     }
   }
   if (!/(venc|urgenc|priorid|atiendo primero|empiezo)/.test(texto)) {
-    return {
-      estado: 'ok', respuesta: 'Puedo consultar los vencimientos y las alertas visibles para tu perfil. Prueba «¿Qué expedientes están próximos a vencer?» o «¿Hay saldos por conciliar?». Abre un expediente para analizar sus documentos y proponer un siguiente paso.',
-      fuentes: [], advertencias: [], conversacion_id: 'cartera',
-    }
+    return localizar(pregunta,signal)
   }
   const { items } = await listarExpedientes(signal)
   const estados = /(^|\b)(proxim\w*|por vencer)(\b|$)/.test(texto)
@@ -165,6 +172,15 @@ async function consultarCartera(pregunta: string, signal?: AbortSignal): Promise
     advertencias: ['Resultado de los plazos registrados para tu perfil en Expedientes.'],
     conversacion_id: 'cartera',
   }
+}
+
+async function localizar(pregunta: string, signal?: AbortSignal): Promise<RespuestaAgente> {
+  const r = await buscarExpedientes(pregunta,signal)
+  return { estado: r.items.length ? 'ok' : 'sin_fuentes',
+    respuesta: r.items.length ? 'Encontré estas coincidencias en los registros y documentos que puedes consultar.' : 'No encontré coincidencias en tu ámbito autorizado. Prueba con el número del expediente, oficio, EPS o una expresión del documento.',
+    fuentes: r.items.flatMap((item) => item.fuentes), expedientes: r.items,
+    advertencias: [r.nota, ...(r.parcial ? ['Se muestran coincidencias limitadas; precisa el número, EPS o asunto para acotar.'] : [])],
+    conversacion_id: 'cartera' }
 }
 
 /** Texto de la página citada. El enlace lo arma el backend solo para documentos autorizados. */

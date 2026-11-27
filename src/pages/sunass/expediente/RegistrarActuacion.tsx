@@ -42,7 +42,7 @@ export function RegistrarActuacion({ expediente, alCerrar, alGuardar, accionInic
       ...(['requerir_informacion', 'requerir_subsanacion'].includes(tipo)
         ? { plazo_dias: Number(dias), requisitos: requisitos.split('\n').map((s) => s.trim()).filter(Boolean) }
         : {}),
-      ...(tipo === 'resolver' ? { resultado } : {}),
+      ...(tipo === 'resolver' ? { resultado: resultado === 'autorizado_parcial' ? 'autorizado' : resultado, ...(resultado === 'autorizado_parcial' ? { alcance_autorizacion: 'parcial' } : {}) } : {}),
       ...(tipo === 'validar_expediente' ? { estado_validado: estado, paso_validado: paso } : {}),
     }
     try {
@@ -94,7 +94,7 @@ export function RegistrarActuacion({ expediente, alCerrar, alGuardar, accionInic
             </label>
           </>}
           {tipo === 'resolver' && <label className="campo">Resultado acreditado
-            <select value={resultado} onChange={(e) => setResultado(e.target.value)}><option value="autorizado">Autorizado</option><option value="no_autorizado">No autorizado</option></select>
+            <select value={resultado} onChange={(e) => setResultado(e.target.value)}><option value="autorizado">Autorizado</option><option value="autorizado_parcial">Autorizado parcialmente</option><option value="no_autorizado">No autorizado</option></select>
           </label>}
           {tipo === 'validar_expediente' && <>
             <label className="campo">Estado documentado

@@ -225,6 +225,8 @@ export interface Asignable {
   id: string
   texto: string
   menor_carga: boolean
+  carga_activa?: number
+  recomendado?: boolean
 }
 
 /** Opciones del diálogo «Incorporar documento». Vienen de servicios, no de los ejemplos. */

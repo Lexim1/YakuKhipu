@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { LectorDocumento } from '../../components/LectorDocumento'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip, Fuente } from '../../components/Chip'
@@ -95,6 +97,7 @@ function QueTeToca({ tramite }: { tramite: TramiteEps }) {
 
 export function DetalleTramite() {
   const { id = '' } = useParams()
+  const [documento, setDocumento] = useState<string | null>(null)
   const [resultado, reintentar] = useConsulta((signal) => obtenerTramiteEps(id, signal), [id])
   const tramite = resultado.estado === 'listo' ? resultado.datos : null
 
@@ -208,6 +211,7 @@ export function DetalleTramite() {
                             {d.pagina != null && ` · p. ${d.pagina}`}
                           </Fuente>
                           {d.resumen && <p className="texto-pequeno">{d.resumen}</p>}
+                          <button type="button" className="boton boton--secundario" aria-label={`Leer ${d.titulo}`} onClick={() => setDocumento(d.id)}>Leer documento</button>
                         </li>
                       ))}
                     </ul>
@@ -222,6 +226,7 @@ export function DetalleTramite() {
       </Contenido>
 
       <NavegacionEps tramiteId={id} pendientes={tramite?.siguiente_accion ? 1 : 0} />
+      {documento && <LectorDocumento id={documento} alCerrar={() => setDocumento(null)} />}
     </div>
   )
 }
