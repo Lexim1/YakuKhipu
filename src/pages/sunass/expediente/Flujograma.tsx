@@ -42,7 +42,7 @@ export function Flujograma({ flujo, situacion, usado, total, alRegistrarPaso }: 
             aria-current={paso.estado === 'actual' ? 'step' : undefined}
           >
             <button type="button" className="paso__caja paso__boton" onClick={() => setSeleccionado(i)}
-              aria-label={`Paso ${i + 1}: ${paso.titulo}. ${paso.estado === 'hecho' ? 'Registrado' : paso.estado === 'actual' ? 'Actual' : 'Pendiente'}`}
+              aria-label={`Paso ${i + 1}: ${paso.titulo}. ${paso.nota.startsWith('No realizado:') ? 'No realizado' : paso.estado === 'hecho' ? 'Registrado' : paso.estado === 'actual' ? 'Actual' : 'Pendiente'}`}
               aria-expanded={seleccionado === i}>
               <span className="paso__titulo">
                 {i + 1} · {paso.titulo}
@@ -61,11 +61,11 @@ export function Flujograma({ flujo, situacion, usado, total, alRegistrarPaso }: 
       {seleccionado !== null && <div className="flujograma__detalle" role="status">
         <strong>Paso {seleccionado + 1}: {flujo.pasos[seleccionado].titulo}</strong>
         <p>{flujo.pasos[seleccionado].detalle}. {flujo.pasos[seleccionado].nota}</p>
-        {seleccionado === actual + 1 && alRegistrarPaso &&
+        {actual >= 0 && seleccionado === actual + 1 && alRegistrarPaso &&
           <button className="boton boton--secundario" type="button" onClick={alRegistrarPaso}>Registrar avance con sustento</button>}
-        {seleccionado === actual + 1 && !alRegistrarPaso &&
+        {actual >= 0 && seleccionado === actual + 1 && !alRegistrarPaso &&
           <p className="nota">Para registrar este avance se necesita el perfil responsable y el documento incorporado. Consulta a Coordinación DRE si corresponde una derivación o asignación.</p>}
-        {flujo.pasos[seleccionado].estado === 'pendiente' && seleccionado !== actual + 1 &&
+        {actual >= 0 && flujo.pasos[seleccionado].estado === 'pendiente' && seleccionado !== actual + 1 &&
           <p className="nota">Este paso se habilita cuando se registren los anteriores.</p>}
       </div>}
       <Barra usado={usado} total={total} tono={urgente ? 'aviso' : 'marca'} etiqueta="Plazo usado" />
