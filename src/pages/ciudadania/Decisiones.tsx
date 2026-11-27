@@ -54,7 +54,7 @@ function TarjetaDecision({ decision }: { decision: DecisionResumen }) {
         <span className="texto-pequeno texto-suave">{decision.nota_estado}</span>
       </div>
       {decision.estado_publico === 'en_consulta' && (
-        <p className="texto-pequeno decision__invitacion">🗣️ ¡Tu opinión cuenta! Participa en la audiencia pública.</p>
+        <p className="texto-pequeno decision__invitacion">🗣️ ¡Tu opinión cuenta! Mira en la ficha cómo participar.</p>
       )}
       {(plazo || publicada) && (
         <div className="progreso-plazo">
@@ -139,6 +139,12 @@ export function Decisiones() {
     [q, pagina],
   )
   const [cifras, reintentarCifras] = useConsulta((signal) => obtenerCifrasSector(signal), [])
+  // Búsquedas rápidas con las localidades que de verdad tienen decisiones publicadas (sin inventar nombres).
+  const [lugaresVistos, setLugaresVistos] = useState<string[]>([])
+  if (!q && resultado.estado === 'listo' && lugaresVistos.length === 0 && resultado.datos.items.length > 0) {
+    setLugaresVistos([...new Set(resultado.datos.items.map((d) => d.localidad.split(',')[0].trim()).filter(Boolean))].slice(0, 4))
+  }
+  const lugares = lugaresVistos
 
   useContextoAgente({
     espacio: 'Consulta ciudadana',
@@ -214,13 +220,15 @@ export function Decisiones() {
             autoComplete="off"
           />
         </form>
-        <div className="sugerencias" aria-label="Búsquedas rápidas">
-          {['Tacna', 'Río Claro', 'Altiplano'].map((lugar) => (
-            <button key={lugar} type="button" onClick={() => escribir(lugar)}>
-              📍 {lugar}
-            </button>
-          ))}
-        </div>
+        {lugares.length > 0 && (
+          <div className="sugerencias" aria-label="Búsquedas rápidas">
+            {lugares.map((lugar) => (
+              <button key={lugar} type="button" onClick={() => escribir(lugar)}>
+                📍 {lugar}
+              </button>
+            ))}
+          </div>
+        )}
         <Gotita pose="hola" alto={210} className="portada-ciudadana__gotita" />
 
       </section>

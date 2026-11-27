@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip } from '../../components/Chip'
-import { IconoArchivo } from '../../components/Iconos'
+import { Burbuja, Saludo } from '../../components/Graficos'
 import { REPORTES } from '../../mocks/seguimiento'
 
 /** Reportes con las mismas cifras del dashboard y sus fuentes. La generación todavía es una demostración. */
@@ -18,6 +18,12 @@ export function Reportes() {
 
       <AvisoSimulado texto=" La generación de archivos todavía no está conectada al servidor." />
 
+      <Saludo
+        pose="verificando"
+        titulo="🖨️ Tus reportes, listos para compartir"
+        texto="Usan las mismas cifras del dashboard y dicen de qué documento sale cada una."
+      />
+
       {mensaje && (
         <p className="mensaje mensaje--exito" role="status">
           {mensaje}
@@ -25,11 +31,9 @@ export function Reportes() {
       )}
 
       <ul className="tres-columnas resumen-bandeja">
-        {REPORTES.map((r) => (
-          <li key={r.titulo} className="tarjeta reporte">
-            <div className="reporte__icono" aria-hidden="true">
-              <IconoArchivo tamano={20} />
-            </div>
+        {REPORTES.map((r, i) => (
+          <li key={r.titulo} className="tarjeta reporte reporte--vivo">
+            <Burbuja emoji={['📊', '📑', '🗂️', '📈', '🧾', '📋'][i % 6]} color={(['cielo', 'durazno', 'menta', 'lila', 'rosa', 'limon'] as const)[i % 6]} tamano="lg" />
             <h2 className="reporte__titulo">{r.titulo}</h2>
             <p className="texto-pequeno texto-suave">{r.detalle}</p>
             <div className="fila-chips">

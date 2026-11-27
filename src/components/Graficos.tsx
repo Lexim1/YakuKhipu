@@ -247,3 +247,116 @@ export function OlaAnimada() {
     </span>
   )
 }
+
+export type TonoSegmento = 'ok' | 'aviso' | 'peligro' | 'marca' | 'info' | 'lila' | 'neutro'
+
+export interface Segmento {
+  texto: string
+  valor: number
+  tono: TonoSegmento
+}
+
+/** Dona por partes con su leyenda. Cada parte crece al aparecer. Los valores salen de los datos de la página. */
+export function Dona({
+  segmentos,
+  etiqueta,
+  tamano = 150,
+  grosor = 22,
+  children,
+}: {
+  segmentos: Segmento[]
+  etiqueta: string
+  tamano?: number
+  grosor?: number
+  children?: ReactNode
+}) {
+  const total = segmentos.reduce((s, x) => s + x.valor, 0)
+  const r = (tamano - grosor) / 2
+  const c = 2 * Math.PI * r
+  const visibles = segmentos.filter((s) => s.valor > 0)
+  const partes = visibles.map((s, i) => {
+    const antes = visibles.slice(0, i).reduce((suma, x) => suma + x.valor, 0)
+    return { ...s, largo: total ? (s.valor / total) * c : 0, desfase: total ? -(antes / total) * c : 0 }
+  })
+  return (
+    <div className="dona">
+      <div className="dona__grafico" style={{ width: tamano, height: tamano }} role="img" aria-label={etiqueta}>
+        <svg width={tamano} height={tamano} viewBox={`0 0 ${tamano} ${tamano}`} aria-hidden="true">
+          <circle className="anillo__pista" cx={tamano / 2} cy={tamano / 2} r={r} strokeWidth={grosor} />
+          {partes.map((s, i) => (
+            <circle
+              key={s.texto}
+              className={`dona__seg dona__seg--${s.tono}`}
+              cx={tamano / 2}
+              cy={tamano / 2}
+              r={r}
+              strokeWidth={grosor}
+              strokeDasharray={`${Math.max(0, s.largo - 3)} ${c}`}
+              strokeDashoffset={s.desfase}
+              transform={`rotate(-90 ${tamano / 2} ${tamano / 2})`}
+              style={{ animationDelay: `${i * 120}ms` }}
+            />
+          ))}
+        </svg>
+        <div className="anillo__centro" aria-hidden="true">
+          {children ?? (
+            <span className="dona__centro">
+              <strong className="dona__total">
+                <ContadorAnimado valor={total} />
+              </strong>
+              <span className="dona__bajo">en total</span>
+            </span>
+          )}
+        </div>
+      </div>
+      <ul className="dona__leyenda">
+        {segmentos.map((s) => (
+          <li key={s.texto}>
+            <span className={`dona__punto dona__punto--${s.tono}`} aria-hidden="true" />
+            <span>{s.texto}</span>
+            <strong>{s.valor}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Barra horizontal por partes (por ejemplo, el semáforo de una lista). */
+export function BarraPartes({ segmentos, etiqueta }: { segmentos: Segmento[]; etiqueta: string }) {
+  const total = segmentos.reduce((s, x) => s + x.valor, 0)
+  if (total === 0) return null
+  return (
+    <div className="barra-partes" role="img" aria-label={etiqueta}>
+      {segmentos
+        .filter((s) => s.valor > 0)
+        .map((s, i) => (
+          <span
+            key={s.texto}
+            className={`barra-partes__parte dona__punto--${s.tono}`}
+            style={{ flexGrow: s.valor, animationDelay: `${i * 120}ms` }}
+            title={`${s.texto}: ${s.valor}`}
+          >
+            {s.valor}
+          </span>
+        ))}
+    </div>
+  )
+}
+
+/** Cifras en píldoras dentro de un saludo. Cada número sube al aparecer. */
+export function CifrasSaludo({ cifras }: { cifras: { emoji: string; valor: number; texto: string; tono?: TonoSegmento }[] }) {
+  return (
+    <ul className="cifras-saludo">
+      {cifras.map((c) => (
+        <li key={c.texto} className={c.tono ? `cifras-saludo--${c.tono}` : undefined}>
+          <span aria-hidden="true">{c.emoji}</span>
+          <strong>
+            <ContadorAnimado valor={c.valor} />
+          </strong>
+          <span>{c.texto}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}

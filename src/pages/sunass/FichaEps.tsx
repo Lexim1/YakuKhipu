@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
-import { Barra } from '../../components/Barra'
 import { Chip } from '../../components/Chip'
+import { Anillo, Burbuja, Saludo, TituloIcono } from '../../components/Graficos'
 import { FICHAS_EPS } from '../../mocks/seguimiento'
+
+const EMOJIS = ['💧', '🛠️', '📈', '🏘️']
+const COLORES = ['cielo', 'durazno', 'menta', 'lila'] as const
 
 /** Ficha 360 de una EPS: indicadores, trámites ante Sunass y metas de gestión. Datos de demostración. */
 export function FichaEps() {
@@ -52,9 +55,16 @@ export function FichaEps() {
 
       <AvisoSimulado />
 
+      <Saludo
+        pose="hola"
+        titulo={`🏢 Así va ${ficha.nombre}`}
+        texto="Sus indicadores, sus trámites ante Sunass y sus metas, en un solo lugar."
+      />
+
       <ul className="cuatro-columnas resumen-bandeja">
-        {ficha.indicadores.map((i) => (
-          <li key={i.etiqueta} className="tarjeta resumen-bandeja__tarjeta">
+        {ficha.indicadores.map((i, n) => (
+          <li key={i.etiqueta} className="tarjeta resumen-bandeja__tarjeta kpi-vivo">
+            <Burbuja emoji={EMOJIS[n % EMOJIS.length]} color={COLORES[n % COLORES.length]} />
             <span className="texto-pequeno">{i.etiqueta}</span>
             <strong className="indicador-grande">{i.valor}</strong>
             <span className="texto-pequeno texto-suave">{i.detalle}</span>
@@ -64,7 +74,9 @@ export function FichaEps() {
 
       <div className="dos-columnas">
         <section className="tarjeta" aria-labelledby="titulo-tramites-eps">
-          <h2 id="titulo-tramites-eps">Trámites ante Sunass</h2>
+          <TituloIcono id="titulo-tramites-eps" emoji="📂" color="cielo">
+            Trámites ante Sunass
+          </TituloIcono>
           <ul className="lista-simple">
             {ficha.tramites.map((t) => (
               <li key={t.id}>
@@ -81,15 +93,23 @@ export function FichaEps() {
         </section>
 
         <section className="tarjeta" aria-labelledby="titulo-metas">
-          <h2 id="titulo-metas">Metas de gestión 2026</h2>
-          <ul className="lista-simple lista-simple--metas">
+          <TituloIcono id="titulo-metas" emoji="🎯" color="limon">
+            Metas de gestión 2026
+          </TituloIcono>
+          <ul className="metas-anillos">
             {ficha.metas.map((m) => (
               <li key={m.meta}>
-                <div className="procesos__fila">
-                  <span>{m.meta}</span>
-                  <strong>{m.avance}</strong>
-                </div>
-                <Barra usado={m.porcentaje} total={100} tono="marca" etiqueta={`Avance de ${m.meta}`} />
+                <Anillo
+                  porcentaje={m.porcentaje}
+                  tono={m.porcentaje >= 75 ? 'ok' : m.porcentaje >= 40 ? 'marca' : 'aviso'}
+                  tamano={84}
+                  grosor={9}
+                  etiqueta={`Avance de ${m.meta}: ${m.avance}`}
+                >
+                  <strong>{Math.round(m.porcentaje)}%</strong>
+                </Anillo>
+                <span>{m.meta}</span>
+                <span className="texto-pequeno texto-suave">{m.avance}</span>
               </li>
             ))}
           </ul>

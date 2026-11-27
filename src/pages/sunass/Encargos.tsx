@@ -2,19 +2,22 @@ import { useState } from 'react'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
 import { Chip, type Tono } from '../../components/Chip'
+import { Dona, Saludo, type TonoSegmento } from '../../components/Graficos'
 import { ENCARGOS } from '../../mocks/seguimiento'
 import type { EstadoEncargo } from '../../types/seguimiento'
 
-const ESTADO: Record<EstadoEncargo, { texto: string; tono: Tono; plural: string }> = {
-  en_curso: { texto: 'En curso', tono: 'info', plural: 'En curso' },
-  pendiente: { texto: 'Pendiente', tono: 'aviso', plural: 'Pendientes' },
-  hecho: { texto: 'Hecho', tono: 'ok', plural: 'Hechos' },
+const ESTADO: Record<EstadoEncargo, { texto: string; tono: Tono; plural: string; emoji: string; segmento: TonoSegmento }> = {
+  en_curso: { texto: 'En curso', tono: 'info', plural: 'En curso', emoji: '🚧', segmento: 'info' },
+  pendiente: { texto: 'Pendiente', tono: 'aviso', plural: 'Pendientes', emoji: '⏳', segmento: 'aviso' },
+  hecho: { texto: 'Hecho', tono: 'ok', plural: 'Hechos', emoji: '✅', segmento: 'ok' },
 }
 
 /** Lo que queda por hacer después de cada resolución, con responsable y fecha. Datos de demostración. */
 export function Encargos() {
   const [filtro, setFiltro] = useState<EstadoEncargo | ''>('')
   const visibles = ENCARGOS.filter((e) => !filtro || e.estado === filtro)
+  const contar = (estado: EstadoEncargo) => ENCARGOS.filter((x) => x.estado === estado).length
+  const hechos = contar('hecho')
 
   useContextoAgente({
     espacio: 'Espacio SUNASS · Encargos posteriores',
@@ -38,18 +41,48 @@ export function Encargos() {
         <p className="subtitulo">Lo que queda por hacer después de cada resolución, con responsable y fecha.</p>
       </div>
 
+      <AvisoSimulado />
+
+      <div className="bento-arriba">
+        <Saludo
+          pose={hechos === ENCARGOS.length ? 'logrado' : 'pensando'}
+          titulo={`📌 ${ENCARGOS.length - hechos} encargos siguen abiertos`}
+          texto="Después de cada resolución quedan tareas. Aquí ves quién las tiene y cuándo vencen."
+        >
+          <div className="saludo__progreso-barra" role="img" aria-label={`${hechos} de ${ENCARGOS.length} encargos hechos`}>
+            <span style={{ width: `${ENCARGOS.length ? (hechos / ENCARGOS.length) * 100 : 0}%` }} />
+          </div>
+          <p className="texto-pequeno">
+            ✅ {hechos} de {ENCARGOS.length} hechos
+          </p>
+        </Saludo>
+        <section className="tarjeta tarjeta-dona" aria-labelledby="titulo-dona-encargos">
+          <h2 id="titulo-dona-encargos" className="titulo-icono">
+            <span className="burbuja burbuja--lila burbuja--sm" aria-hidden="true">📊</span>
+            <span>¿Cómo van?</span>
+          </h2>
+          <Dona
+            etiqueta={`Encargos por estado: ${(Object.keys(ESTADO) as EstadoEncargo[]).map((e) => `${ESTADO[e].plural} ${contar(e)}`).join(', ')}`}
+            segmentos={(Object.keys(ESTADO) as EstadoEncargo[]).map((e) => ({
+              texto: ESTADO[e].plural,
+              valor: contar(e),
+              tono: ESTADO[e].segmento,
+            }))}
+          />
+        </section>
+      </div>
+
       <div className="pastillas" role="group" aria-label="Filtrar por estado">
         <button type="button" className="pastilla" aria-pressed={filtro === ''} onClick={() => setFiltro('')}>
           Todos {ENCARGOS.length}
         </button>
         {(Object.keys(ESTADO) as EstadoEncargo[]).map((e) => (
           <button key={e} type="button" className="pastilla" aria-pressed={filtro === e} onClick={() => setFiltro(e)}>
-            {ESTADO[e].plural} {ENCARGOS.filter((x) => x.estado === e).length}
+            <span aria-hidden="true">{ESTADO[e].emoji} </span>
+            {ESTADO[e].plural} {contar(e)}
           </button>
         ))}
       </div>
-
-      <AvisoSimulado />
 
       <div className="tabla-expedientes">
         <table>
@@ -65,10 +98,17 @@ export function Encargos() {
           </thead>
           <tbody>
             {visibles.map((e) => (
-              <tr key={`${e.decision}-${e.encargo}`}>
+              <tr key={`${e.decision}-${e.encargo}`} className="fila-viva">
                 <td>
+                  <span className="celda-gotita">
+                    <span className={`burbuja burbuja--sm burbuja--${e.estado === 'hecho' ? 'menta' : e.estado === 'pendiente' ? 'durazno' : 'cielo'}`} aria-hidden="true">
+                      {ESTADO[e.estado].emoji}
+                    </span>
+                    <span>
                   <strong>{e.encargo}</strong>
                   <span className="celda__detalle">{e.detalle}</span>
+                    </span>
+                  </span>
                 </td>
                 <td>
                   <strong>{e.decision}</strong>

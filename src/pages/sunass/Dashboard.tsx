@@ -8,6 +8,7 @@ import { IconoArchivo, IconoFlecha } from '../../components/Iconos'
 import { Contenido } from '../../components/Mensajes'
 import { Gotita } from '../../components/Gotita'
 import { FINANCIERO, MOVIMIENTOS } from '../../mocks/financiero'
+import { usarEjemplos } from '../../services/api'
 import { DASHBOARD_SIMULADO } from '../../mocks/seguimiento'
 import { ROLES_SUNASS, rolSunass } from '../../sesion/roles'
 import { useSesion } from '../../sesion/useSesion'
@@ -203,12 +204,14 @@ export function Dashboard() {
               </ul>
 
               <Semaforo
-                enPlazo={contar(enTramite, 'en_plazo') + contar(enTramite, 'pendiente_de_validacion')}
+                enPlazo={contar(enTramite, 'en_plazo')}
+                porValidar={contar(enTramite, 'pendiente_de_validacion')}
                 porVencer={contar(enTramite, 'por_vencer')}
                 vencidos={contar(enTramite, 'vencido')}
               />
 
-              <GestionFinanciera />
+              {/* Sin ruta en el backend todavía: solo se muestra con datos de ejemplo, nunca en producción. */}
+              {usarEjemplos && <GestionFinanciera />}
 
               <div className="dos-mitades">
                 <section className="tarjeta" aria-labelledby="titulo-proceso">
@@ -434,7 +437,7 @@ function GestionFinanciera() {
           <TituloIcono id="titulo-financiero" emoji="💰" color="limon">¿Cómo van las inversiones de las EPS?</TituloIcono>
           <p className="texto-pequeno texto-suave">Cuánto planearon invertir, cuánto ya gastaron y cuánto ahorran en su fondo · 20 EPS</p>
         </div>
-        <Chip tono="info">Dataset de muestra Sunass</Chip>
+        <Chip tono="agente">Simulado · dataset de muestra</Chip>
       </div>
 
       <div className="panel-financiero">
@@ -568,8 +571,18 @@ function GestionFinanciera() {
 }
 
 /** Semáforo de plazos con Yaku: azul en plazo, naranja por vencer y rojo vencido. */
-function Semaforo({ enPlazo, porVencer, vencidos }: { enPlazo: number; porVencer: number; vencidos: number }) {
-  const total = Math.max(1, enPlazo + porVencer + vencidos)
+function Semaforo({
+  enPlazo,
+  porVencer,
+  vencidos,
+  porValidar,
+}: {
+  enPlazo: number
+  porVencer: number
+  vencidos: number
+  porValidar: number
+}) {
+  const total = enPlazo + porVencer + vencidos + porValidar
   const columnas = [
     { pose: 'plazo-azul' as const, n: enPlazo, titulo: 'En plazo', frase: 'Tiempo a favor', clase: 'azul', ruta: '/sunass/expedientes' },
     { pose: 'plazo-naranja' as const, n: porVencer, titulo: 'Por vencer', frase: '¡Atención! Ya usaron el 75 %', clase: 'naranja', ruta: '/sunass/alertas' },
@@ -579,7 +592,10 @@ function Semaforo({ enPlazo, porVencer, vencidos }: { enPlazo: number; porVencer
     <section className="tarjeta semaforo" aria-labelledby="titulo-semaforo">
       <div className="fila-chips" style={{ justifyContent: 'space-between' }}>
         <TituloIcono id="titulo-semaforo" emoji="🚦" color="cielo">Semáforo de plazos</TituloIcono>
-        <span className="texto-pequeno texto-suave">Así está el tiempo de tus {total} expedientes en trámite</span>
+        <span className="texto-pequeno texto-suave">
+          Así está el tiempo de tus {total} expedientes en trámite
+          {porValidar > 0 && ` · ${porValidar} con plazo por validar`}
+        </span>
       </div>
       <div className="semaforo__barra" role="img" aria-label={`${enPlazo} en plazo, ${porVencer} por vencer, ${vencidos} vencidos`}>
         {columnas.map((c) =>

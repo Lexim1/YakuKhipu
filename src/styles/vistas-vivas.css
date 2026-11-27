@@ -1,0 +1,530 @@
+/* Vistas vivas: Alertas, Expedientes, Expediente, Recepción, Actos, Ficha 360, Encargos, Reportes,
+   Configuración, Seguimiento EPS y ficha ciudadana. Todo lo animado se apaga con «reducir movimiento». */
+
+/* ---------- Dona por partes ---------- */
+.tarjeta-dona {
+  display: grid;
+  gap: var(--espacio-3);
+  align-content: start;
+}
+
+.dona {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+  flex-wrap: wrap;
+}
+
+.dona__grafico {
+  position: relative;
+  flex: none;
+}
+
+.dona__seg {
+  fill: none;
+  stroke-linecap: round;
+  animation: dona-entra 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: stroke-width 200ms ease;
+}
+
+.dona__grafico:hover .dona__seg { stroke-width: 26px; }
+
+.dona__seg--ok { stroke: var(--color-ok); }
+.dona__seg--aviso { stroke: #f59e0b; }
+.dona__seg--peligro { stroke: var(--color-peligro); }
+.dona__seg--marca { stroke: var(--color-primario); }
+.dona__seg--info { stroke: var(--azul-vivo, #2453e6); }
+.dona__seg--lila { stroke: #8b6cf0; }
+.dona__seg--neutro { stroke: #b8c4bf; }
+
+@keyframes dona-entra {
+  from { stroke-dasharray: 0 1000; }
+}
+
+.dona__total {
+  display: block;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dona__bajo {
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+}
+
+.dona__leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.dona__leyenda li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.dona__punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primario);
+}
+
+.dona__punto--ok { background: var(--color-ok); }
+.dona__punto--aviso { background: #f59e0b; }
+.dona__punto--peligro { background: var(--color-peligro); }
+.dona__punto--info { background: var(--azul-vivo, #2453e6); }
+.dona__punto--lila { background: #8b6cf0; }
+.dona__punto--neutro { background: #b8c4bf; }
+
+/* ---------- Barra por partes ---------- */
+.barra-partes {
+  display: flex;
+  gap: 4px;
+  height: 26px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-partes__parte {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transform-origin: left;
+  animation: crece-ancho 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Cifras dentro del saludo ---------- */
+.cifras-saludo {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cifras-saludo li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 2px 8px rgb(16 52 44 / 8%);
+  font-size: 0.85rem;
+  transition: transform 180ms ease;
+}
+
+.cifras-saludo li:hover { transform: translateY(-2px); }
+
+.cifras-saludo strong { font-size: 1.05rem; }
+.cifras-saludo--peligro strong { color: var(--color-peligro); }
+.cifras-saludo--aviso strong { color: #b45309; }
+.cifras-saludo--ok strong { color: var(--color-ok); }
+.cifras-saludo--info strong { color: var(--azul-vivo, #2453e6); }
+.cifras-saludo--lila strong { color: #6d4fd8; }
+
+.saludo__chip { justify-self: start; margin-top: 6px; }
+
+.saludo__progreso-barra {
+  height: 12px;
+  width: min(320px, 100%);
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 70%);
+  overflow: hidden;
+}
+
+.saludo__progreso-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--lima, #c8f169), var(--color-ok));
+  transform-origin: left;
+  animation: crece-ancho 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Alertas ---------- */
+.alerta--viva {
+  border-left: 5px solid var(--color-borde);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.alerta--viva:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgb(16 52 44 / 12%);
+}
+
+.alerta--peligro { border-left-color: var(--color-peligro); background: linear-gradient(100deg, #fff4f4, #fff 40%); }
+.alerta--aviso { border-left-color: #f59e0b; background: linear-gradient(100deg, #fff8ec, #fff 40%); }
+.alerta--agente,
+.alerta--info { border-left-color: var(--azul-vivo, #2453e6); background: linear-gradient(100deg, #eef3ff, #fff 40%); }
+
+.alerta__avatar {
+  position: relative;
+  flex: none;
+  width: 60px;
+  display: grid;
+  place-items: center;
+}
+
+.alerta__mini {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 9px !important;
+  border: 2px solid #fff;
+}
+
+.alerta__mini svg { width: 14px; height: 14px; }
+
+.alerta--peligro .alerta__avatar img { animation: gotita-alarma 1.6s ease-in-out infinite; }
+
+/* ---------- Filas vivas en tablas ---------- */
+.celda-gotita {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.celda-gotita > span:last-child { display: grid; }
+
+.fila-viva {
+  transition: background 160ms ease;
+}
+
+.fila-viva:hover { background: #f4faf6; }
+.fila-viva--vencido { background: linear-gradient(90deg, #fff3f3, transparent 35%); }
+.fila-viva--por_vencer { background: linear-gradient(90deg, #fff8ec, transparent 35%); }
+
+.fila-viva:hover .celda-gotita img { transform: scale(1.12) rotate(-6deg); }
+.celda-gotita img { transition: transform 200ms ease; }
+
+.pastilla > span[aria-hidden='true'] { margin-right: 2px; }
+
+/* ---------- Cabeceras con ola y Yaku (expediente, EPS, ficha ciudadana) ---------- */
+.expediente__cabecera--viva,
+.eps-cabecera--viva,
+.ficha-cabecera--viva {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--espacio-5, 24px);
+  padding: 24px 28px 30px;
+  border-radius: 24px;
+  background: linear-gradient(115deg, #d4f3e6 0%, #dcedfb 55%, #efe7ff 100%);
+}
+
+.expediente__textos,
+.eps-cabecera__textos,
+.ficha-cabecera__textos {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.expediente__gotita,
+.eps-cabecera__gotita,
+.ficha-cabecera__gotita {
+  position: relative;
+  z-index: 1;
+  flex: none;
+}
+
+.expediente__cabecera--viva .anillo,
+.eps-cabecera--viva .anillo {
+  position: relative;
+  z-index: 1;
+  background: rgb(255 255 255 / 75%);
+  border-radius: 50%;
+}
+
+.expediente__anillo {
+  display: grid;
+  gap: 2px;
+}
+
+.expediente__anillo strong { font-size: 1.6rem; line-height: 1; }
+.expediente__anillo span { font-size: 0.72rem; color: var(--color-texto-suave); }
+
+.pestana > span[aria-hidden='true'] { margin-right: 2px; }
+
+/* Camino Pedido → Decisión → Obra en la ficha ciudadana */
+.camino-decision {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.camino-decision li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 55%);
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  border: 1px dashed rgb(16 52 44 / 20%);
+}
+
+.camino-decision li { position: relative; }
+
+.camino-decision li + li::before {
+  content: '→';
+  position: absolute;
+  left: -17px;
+  color: var(--color-texto-suave);
+}
+
+.camino-decision--listo {
+  background: #fff !important;
+  color: var(--color-texto) !important;
+  font-weight: 700;
+  border-style: solid !important;
+  border-color: var(--color-ok) !important;
+}
+
+.ficha-consulta--viva {
+  position: relative;
+  padding-right: 110px;
+}
+
+.ficha-consulta__gotita {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+}
+
+.ficha-dato--vivo {
+  transition: transform 180ms ease;
+}
+
+.ficha-dato--vivo:hover { transform: translateY(-3px); }
+.ficha-dato--vivo > .burbuja { margin-bottom: 6px; }
+
+.ficha-cantidad .anillo { margin: 8px 0; }
+
+/* ---------- Recepción ---------- */
+.documento--vivo {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.documento--vivo:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgb(16 52 44 / 12%);
+}
+
+.documento__icono { color: var(--azul-vivo, #2453e6); }
+
+.documento--fuera {
+  border-left: 5px solid #f59e0b;
+  background: linear-gradient(100deg, #fff8ec, #fff 40%);
+}
+
+.documento__avatar { flex: none; }
+
+.cinta-doc {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.cinta-doc li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--color-neutro-fondo, #eef2ef);
+  color: var(--color-texto-suave);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.cinta-doc--hecho {
+  background: #d6f5e8 !important;
+  color: var(--color-primario) !important;
+}
+
+.cinta-doc--actual {
+  background: var(--lima, #c8f169) !important;
+  color: var(--verde-profundo, #10342c) !important;
+  animation: pulso-suave 2.2s ease-in-out infinite;
+}
+
+.propuesta--yaku {
+  align-items: center;
+  border-radius: 16px;
+}
+
+.propuesta--yaku .puntos { margin-left: 4px; }
+
+/* ---------- Ficha 360, actos, reportes ---------- */
+.kpi-vivo {
+  position: relative;
+  transition: transform 180ms ease;
+}
+
+.kpi-vivo:hover { transform: translateY(-3px); }
+.kpi-vivo > .burbuja { margin-bottom: 6px; }
+
+.metas-anillos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--espacio-4);
+}
+
+.metas-anillos li {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: var(--fondo-panel, #f3f6f1);
+}
+
+.acto--vivo {
+  display: flex;
+  gap: var(--espacio-4);
+  align-items: flex-start;
+  transition: transform 180ms ease;
+}
+
+.acto--vivo:hover { transform: translateY(-3px); }
+
+.tarjeta--destacada-acto {
+  position: relative;
+  background: linear-gradient(160deg, #fff 50%, #eafbf2);
+}
+
+.tarjeta__gotita {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+}
+
+.reporte--vivo {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.reporte--vivo:hover {
+  transform: translateY(-4px) rotate(-0.4deg);
+  box-shadow: 0 14px 30px rgb(16 52 44 / 12%);
+}
+
+.reporte--vivo:hover > .burbuja { animation: gotita-salta 0.9s ease-in-out; }
+
+/* ---------- Seguimiento EPS ---------- */
+.eps-tarea--viva {
+  position: relative;
+  padding-right: 96px;
+}
+
+.eps-tarea__gotita {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+}
+
+.eps-progreso--anillo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seguimiento-vivo .seguimiento__paso--hecho .seguimiento__marca {
+  animation: check-pop 500ms ease both;
+}
+
+.seguimiento-vivo .seguimiento__paso--actual .seguimiento__marca {
+  box-shadow: 0 0 0 6px rgb(200 241 105 / 55%);
+  animation: pulso-suave 2s ease-in-out infinite;
+}
+
+.seguimiento-vivo .seguimiento__paso--actual .seguimiento__titulo {
+  font-weight: 800;
+}
+
+.seguimiento-vivo .seguimiento__paso--actual .seguimiento__titulo::after {
+  content: ' 👈 aquí vas';
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--color-primario);
+}
+
+@media (max-width: 720px) {
+  .expediente__cabecera--viva,
+  .eps-cabecera--viva,
+  .ficha-cabecera--viva {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cinta-doc { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dona__seg,
+  .barra-partes__parte,
+  .saludo__progreso-barra span,
+  .alerta--peligro .alerta__avatar img,
+  .cinta-doc--actual,
+  .seguimiento-vivo .seguimiento__marca,
+  .reporte--vivo:hover > .burbuja {
+    animation: none !important;
+  }
+
+  .alerta--viva:hover,
+  .documento--vivo:hover,
+  .kpi-vivo:hover,
+  .acto--vivo:hover,
+  .reporte--vivo:hover,
+  .ficha-dato--vivo:hover,
+  .cifras-saludo li:hover {
+    transform: none;
+  }
+}
+
+@keyframes pulso-suave {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.dona__centro { display: grid; gap: 2px; }
+
+.acto--vivo .acto__cuerpo {
+  flex: 1;
+  min-width: 0;
+}
