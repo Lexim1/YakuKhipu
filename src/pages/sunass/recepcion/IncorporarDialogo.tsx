@@ -56,7 +56,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
   const [tipo, setTipo] = useState(catalogos.tipos_actuacion[0] ?? '')
   const [asignado, setAsignado] = useState('')
   const [nuevo, setNuevo] = useState(false)
-  const [procedimiento, setProcedimiento] = useState<Procedimiento>('CPI')
+  const [procedimiento, setProcedimiento] = useState<Procedimiento | ''>('')
   const [fechaIngreso, setFechaIngreso] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +64,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
   function cambiarDocumento(id: string) {
     setDocumentoId(id)
     setTramiteId(oficiales.find((d) => d.id === id)?.propuesta?.tramite_id ?? '')
+    setProcedimiento('')
   }
 
   async function enviar(e: FormEvent) {
@@ -73,8 +74,8 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
       setError('Elige el expediente al que pertenece el documento.')
       return
     }
-    if (nuevo && !fechaIngreso) {
-      setError('Indica la fecha de ingreso acreditada por Mesa de Partes.')
+    if (nuevo && (!fechaIngreso || !procedimiento)) {
+      setError('Confirma el procedimiento y la fecha de ingreso acreditada por Mesa de Partes.')
       return
     }
     const version = catalogos.expedientes.find((t) => t.id === tramiteId)?.version
@@ -86,7 +87,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
     setError(null)
     try {
       const persona = catalogos.asignables.find((a) => a.id === asignado)?.texto ?? ''
-      if (nuevo) {
+      if (nuevo && procedimiento) {
         const creado = await registrarExpedienteRecepcion({
           documento_id: documentoId, procedimiento, fecha_ingreso: fechaIngreso, asignado_a: asignado || null,
         })
@@ -122,7 +123,7 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
             ))}
           </select>
         </label>
-        {!usarEjemplos && catalogos.asignables.length > 0 && (
+        {!usarEjemplos && (
           <label className="campo">
             Destino
             <select value={nuevo ? 'nuevo' : 'existente'} onChange={(e) => setNuevo(e.target.value === 'nuevo')}>
@@ -133,9 +134,14 @@ function Formulario({ catalogos, documento, documentos, alCerrar, alIncorporar, 
         )}
         {nuevo ? (
           <>
+            {elegido?.clasificacion && <p className="mensaje">
+              Procedimiento sugerido por el texto: <strong>{NOMBRE_COMPLETO[elegido.clasificacion.procedimiento]}</strong>.
+              {' '}Coincidencia: «{elegido.clasificacion.evidencia}». Revisa el PDF y confirma abajo.
+            </p>}
             <label className="campo">
               Procedimiento
-              <select value={procedimiento} onChange={(e) => setProcedimiento(e.target.value as Procedimiento)}>
+              <select required value={procedimiento} onChange={(e) => setProcedimiento(e.target.value as Procedimiento)}>
+                <option value="">Confirma el procedimiento de la solicitud</option>
                 {(['CPI', 'UFI', 'RP'] as const).map((p) => <option key={p} value={p}>{NOMBRE_COMPLETO[p]}</option>)}
               </select>
             </label>

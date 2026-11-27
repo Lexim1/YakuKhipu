@@ -241,6 +241,7 @@ export function rechazarVinculo(id: string, documento: string, version: number):
 
 /** Documento recibido tal como lo entrega GET /api/recepcion. */
 interface RecepcionApi {
+  clasificacion?: DocumentoRecibido['clasificacion']
   id: string
   titulo: string
   referencia: string
@@ -323,6 +324,7 @@ export async function listarDocumentosRecibidos(signal?: AbortSignal): Promise<L
     canal_oficial: true,
     detalle: null,
     procesamiento_pdf: r.procesamiento_pdf ?? null,
+    clasificacion: r.clasificacion ?? null,
     propuesta: null,
   }))
   return { items, total: recibidos.total }
