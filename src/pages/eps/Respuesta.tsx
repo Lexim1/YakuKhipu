@@ -2,9 +2,10 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useContextoAgente } from '../../agente/useAgente'
 import { AvisoSimulado } from '../../components/AvisoSimulado'
-import { Barra } from '../../components/Barra'
 import { Chip, Fuente } from '../../components/Chip'
 import { Dialogo } from '../../components/Dialogo'
+import { Anillo, Burbuja, OlaAnimada } from '../../components/Graficos'
+import { Gotita } from '../../components/Gotita'
 import { IconoAtras, IconoCheck, IconoDocumento } from '../../components/Iconos'
 import { Contenido, MensajeError, SinResultados } from '../../components/Mensajes'
 import { informarRespuesta, obtenerTramiteEps } from '../../services/eps'
@@ -25,6 +26,38 @@ function nuevaClave() {
 }
 
 /** Lista de puntos que pide Sunass. Marcarlos ayuda a ordenarse; no se envía a Sunass. */
+/** Camino de la respuesta: dónde está la EPS y cuánto le falta. */
+function CaminoRespuesta({ avance }: { avance: number }) {
+  const pasos = [
+    { emoji: '📨', titulo: 'Recibiste el oficio', estado: 'hecho' },
+    { emoji: '✍️', titulo: 'Preparas tu respuesta', estado: avance >= 1 ? 'hecho' : 'actual' },
+    { emoji: '📮', titulo: 'Presentas por Mesa de Partes', estado: avance >= 1 ? 'actual' : 'pendiente' },
+    { emoji: '🔍', titulo: 'Sunass evalúa', estado: 'pendiente' },
+  ]
+  const actual = pasos.findIndex((p) => p.estado === 'actual')
+  const relleno = ((actual + (actual === 1 ? avance : 0)) / (pasos.length - 1)) * 100
+  return (
+    <section className="tarjeta camino" aria-label={`Tu camino: paso ${actual + 1} de ${pasos.length}, ${pasos[actual].titulo}`}>
+      <div className="camino__pista" aria-hidden="true">
+        <span className="camino__relleno" style={{ width: `${relleno}%` }} />
+      </div>
+      <ol className="camino__pasos">
+        {pasos.map((p) => (
+          <li key={p.titulo} className={`camino__paso camino__paso--${p.estado}`}>
+            <span className="camino__icono" aria-hidden="true">
+              {p.estado === 'hecho' ? '✓' : p.emoji}
+            </span>
+            <span className="camino__titulo">{p.titulo}</span>
+            {p.estado === 'actual' && <span className="camino__aqui">Estás aquí</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+const EMOJI_PUNTO = ['🧭', '🎯', '📏', '📊', '🗂️', '🏘️', '🔬', '💲', '📌', '📎']
+
 function ListaRequisitos({
   accion,
   listos,
@@ -35,25 +68,59 @@ function ListaRequisitos({
   alternar: (id: string) => void
 }) {
   const total = accion.requisitos.length
+  const completo = listos.size === total
   return (
-    <section className="tarjeta eps-requisitos" aria-labelledby="titulo-requisitos">
-      <div className="eps-requisitos__cabecera">
-        <h2 id="titulo-requisitos" aria-live="polite">
-          {listos.size} de {total} preparados
-        </h2>
-        <div className="eps-requisitos__barra">
-          <Barra usado={listos.size} total={total} tono="marca" etiqueta="Puntos preparados" />
+    <section className="tarjeta eps-requisitos checklist" aria-labelledby="titulo-requisitos">
+      <div className="checklist__cabecera">
+        <Anillo
+          porcentaje={(listos.size / Math.max(1, total)) * 100}
+          tono={completo ? 'ok' : 'aviso'}
+          tamano={74}
+          grosor={9}
+          etiqueta={`${listos.size} de ${total} puntos preparados`}
+        >
+          <strong>
+            {listos.size}/{total}
+          </strong>
+        </Anillo>
+        <div>
+          <h2 id="titulo-requisitos" aria-live="polite">
+            {completo ? '🎉 ¡Todo listo para presentar!' : `${listos.size} de ${total} preparados`}
+          </h2>
+          <p className="texto-pequeno texto-suave">
+            {completo
+              ? 'Presenta tu respuesta por Mesa de Partes y luego avísanos aquí.'
+              : `Te ${total - listos.size === 1 ? 'falta 1 punto' : `faltan ${total - listos.size} puntos`}. ¡Marca cada uno cuando lo tengas!`}
+          </p>
         </div>
       </div>
-      <ul className="eps-requisitos__lista">
-        {accion.requisitos.map((r) => {
+      {completo && (
+        <div className="checklist__fiesta" aria-hidden="true">
+          <Gotita pose="logrado" alto={120} />
+          {Array.from({ length: 14 }, (_, k) => (
+            <i key={k} style={{ ['--k' as string]: k }} />
+          ))}
+        </div>
+      )}
+      <ul className="eps-requisitos__lista checklist__lista">
+        {accion.requisitos.map((r, n) => {
           const listo = listos.has(r.id)
           return (
             <li key={r.id}>
-              <label className={`eps-requisito${listo ? ' eps-requisito--listo' : ''}`}>
-                <input type="checkbox" checked={listo} onChange={() => alternar(r.id)} />
+              <label className={`eps-requisito checklist__punto${listo ? ' eps-requisito--listo checklist__punto--listo' : ''}`}>
+                <input type="checkbox" checked={listo} onChange={() => alternar(r.id)} className="solo-lectores-input" />
+                <span className="checklist__check" aria-hidden="true">
+                  {listo ? '✓' : ''}
+                </span>
+                <span className="checklist__emoji" aria-hidden="true">
+                  {EMOJI_PUNTO[n % EMOJI_PUNTO.length]}
+                </span>
                 <span className="eps-requisito__texto">{r.texto}</span>
-                {!listo && <span className="eps-requisito__estado">Pendiente</span>}
+                {listo ? (
+                  <span className="checklist__estado checklist__estado--listo">¡Listo!</span>
+                ) : (
+                  <span className="eps-requisito__estado checklist__estado">Pendiente</span>
+                )}
               </label>
             </li>
           )
@@ -97,7 +164,7 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
       const actualizado = await informarRespuesta(
         tramite.id,
         {
-          documento: documento.trim(),
+          referencia_presentada: documento.trim(),
           fecha_presentacion: fecha,
           cargo: cargo.trim() || null,
           canal: accion.canal,
@@ -121,7 +188,8 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
       noValidate
     >
       <p className="texto-suave">
-        Registra el documento que presentaste por {accion.canal}. Sunass verificará que esté en el expediente.
+        Indica el oficio que presentaste por {accion.canal}. Este aviso queda pendiente de verificación:
+        Sunass deberá incorporar el documento y contrastarlo antes de validarlo.
       </p>
       {faltan > 0 && (
         <p className="eps-alerta-suave" role="note">
@@ -138,6 +206,7 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
           onChange={(e) => setDocumento(e.target.value)}
           placeholder="Ej. Oficio 1628"
           required
+          maxLength={120}
           autoComplete="off"
         />
       </label>
@@ -231,7 +300,35 @@ function PrepararRespuesta({ tramite, accion }: { tramite: TramiteEps; accion: S
           {tramite.id} · {NOMBRE_PROCEDIMIENTO[tramite.procedimiento]}
         </p>
         <h1>{accion.titulo}</h1>
-        <p className="subtitulo">{tramite.resumen}</p>
+      </div>
+
+      <section className="saludo banner-respuesta" aria-label="Tu avance">
+        <OlaAnimada />
+        <div className="saludo__texto">
+          <p className="saludo__titulo">
+            {accion.requisitos.length > 0 && listos.size === accion.requisitos.length
+              ? '¡Lo lograste! Ya puedes presentar 🎉'
+              : '¡Tú puedes! Vamos paso a paso 💪'}
+          </p>
+          <p>{tramite.resumen}</p>
+        </div>
+        <Gotita
+          pose={
+            accion.requisitos.length > 0 && listos.size === accion.requisitos.length
+              ? 'logrado'
+              : tonoPlazo(accion.dias_restantes) === 'peligro'
+                ? 'plazo-rojo'
+                : 'plazo-naranja'
+          }
+          alto={130}
+          className="saludo__gotita"
+        />
+      </section>
+
+      <CaminoRespuesta
+        avance={accion.requisitos.length > 0 ? listos.size / accion.requisitos.length : 0}
+      />
+      <div>
         <p className="eps-solo-movil">
           <Chip tono={tonoPlazo(accion.dias_restantes)}>
             {textoFechaLimite(accion.fecha_texto, accion.dias_restantes, accion.fecha_detalle)}
@@ -251,11 +348,26 @@ function PrepararRespuesta({ tramite, accion }: { tramite: TramiteEps; accion: S
         )}
 
         <div className="columna">
-          <section className="tarjeta eps-plazo" aria-labelledby="titulo-plazo">
-            <h2 id="titulo-plazo">Tu plazo</h2>
-            <p className={`eps-plazo__valor eps-plazo__valor--${tonoPlazo(accion.dias_restantes)}`}>
-              {valorPlazo(accion.dias_restantes)}
-            </p>
+          <section className="tarjeta eps-plazo plazo-vivo" aria-labelledby="titulo-plazo">
+            <h2 id="titulo-plazo" className="titulo-icono">
+              <Burbuja emoji="⏰" color="durazno" tamano="sm" />
+              <span>Tu plazo</span>
+            </h2>
+            <div className="plazo-vivo__fila">
+              <p className={`eps-plazo__valor eps-plazo__valor--${tonoPlazo(accion.dias_restantes)}`}>
+                {valorPlazo(accion.dias_restantes)}
+              </p>
+              {accion.dias_restantes != null && accion.dias_restantes >= 0 && (
+                <ol className="plazo-vivo__dias" aria-label={`Quedan ${accion.dias_restantes} días hábiles`}>
+                  <li className="hoy">Hoy</li>
+                  {Array.from({ length: Math.min(accion.dias_restantes, 5) }, (_, k) => (
+                    <li key={k} className={k === Math.min(accion.dias_restantes!, 5) - 1 ? 'vence' : ''}>
+                      {k === Math.min(accion.dias_restantes!, 5) - 1 ? '🏁' : `+${k + 1}`}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
             <p className="texto-pequeno texto-suave">
               {[
                 accion.fecha_detalle,
@@ -270,8 +382,21 @@ function PrepararRespuesta({ tramite, accion }: { tramite: TramiteEps; accion: S
           </section>
 
           <section className="eps-presentar" aria-labelledby="titulo-presentar">
-            <h2 id="titulo-presentar">Cómo presentar</h2>
-            <p>Por {accion.canal}. Conserva el cargo de presentación.</p>
+            <h2 id="titulo-presentar" className="titulo-icono">
+              <Burbuja emoji="📮" color="menta" tamano="sm" />
+              <span>Cómo presentar</span>
+            </h2>
+            <ol className="pasos-presentar">
+              <li>
+                <span aria-hidden="true">📄</span> Junta los {accion.requisitos.length || ''} puntos en tu documento
+              </li>
+              <li>
+                <span aria-hidden="true">🖥️</span> Preséntalo por {accion.canal}
+              </li>
+              <li>
+                <span aria-hidden="true">✅</span> Conserva el cargo y avísanos aquí
+              </li>
+            </ol>
             <button type="button" className="boton boton--primario boton--bloque" onClick={() => setDialogo('informar')}>
               Ya presenté mi {accion.etiqueta.toLowerCase()}
               <IconoCheck tamano={16} />

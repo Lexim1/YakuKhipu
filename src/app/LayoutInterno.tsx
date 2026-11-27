@@ -7,6 +7,7 @@ import { obtenerContadores, useVersionTramites } from '../services/tramites'
 import { useSesion } from '../sesion/useSesion'
 import type { Contadores } from '../types/tramite'
 import { Marca } from './Marca'
+import { MenuEps } from './MenuEps'
 import type { EnlaceMenu, GrupoMenu } from './menus'
 
 /** Contadores del menú. Conserva el último valor mientras se actualizan, para que no parpadeen. */
@@ -138,7 +139,7 @@ export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito, 
                   const contador = contadorDe(enlace)
                   return (
                     <li key={enlace.ruta}>
-                      <NavLink to={enlace.ruta} className="lateral__enlace">
+                      <NavLink to={enlace.ruta} className="lateral__enlace" end={enlace.exacto}>
                         {enlace.icono}
                         <span className="lateral__texto">{enlace.texto}</span>
                         {contador != null && contador > 0 && (
@@ -154,6 +155,7 @@ export function LayoutInterno({ vista, menu, rutaBusqueda, rutaAlertas, ambito, 
               </ul>
             </nav>
           ))}
+          {vista === 'EPS' && <MenuEps />}
           {ambito && (
             <div className="lateral__nota">
               <p className="lateral__nota-titulo">Trazabilidad disponible</p>

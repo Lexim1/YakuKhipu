@@ -33,6 +33,8 @@ export interface Plazo {
 
 export interface TramiteResumen {
   id: string
+  referencia?: string | null
+  estado?: string
   procedimiento: Procedimiento
   eps: string
   tamano_eps: TamanoEps
@@ -162,6 +164,8 @@ export interface VinculoPropuesto {
 }
 
 export interface Expediente extends TramiteResumen {
+  estado?: string
+  documentos?: { id: string; titulo: string; estado_validacion?: string }[]
   tema: string
   chip_plazo: string
   flujo: Flujograma

@@ -1,7 +1,8 @@
+import { Gotita } from '../components/Gotita'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Fuente } from '../components/Chip'
 import { Dialogo } from '../components/Dialogo'
-import { IconoChispa, IconoCerrar, IconoDocumento, IconoEnviar } from '../components/Iconos'
+import { IconoCerrar, IconoDocumento, IconoEnviar } from '../components/Iconos'
 import { usarEjemplos } from '../services/api'
 import {
   preguntarAlAgente,
@@ -105,18 +106,14 @@ export function PanelAgente() {
   return (
     <>
       <button type="button" className="boton-agente" onClick={() => abrir()} aria-haspopup="dialog">
-        <span className="boton-agente__icono">
-          <IconoChispa tamano={16} />
-        </span>
+        <Gotita pose="avatar" alto={34} animada={false} className="boton-agente__gotita" />
         <span className="boton-agente__texto">Preguntar al agente</span>
         <span className="solo-lectores">Preguntar al agente</span>
       </button>
       <Dialogo abierto={abierto} titulo="Agente YakuKhipu" alCerrar={cerrar} lateral sinCabecera>
         <div className="agente">
           <div className="agente__cabecera">
-            <span className="agente__logo">
-              <IconoChispa tamano={18} />
-            </span>
+            <Gotita pose="avatar" alto={40} animada={false} />
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '1.0625rem' }}>Agente YakuKhipu</h2>
               <p className="texto-pequeno texto-suave">
@@ -155,6 +152,7 @@ export function PanelAgente() {
                   <p className="agente__pregunta">{m.pregunta}</p>
                   {m.estado === 'cargando' && (
                     <div className="agente__respuesta agente__respuesta--cargando" role="status">
+                      <Gotita pose="pensando" alto={56} />
                       <span className="agente__puntos" aria-hidden="true">
                         <span />
                         <span />

@@ -1,5 +1,7 @@
 # YakuKhipu
 
+La conexión de la nueva interfaz con datos D3, los contratos y las pruebas están en [Integración QA D3](docs/integracion_qa_d3.md).
+
 La instalación vigente del backend y el orden de ejecución manual de PostgreSQL están en [backend/README.md](backend/README.md). El esquema SQL sustituye el arranque con Alembic y las semillas antiguas. La arquitectura y sus límites están en [docs/arquitectura_fuentes.md](docs/arquitectura_fuentes.md). El contenido que sigue describe la planificación inicial.
 
 Portal para seguir tres procedimientos de SUNASS y coordinar las respuestas de las EPS. Un mismo frontend contiene las vistas SUNASS, EPS y Ciudadanía, conectado a una API FastAPI y PostgreSQL.
