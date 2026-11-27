@@ -71,11 +71,11 @@ function aplicarRespuesta(f: TramiteEps, datos: NuevaRespuesta): TramiteEps {
     resumen: 'Sunass está evaluando tu respuesta. Por ahora no tienes ninguna tarea pendiente.',
     siguiente_accion: null,
     aviso: null,
-    respuesta_informada: { ...datos, fecha_texto, verificada: false },
+    respuesta_informada: { ...datos, documento: datos.referencia_presentada ?? datos.documento ?? '', fecha_texto, verificada: false },
     seguimiento: [
       ...anteriores,
       {
-        titulo: `${f.siguiente_accion?.etiqueta === 'Subsanación' ? 'Subsanaste' : 'Respondiste'} con el ${datos.documento}`,
+        titulo: `${f.siguiente_accion?.etiqueta === 'Subsanación' ? 'Subsanaste' : 'Respondiste'} con el ${datos.referencia_presentada ?? datos.documento}`,
         fecha_texto,
         estado: 'hecho',
       },

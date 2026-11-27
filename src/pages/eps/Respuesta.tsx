@@ -164,7 +164,7 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
       const actualizado = await informarRespuesta(
         tramite.id,
         {
-          documento: documento.trim(),
+          referencia_presentada: documento.trim(),
           fecha_presentacion: fecha,
           cargo: cargo.trim() || null,
           canal: accion.canal,
@@ -188,7 +188,8 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
       noValidate
     >
       <p className="texto-suave">
-        Registra el documento que presentaste por {accion.canal}. Sunass verificará que esté en el expediente.
+        Indica el oficio que presentaste por {accion.canal}. Este aviso queda pendiente de verificación:
+        Sunass deberá incorporar el documento y contrastarlo antes de validarlo.
       </p>
       {faltan > 0 && (
         <p className="eps-alerta-suave" role="note">
@@ -205,6 +206,7 @@ function FormularioInformar({ tramite, accion, faltan, alInformar, alCancelar }:
           onChange={(e) => setDocumento(e.target.value)}
           placeholder="Ej. Oficio 1628"
           required
+          maxLength={120}
           autoComplete="off"
         />
       </label>

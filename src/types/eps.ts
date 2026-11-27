@@ -131,7 +131,8 @@ export interface TramiteEpsResumen {
 
 /** Cuerpo de POST /api/eps/tramites/{id}/respuestas. */
 export interface NuevaRespuesta {
-  documento: string
+  documento?: string | null
+  referencia_presentada?: string
   fecha_presentacion: string
   cargo: string | null
   canal: string

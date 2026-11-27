@@ -1,55 +1,17 @@
-import { useState } from 'react'
-import { AvisoSimulado } from '../../components/AvisoSimulado'
-import { Chip } from '../../components/Chip'
-import { IconoArchivo } from '../../components/Iconos'
-import { REPORTES } from '../../mocks/seguimiento'
+import { Contenido } from '../../components/Mensajes'
+import { consultarFinanzas, soles } from '../../services/finanzas'
+import { useConsulta } from '../../services/useConsulta'
 
-/** Reportes con las mismas cifras del dashboard y sus fuentes. La generación todavía es una demostración. */
+function csv(valor: unknown) {
+  let s = valor == null ? '' : String(valor)
+  if (typeof valor === 'string' && /^[=+@\-\t\r]/.test(s)) s = "'" + s
+  return `"${s.replaceAll('"', '""')}"`
+}
 export function Reportes() {
-  const [mensaje, setMensaje] = useState<string | null>(null)
-
-  return (
-    <div className="pagina">
-      <div>
-        <p className="antetitulo">Seguimiento</p>
-        <h1>Reportes</h1>
-        <p className="subtitulo">Genera reportes con las mismas cifras del dashboard y sus fuentes.</p>
-      </div>
-
-      <AvisoSimulado texto=" La generación de archivos todavía no está conectada al servidor." />
-
-      {mensaje && (
-        <p className="mensaje mensaje--exito" role="status">
-          {mensaje}
-        </p>
-      )}
-
-      <ul className="tres-columnas resumen-bandeja">
-        {REPORTES.map((r) => (
-          <li key={r.titulo} className="tarjeta reporte">
-            <div className="reporte__icono" aria-hidden="true">
-              <IconoArchivo tamano={20} />
-            </div>
-            <h2 className="reporte__titulo">{r.titulo}</h2>
-            <p className="texto-pequeno texto-suave">{r.detalle}</p>
-            <div className="fila-chips">
-              <Chip tono="neutro">{r.formato}</Chip>
-              <span className="texto-pequeno texto-suave">Actualizado: {r.actualizado}</span>
-            </div>
-            <button
-              type="button"
-              className="boton boton--secundario boton--bloque"
-              onClick={() =>
-                setMensaje(
-                  `«${r.titulo}» en ${r.formato}: en esta demostración no se genera el archivo. Usará las cifras de la cartera y sus fuentes.`,
-                )
-              }
-            >
-              Generar
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+  const [r, retry] = useConsulta((s) => consultarFinanzas(s), [])
+  return <div className="pagina"><h1>Reportes con procedencia</h1><p>Exportación de datos visibles para tu perfil; no genera un diagnóstico ni una decisión oficial.</p><Contenido resultado={r} reintentar={retry} textoCarga="Preparando el reporte…">{(d) => <section className="tarjeta"><h2>Programa y ejecución financiera</h2><p>Corte {d.corte} · {d.cobertura.eps} EPS · {d.fuente}</p><dl><dt>Programa vigente</dt><dd>{soles(d.total.programado)}</dd><dt>Ejecución acumulada reportada</dt><dd>{soles(d.total.ejecutado)}</dd></dl><p className="nota">Los valores ausentes se exportan vacíos; las filas trimestrales pueden tener distinta cobertura.</p><button className="boton boton--primario" onClick={() => {
+    const filas: unknown[][] = [['periodo', 'ejecucion_reportada_soles', 'proyectos_reportantes', 'eps_reportantes', 'corte', 'fuentes'], ...d.ejecucion_trimestral.map((q) => [q.x, q.y, q.proyectos_reportantes, q.eps_reportantes, d.corte, d.archivos_fuente.join(' | ')])]
+    const blob = new Blob(['\uFEFF' + filas.map((f) => f.map(csv).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `yakukhipu-finanzas-${d.corte}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }}>Descargar CSV de mi ámbito</button><details><summary>Archivos de origen</summary><ul>{d.archivos_fuente.map((f) => <li key={f}>{f}</li>)}</ul></details></section>}</Contenido></div>
 }

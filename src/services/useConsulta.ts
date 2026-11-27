@@ -19,7 +19,7 @@ export function useConsulta<T>(
     const control = new AbortController()
     setResultado({ estado: 'cargando' })
     servicio(control.signal)
-      .then((datos) => setResultado({ estado: 'listo', datos }))
+      .then((datos) => { if (!control.signal.aborted) setResultado({ estado: 'listo', datos }) })
       .catch((error: unknown) => {
         if (control.signal.aborted) return
         const mensaje = error instanceof Error ? error.message : 'Ocurrió un error inesperado.'
